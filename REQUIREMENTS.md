@@ -626,6 +626,7 @@ beach/
 - `docker-compose.yml` providing PostgreSQL for local development (optional — can also use an external database by setting `DATABASE_URL`)
 - Single `make dev` command to start the API with hot reload
 - Hot reload via [Air](https://github.com/air-verse/air) with `.air.toml` config in `api/`
+- **Credentials:** All environment variables live in `api/.env` (git-ignored). Copy `api/.env.example` to `api/.env` and fill in real values. The Makefile auto-loads `.env` via `include` + `export` — no credentials are hardcoded in committed files.
 - Seed data for local testing
 
 ### 14.2 CI/CD — GitHub Actions
@@ -898,6 +899,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - GIS host: `maps5.vcgov.org` (not `vcgis.vcgov.org`)
 - Ingester runs as a goroutine inside the API binary (not a separate process)
 - Database: pgx v5 with connection pool (max 10 conns, min 2)
+- Credentials managed via `api/.env` (git-ignored) with `api/.env.example` committed as template
 
 **Not yet started:** Weather integration (deferred from Phase 1 to Phase 2)
 

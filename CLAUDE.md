@@ -19,7 +19,7 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 - Go 1.22+
 - Use `internal/` for all non-exported packages
 - Entry point: `api/cmd/server/main.go`
-- HTTP framework: Echo or Chi (decide during Phase 1)
+- HTTP framework: Echo v4
 - Use structured logging (slog or zerolog), never fmt.Println in production code
 - All configuration via environment variables — never hardcode URLs, credentials, or station IDs
 - Error handling: always wrap errors with context (`fmt.Errorf("fetching ramps: %w", err)`)
@@ -75,6 +75,14 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 - **DO NOT MODIFY** any files in `tidbyt/`
 - The Pixlet script depends on the v1 API response shape
 - If you change v1 endpoints, verify the response JSON is identical
+
+## Local Development Credentials
+
+- **Never commit credentials** — all sensitive config lives in `api/.env` (git-ignored)
+- Copy `api/.env.example` to `api/.env` and fill in real values
+- The Makefile auto-loads `.env` via `include .env` + `export`
+- `.env.example` is committed with placeholder values so devs know what to set
+- For production (DigitalOcean App Platform), env vars are set in the app spec or platform UI
 
 ## Git & CI
 
