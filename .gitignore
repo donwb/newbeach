@@ -1,0 +1,24 @@
+# Environment variables (contains credentials)
+.env
+.env.local
+.env.*.local
+
+# Go build artifacts
+bin/
+tmp/
+
+# Air hot reload
+api/tmp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml

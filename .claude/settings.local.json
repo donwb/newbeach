@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go mod tidy)",
+      "Bash(go build ./...)",
+      "Bash(go vet ./...)",
+      "Bash(go test ./...)",
+      "Bash(docker compose up db -d)",
+      "Bash(curl -s http://localhost:8080/rampstatus)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:8080/api/v2/ramps)",
+      "Bash(curl -s http://localhost:8080/api/v2/config)",
+      "Bash(curl -s http://localhost:8080/ramps)",
+      "Bash(curl -s http://localhost:8080/)",
+      "Bash(pkill -f \"go run ./cmd/server\")",
+      "Bash(pkill -f \"beach-api\")",
+      "Bash(go install github.com/air-verse/air@latest)",
+      "Bash(brew install go)",
+      "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
+      "Bash(go version)",
+      "Bash(lsof -ti:8080)",
+      "Bash(xargs kill -9)",
+      "Bash(docker compose down)",
+      "Bash(curl -s \"https://maps5.vcgov.org/arcgis/rest/services/Beaches/MapServer/7/query?where=AccessStatus=''open''&outFields=*&f=json\")",
+      "Bash(curl -s \"https://maps5.vcgov.org/arcgis/rest/services/Beaches/MapServer/7/query?where=AccessStatus=''open%20-%20entrance%20only''&outFields=*&f=json\")",
+      "Bash(make build)"
+    ]
+  }
+}

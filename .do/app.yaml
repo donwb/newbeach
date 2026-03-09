@@ -1,0 +1,34 @@
+name: beach-ramp-status
+region: nyc
+services:
+  - name: beach-api
+    github:
+      repo: donwb/beach
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: api/Dockerfile
+    source_dir: /
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /api/v2/health
+    envs:
+      - key: GIS_HOST
+        value: maps5.vcgov.org
+      - key: POLL_INTERVAL
+        value: "60"
+      - key: LOG_LEVEL
+        value: info
+      - key: WEBCAM_URL
+        value: "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/dynamic/wesh/CAM13.jpg"
+      - key: NOAA_TIDE_STATION
+        value: "8721164"
+      - key: NOAA_TEMP_STATIONS
+        value: "8721604,8720218"
+databases:
+  - name: beach-db
+    engine: PG
+    version: "16"
+    size: db-s-dev-database
+    production: false

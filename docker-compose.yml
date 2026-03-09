@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: beach
+      POSTGRES_PASSWORD: beach
+      POSTGRES_DB: beach
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beach"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://beach:beach@db:5432/beach?sslmode=disable
+      GIS_HOST: vcgis.vcgov.org
+      POLL_INTERVAL: "60"
+      LOG_LEVEL: info
+      PORT: "8080"
+      WEBCAM_URL: https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/dynamic/wesh/CAM13.jpg
+      NOAA_TIDE_STATION: "8721164"
+      NOAA_TEMP_STATIONS: "8721604,8720218"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
