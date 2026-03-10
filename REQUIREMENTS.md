@@ -957,6 +957,39 @@ These items are not in scope for the initial rebuild but the architecture should
 
 **Not yet built from Phase 2 requirements:** Historical analytics dashboard (ramp open/close pattern visualization), PWA offline page
 
+### Phase 3 — Production Deploy & CI/CD ✅ Complete (March 10, 2026)
+
+**Infrastructure fixes:**
+- Aligned Go version to 1.24 across `go.mod`, Dockerfile (`golang:1.24-alpine`), and GitHub Actions
+- Fixed repo name in `.do/app.yaml` (`donwb/beach` → `donwb/newbeach`)
+- Fixed `GIS_HOST` in `docker-compose.yml` (`maps5.vcgov.org`)
+- Merged separate `ci.yml` and `deploy.yml` into single workflow with dependency chain
+
+**CI/CD pipeline (`.github/workflows/ci.yml`):**
+- Single workflow with two jobs: `lint-test-build` → `deploy`
+- `lint-test-build` runs on all pushes to main + PRs: go vet, staticcheck, `go test -race`, go build (with PostgreSQL 16 service for integration tests)
+- `deploy` runs only on push to main, only after CI passes: doctl deploy to DigitalOcean App Platform + 30-second smoke test of `/api/v2/health`
+- PR-triggered runs skip the deploy job entirely
+
+**DigitalOcean App Platform (`.do/app.yaml`):**
+- Service: `beach-api` — Dockerfile build, 1x basic-xxs instance, health check at `/api/v2/health`
+- Database: external AWS RDS (PostgreSQL) — `DATABASE_URL` set as encrypted secret in DO dashboard
+- Auto-deploy on push to main via GitHub integration
+- Production URL: `https://beach-ramp-status-kff7g.ondigitalocean.app`
+
+**Production verification:**
+- v1 endpoints (`/rampstatus`, `/tides`) — working, Tidbyt compatible
+- v2 endpoints (`/api/v2/ramps`, `/api/v2/weather`, `/api/v2/tides/chart`, `/api/v2/activity`) — all returning live data
+- Website served at root (`/`) with all Phase 2 features
+- Migrations run automatically at startup
+- GIS ingester polling every 60 seconds, ramp data populating
+
+**Key decisions made:**
+- External AWS RDS database instead of DO managed PostgreSQL (same instance for dev and prod)
+- Single GitHub Actions workflow file (not separate CI and deploy files) — deploy job uses `needs:` to depend on CI passing
+- Smoke test uses DO app ingress URL (not custom domain) for reliability
+- Docker image validated locally before first push (`docker build -f api/Dockerfile`)
+
 ---
 
 *This is a living document. It will be updated as architectural decisions are finalized during implementation.*
