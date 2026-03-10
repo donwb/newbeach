@@ -14,6 +14,8 @@ services:
     health_check:
       http_path: /api/v2/health
     envs:
+      - key: DATABASE_URL
+        type: SECRET
       - key: GIS_HOST
         value: maps5.vcgov.org
       - key: POLL_INTERVAL
@@ -26,9 +28,3 @@ services:
         value: "8721164"
       - key: NOAA_TEMP_STATIONS
         value: "8721604,8720218"
-databases:
-  - name: beach-db
-    engine: PG
-    version: "16"
-    size: db-s-dev-database
-    production: false
