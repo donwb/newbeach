@@ -45,7 +45,16 @@
       "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps)",
       "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/weather)",
       "Bash(gh run list --limit 1)",
-      "Bash(gh run watch 22912719672)"
+      "Bash(gh run watch 22912719672)",
+      "Bash(swift --version)",
+      "Bash(xcode-select -p)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/config)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides/chart)",
+      "Bash(swift build)",
+      "Bash(xcodebuild -list)",
+      "Bash(xcodebuild -scheme BeachRamp -destination 'platform=iOS Simulator,name=iPhone 16' -quiet build)",
+      "Bash(xcodebuild -scheme BeachRamp -destination 'platform=iOS Simulator,name=iPhone 17' build)"
     ]
   }
 }
