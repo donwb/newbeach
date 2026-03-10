@@ -3,7 +3,7 @@ region: nyc
 services:
   - name: beach-api
     github:
-      repo: donwb/beach
+      repo: donwb/newbeach
       branch: main
       deploy_on_push: true
     dockerfile_path: api/Dockerfile

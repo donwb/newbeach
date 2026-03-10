@@ -25,7 +25,7 @@ services:
       - "8080:8080"
     environment:
       DATABASE_URL: postgres://beach:beach@db:5432/beach?sslmode=disable
-      GIS_HOST: vcgis.vcgov.org
+      GIS_HOST: maps5.vcgov.org
       POLL_INTERVAL: "60"
       LOG_LEVEL: info
       PORT: "8080"
