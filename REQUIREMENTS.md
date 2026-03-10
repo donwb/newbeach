@@ -223,9 +223,13 @@ CRAWFORD RD is : CLOSED
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/v2/ramps` | GET | Versioned API — same data with pagination, filtering by city/status |
+| `/api/v2/ramps` | GET | Versioned API — same data with filtering by city/status |
 | `/api/v2/ramps/:id` | GET | Individual ramp detail |
-| `/api/v2/tides` | GET | Enhanced tide data with more prediction points |
+| `/api/v2/ramps/:id/history` | GET | Historical status changes for a specific ramp (`?limit=100`) |
+| `/api/v2/activity` | GET | Recent status changes across all ramps (`?limit=50`, max 200) |
+| `/api/v2/tides` | GET | Enhanced tide data with high/low predictions + hourly curve |
+| `/api/v2/tides/chart` | GET | Dedicated chart endpoint: hourly curve, H/L markers, current time |
+| `/api/v2/weather` | GET | Current conditions (incl. wind speed/gust) + forecast from NWS API (api.weather.gov) |
 | `/api/v2/health` | GET | Health check endpoint for monitoring |
 | `/api/v2/config` | GET | Client configuration (webcam URL, feature flags) |
 
@@ -847,29 +851,36 @@ These items are not in scope for the initial rebuild but the architecture should
 - Weather data integration (NOAA Weather API or OpenWeatherMap)
 - `.do/app.yaml` App Platform spec
 - Docker Compose local dev setup
-- CI/CD pipeline (GitHub Actions)
-- Deploy to DigitalOcean App Platform
 
 ### Phase 2 — Website
 - Rebuild website with Tailwind CSS
 - All existing features + dark mode, favorites, tide chart
-- Weather conditions display
+- Weather conditions display (including wind speed/gusts)
 - Historical analytics dashboard (ramp open/close patterns)
 - PWA support
 
-### Phase 3 — iOS App
+### Phase 3 — Production Deploy & CI/CD
+- Dockerfile validation and optimization
+- GitHub Actions CI pipeline (lint, test, build on every PR)
+- GitHub Actions CD pipeline (build and push Docker image on merge to main)
+- Deploy to DigitalOcean App Platform
+- Verify migrations run automatically at startup in production
+- Validate all environment variables in production
+- Smoke test: v1 endpoints (Tidbyt compatibility), v2 endpoints, website
+
+### Phase 4 — iOS App
 - Unified SwiftUI app
 - Shared Swift package for models/networking
 - All carry-forward features + new features
 - Historical analytics view
 - Home screen widgets
 
-### Phase 4 — Apple Watch & Apple TV
+### Phase 5 — Apple Watch & Apple TV
 - Watch app with complications
 - TV ambient dashboard (including weather data)
 - Background refresh
 
-### Phase 5 — TRMNL Device & Polish
+### Phase 6 — TRMNL Device & Polish
 - TRMNL e-ink template rewrite + dedicated `/api/v2/trmnl` endpoint
 - Push notifications infrastructure
 - Performance optimization
@@ -901,7 +912,50 @@ These items are not in scope for the initial rebuild but the architecture should
 - Database: pgx v5 with connection pool (max 10 conns, min 2)
 - Credentials managed via `api/.env` (git-ignored) with `api/.env.example` committed as template
 
-**Not yet started:** Weather integration (deferred from Phase 1 to Phase 2)
+**Deferred:** Weather integration (moved to Phase 2), CI/CD pipeline and production deploy (moved to Phase 3)
+
+### Phase 2 — Website ✅ Complete (March 10, 2026)
+
+**Backend additions:**
+- NWS weather client (`internal/weather/client.go`) — current conditions + forecast from api.weather.gov, cached grid/station lookups, concurrent fetches, Celsius→Fahrenheit and km/h→mph conversion, wind gust support
+- Hourly tide predictions (`FetchHourlyPredictions` in NOAA client) — `interval=h` for ~24 data points per day, enabling smooth tide chart rendering
+- History endpoint (`/api/v2/ramps/:id/history`) — per-ramp status change history from `ramp_status_history` table
+- Activity feed endpoint (`/api/v2/activity`) — recent changes across all ramps with joined ramp name/city
+- Tide chart endpoint (`/api/v2/tides/chart`) — dedicated endpoint returning hourly curve, H/L markers, and server time
+- Weather endpoint (`/api/v2/weather`) — current conditions + 6-period forecast
+
+**Website delivered (6 files in `web/`):**
+- `index.html` — Tailwind CSS via CDN (Play CDN for JIT), responsive layout, all sections
+- `app.js` — ~500 lines vanilla JS: API fetching, DOM rendering, canvas tide chart, filters, favorites, dark mode, auto-refresh
+- `styles.css` — minimal custom CSS (card animation, scrollbar styling)
+- `manifest.json` + `sw.js` — PWA support with network-first API caching and cache-first static assets
+- `icons/icon.svg` — SVG app icon
+
+**Features delivered:**
+- Header bar with tide direction/percentage, water temperature, weather conditions, wind speed/gusts pill, dark mode toggle
+- Summary cards with color-coded counts (total/open/limited/closed)
+- City filter pills (title case display, New Smyrna Beach pre-selected)
+- Status filter pills (All/Open/Limited/Closed)
+- Ramp cards in two-column responsive grid with color-coded left borders, status badges, favorite stars
+- Favorites persisted in localStorage, favorited ramps sorted to top
+- Dark mode with system preference detection + manual toggle (persisted)
+- Canvas-rendered tide chart with hourly curve, H/L markers, "NOW" indicator, axis labels
+- Live webcam with 60-second auto-refresh
+- 6-period weather forecast cards with wind speed/direction and gust warnings (NWS data)
+- Recent activity feed with relative timestamps and color-coded status dots
+- Mobile-first responsive design (tested at 390px iPhone width)
+- PWA installable with offline-capable service worker
+- Auto-refresh all data every 60 seconds
+- Last updated timestamp in footer
+
+**Key decisions made:**
+- Tailwind via CDN (no build step) — `@apply` not supported, all classes applied inline via JS
+- Canvas API for tide chart (no charting library)
+- NWS API (api.weather.gov) chosen over OpenWeatherMap — free, no API key required, already in NOAA ecosystem
+- GIS city names arrive uppercase; `titleCase()` utility converts for display while preserving exact-match filtering
+- Weather client caches grid point and station lookups (they never change for fixed coordinates)
+
+**Not yet built from Phase 2 requirements:** Historical analytics dashboard (ramp open/close pattern visualization), PWA offline page
 
 ---
 

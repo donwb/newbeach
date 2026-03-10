@@ -151,6 +151,17 @@ function renderHeaderWeather() {
     $('#weather-temp').textContent = c.temperature_f ? `${Math.round(c.temperature_f)}\u00B0` : '';
     $('#header-weather').classList.remove('hidden');
     $('#header-weather').classList.add('md:flex');
+
+    // Wind pill
+    if (c.wind_speed) {
+        const isCalm = c.wind_speed === '0 mph';
+        $('#wind-speed').textContent = isCalm ? 'Calm' : `${c.wind_direction || ''} ${c.wind_speed}`.trim();
+        if (c.wind_gust && !isCalm) {
+            $('#wind-gust').textContent = `Gusts ${c.wind_gust}`;
+        }
+        $('#header-wind').classList.remove('hidden');
+        $('#header-wind').classList.add('md:flex');
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -372,11 +383,17 @@ function renderWeatherForecast() {
     state.weatherInfo.forecast.slice(0, 6).forEach(period => {
         const card = document.createElement('div');
         card.className = 'text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50';
+
+        const gustHtml = period.wind_gust
+            ? `<div class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Gusts ${escapeHTML(period.wind_gust)}</div>`
+            : '';
+
         card.innerHTML = `
             <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">${escapeHTML(period.name)}</div>
             <div class="text-xl font-bold mb-1">${period.temperature}\u00B0${period.temp_unit || 'F'}</div>
             <div class="text-xs text-gray-600 dark:text-gray-300">${escapeHTML(period.short_description)}</div>
             <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">${escapeHTML(period.wind_speed)} ${escapeHTML(period.wind_direction)}</div>
+            ${gustHtml}
         `;
         grid.appendChild(card);
     });
