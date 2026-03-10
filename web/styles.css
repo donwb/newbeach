@@ -1,5 +1,40 @@
-/* Phase 2: Tailwind CSS build will replace this */
-body {
-    font-family: system-ui, -apple-system, sans-serif;
-    margin: 2rem;
+/* Beach Ramp Status — Custom styles
+   Note: Tailwind @apply is not supported with the CDN. All Tailwind classes
+   are applied directly in the HTML/JS. This file handles only custom CSS
+   that can't be expressed as utility classes. */
+
+/* Fade-in animation for ramp cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ramp-card {
+    animation: fadeInUp 0.3s ease-out forwards;
+}
+
+/* Scrollbar styling for activity feed */
+#activity-feed::-webkit-scrollbar {
+    width: 4px;
+}
+#activity-feed::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 9999px;
+}
+.dark #activity-feed::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+}
+#activity-feed::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Tide chart -- crisp rendering */
+#tide-chart {
+    image-rendering: auto;
 }

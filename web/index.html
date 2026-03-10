@@ -1,16 +1,184 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beach Ramp Status — Volusia County</title>
+    <meta name="description" content="Real-time beach access ramp status, tide data, and water temperature for Volusia County, Florida.">
+    <meta name="theme-color" content="#0d9488">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon.svg">
+
+    <!-- Tailwind CSS via CDN (Play CDN for JIT support, no build step) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sand: { 50: '#fefcf3', 100: '#fdf6e3', 200: '#f9e8c0', 300: '#f4d68a' },
+                        ocean: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a' },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom styles -->
     <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
-    <div id="app">
-        <h1>Beach Ramp Status</h1>
-        <p>Loading...</p>
-    </div>
+<body class="bg-sand-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-ocean-700 to-ocean-600 dark:from-ocean-900 dark:to-ocean-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-xl font-bold tracking-tight">
+                        <span class="hidden sm:inline">Beach Ramp Status</span>
+                        <span class="sm:hidden">Beach Ramps</span>
+                    </h1>
+                    <span class="text-ocean-100 text-sm hidden md:inline">Volusia County, FL</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Tide info pill -->
+                    <div id="header-tide" class="hidden sm:flex items-center gap-2 bg-white/15 rounded-full px-3 py-1 text-sm">
+                        <span id="tide-direction-icon"></span>
+                        <span id="tide-direction-text" class="font-medium"></span>
+                        <span id="tide-pct" class="text-ocean-100"></span>
+                    </div>
+                    <!-- Water temp -->
+                    <div id="header-temp" class="hidden sm:flex items-center gap-1 bg-white/15 rounded-full px-3 py-1 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span id="water-temp-val" class="font-medium"></span>
+                    </div>
+                    <!-- Weather -->
+                    <div id="header-weather" class="hidden md:flex items-center gap-1 bg-white/15 rounded-full px-3 py-1 text-sm">
+                        <span id="weather-desc"></span>
+                        <span id="weather-temp" class="font-medium"></span>
+                    </div>
+                    <!-- Dark mode toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-white/20 transition-colors" aria-label="Toggle dark mode">
+                        <svg id="icon-sun" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+                        <svg id="icon-moon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Summary Cards -->
+        <section id="summary-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+                <div class="text-2xl font-bold" id="count-total">—</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-l-4 border-emerald-500 text-center">
+                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400" id="count-open">—</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Open</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-l-4 border-amber-500 text-center">
+                <div class="text-2xl font-bold text-amber-600 dark:text-amber-400" id="count-limited">—</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Limited</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-l-4 border-red-500 text-center">
+                <div class="text-2xl font-bold text-red-600 dark:text-red-400" id="count-closed">—</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Closed</div>
+            </div>
+        </section>
+
+        <!-- Filters -->
+        <section class="space-y-3">
+            <!-- City filters -->
+            <div class="flex flex-wrap gap-2" id="city-filters">
+                <span class="text-sm text-gray-500 dark:text-gray-400 self-center mr-1">City:</span>
+            </div>
+            <!-- Status filters -->
+            <div class="flex flex-wrap gap-2" id="status-filters">
+                <span class="text-sm text-gray-500 dark:text-gray-400 self-center mr-1">Status:</span>
+                <button data-status="all" class="filter-pill active">All</button>
+                <button data-status="open" class="filter-pill">Open</button>
+                <button data-status="limited" class="filter-pill">Limited</button>
+                <button data-status="closed" class="filter-pill">Closed</button>
+            </div>
+        </section>
+
+        <!-- Ramp Cards Grid -->
+        <section id="ramp-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Cards populated by JS -->
+        </section>
+
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Loading ramp data...
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <p class="text-gray-500 dark:text-gray-400">No ramps match your filters.</p>
+        </div>
+
+        <!-- Tide Chart + Webcam + Weather row -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Tide Chart -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Today's Tide</h2>
+                <div class="relative">
+                    <canvas id="tide-chart" class="w-full" height="180"></canvas>
+                    <div id="tide-chart-loading" class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">Loading tide data...</div>
+                </div>
+                <div id="tide-details" class="mt-3 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
+                </div>
+            </div>
+
+            <!-- Webcam -->
+            <div id="webcam-section" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Live Webcam</h2>
+                <div class="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video">
+                    <img id="webcam-img" class="w-full h-full object-cover" alt="Beach webcam" loading="lazy">
+                    <div id="webcam-loading" class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">Loading webcam...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Weather Section -->
+        <section id="weather-section" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Weather Forecast</h2>
+            <div id="weather-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Recent Activity</h2>
+            <div id="activity-feed" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-sm text-gray-400">Loading activity...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto px-4 py-6 mt-8 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-400 dark:text-gray-500">
+            <span>Beach Ramp Status &mdash; Volusia County, Florida</span>
+            <span id="last-updated">Last updated: —</span>
+        </div>
+    </footer>
+
     <script src="/app.js"></script>
 </body>
 </html>

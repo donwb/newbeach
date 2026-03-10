@@ -27,6 +27,17 @@ type RampStatusHistory struct {
 	RecordedAt   time.Time `json:"recorded_at" db:"recorded_at"`
 }
 
+// RampHistoryEntry represents a historical ramp status change, optionally
+// enriched with ramp name and city from the current ramp_status table.
+type RampHistoryEntry struct {
+	ID           int64     `json:"id"`
+	AccessID     string    `json:"access_id"`
+	AccessStatus string    `json:"access_status"`
+	RecordedAt   time.Time `json:"recorded_at"`
+	RampName     string    `json:"ramp_name,omitempty"`
+	City         string    `json:"city,omitempty"`
+}
+
 // StatusToCategory maps a raw access status string to a category:
 // "open", "limited", or "closed".
 func StatusToCategory(status string) string {

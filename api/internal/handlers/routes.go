@@ -6,12 +6,13 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/weather"
 )
 
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -54,7 +55,11 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client) {
 	v2 := e.Group("/api/v2")
 	v2.GET("/ramps", HandleV2Ramps(pool))
 	v2.GET("/ramps/:id", HandleV2RampByID(pool))
+	v2.GET("/ramps/:id/history", HandleV2RampHistory(pool))
+	v2.GET("/activity", HandleV2RecentActivity(pool))
 	v2.GET("/tides", HandleV2Tides(noaaClient))
+	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))
+	v2.GET("/weather", HandleV2Weather(weatherClient))
 	v2.GET("/health", HandleV2Health(pool))
 	v2.GET("/config", HandleV2Config())
 }

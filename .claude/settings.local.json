@@ -23,7 +23,12 @@
       "Bash(docker compose down)",
       "Bash(curl -s \"https://maps5.vcgov.org/arcgis/rest/services/Beaches/MapServer/7/query?where=AccessStatus=''open''&outFields=*&f=json\")",
       "Bash(curl -s \"https://maps5.vcgov.org/arcgis/rest/services/Beaches/MapServer/7/query?where=AccessStatus=''open%20-%20entrance%20only''&outFields=*&f=json\")",
-      "Bash(make build)"
+      "Bash(make build)",
+      "Bash(\"/Users/donwb/dev/new beach/web/icons/icon.svg\":*)",
+      "Bash(curl -s http://localhost:8080/api/v2/tides/chart)",
+      "Bash(curl -s http://localhost:8080/api/v2/weather)",
+      "Bash(python3 -c \"import sys,json; cities=set\\(r[''city''] for r in json.load\\(sys.stdin\\)\\); print\\(sorted\\(cities\\)\\)\")",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

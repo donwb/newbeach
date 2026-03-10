@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "beach-api",
+      "runtimeExecutable": "make",
+      "runtimeArgs": ["-C", "api", "dev"],
+      "port": 8080
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import (
 	"github.com/donwb/beach/api/internal/handlers"
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/weather"
 )
 
 func main() {
@@ -96,6 +97,9 @@ func main() {
 	// Create NOAA client.
 	noaaClient := noaa.NewClient(tideStation, tempStations)
 
+	// Create NWS weather client.
+	weatherClient := weather.NewClient()
+
 	// Set up Echo HTTP server.
 	e := echo.New()
 	e.HideBanner = true
@@ -121,7 +125,7 @@ func main() {
 	}
 
 	// Register API routes.
-	handlers.RegisterRoutes(e, pool, noaaClient)
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient)
 
 	// Start the data ingester in a background goroutine.
 	ctx, cancel := context.WithCancel(context.Background())

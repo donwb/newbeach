@@ -8,6 +8,13 @@ type TidePrediction struct {
 	Type string    `json:"type"` // "H" for high, "L" for low
 }
 
+// TidePredictionPoint represents a single point on the tide curve with a
+// timestamp and predicted water height. Used for rendering smooth tide charts.
+type TidePredictionPoint struct {
+	Time   time.Time `json:"time"`
+	Height float64   `json:"height"`
+}
+
 // WaterTemp represents a water temperature reading from a single NOAA station.
 type WaterTemp struct {
 	StationID   string  `json:"station_id"`
@@ -17,10 +24,11 @@ type WaterTemp struct {
 
 // TideInfo is the combined tide and water temperature data for the current moment.
 type TideInfo struct {
-	Direction    string           `json:"tide_direction"`
-	Percentage   int              `json:"tide_percentage"`
-	WaterTempAvg float64          `json:"water_temp_avg"`
-	WaterTemps   []WaterTemp      `json:"water_temps"`
-	Predictions  []TidePrediction `json:"predictions"`
-	RetrievedAt  time.Time        `json:"retrieved_at"`
+	Direction          string                `json:"tide_direction"`
+	Percentage         int                   `json:"tide_percentage"`
+	WaterTempAvg       float64               `json:"water_temp_avg"`
+	WaterTemps         []WaterTemp           `json:"water_temps"`
+	Predictions        []TidePrediction      `json:"predictions"`
+	HourlyPredictions  []TidePredictionPoint `json:"hourly_predictions,omitempty"`
+	RetrievedAt        time.Time             `json:"retrieved_at"`
 }

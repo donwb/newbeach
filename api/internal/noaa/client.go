@@ -112,6 +112,70 @@ func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePredict
 	return predictions, nil
 }
 
+// FetchHourlyPredictions retrieves today's hourly tide height predictions from
+// the configured NOAA tide station. These provide the granular data points
+// needed to render a smooth tide chart curve.
+func (c *Client) FetchHourlyPredictions(ctx context.Context) ([]models.TidePredictionPoint, error) {
+	now := time.Now()
+	today := now.Format("20060102")
+
+	params := url.Values{
+		"product":    {"predictions"},
+		"datum":      {"MLLW"},
+		"time_zone":  {"lst_ldt"},
+		"units":      {"english"},
+		"format":     {"json"},
+		"interval":   {"h"},
+		"station":    {c.tideStationID},
+		"begin_date": {today},
+		"end_date":   {today},
+	}
+
+	reqURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating hourly prediction request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching hourly predictions from NOAA: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("NOAA hourly predictions returned status %d", resp.StatusCode)
+	}
+
+	var noaaResp noaaPredictionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&noaaResp); err != nil {
+		return nil, fmt.Errorf("decoding hourly predictions: %w", err)
+	}
+
+	points := make([]models.TidePredictionPoint, 0, len(noaaResp.Predictions))
+	for _, p := range noaaResp.Predictions {
+		t, err := time.ParseInLocation("2006-01-02 15:04", p.T, now.Location())
+		if err != nil {
+			slog.Warn("skipping unparseable hourly prediction time", "raw", p.T, "err", err)
+			continue
+		}
+
+		var height float64
+		if _, err := fmt.Sscanf(p.V, "%f", &height); err != nil {
+			slog.Warn("skipping unparseable hourly prediction height", "raw", p.V, "err", err)
+			continue
+		}
+
+		points = append(points, models.TidePredictionPoint{
+			Time:   t,
+			Height: height,
+		})
+	}
+
+	return points, nil
+}
+
 // FetchWaterTemps retrieves the latest water temperature from each configured
 // NOAA temperature station.
 func (c *Client) FetchWaterTemps(ctx context.Context) ([]models.WaterTemp, error) {
@@ -195,6 +259,12 @@ func (c *Client) GetTideInfo(ctx context.Context) (*models.TideInfo, error) {
 		return nil, fmt.Errorf("fetching water temps: %w", err)
 	}
 
+	// Hourly predictions are non-critical — log and continue if they fail.
+	hourly, err := c.FetchHourlyPredictions(ctx)
+	if err != nil {
+		slog.Warn("failed to fetch hourly predictions, continuing without them", "err", err)
+	}
+
 	now := time.Now()
 	direction, pct := calculateTidePosition(predictions, now)
 
@@ -205,12 +275,13 @@ func (c *Client) GetTideInfo(ctx context.Context) (*models.TideInfo, error) {
 	avg := tempSum / float64(len(temps))
 
 	return &models.TideInfo{
-		Direction:    direction,
-		Percentage:   pct,
-		WaterTempAvg: avg,
-		WaterTemps:   temps,
-		Predictions:  predictions,
-		RetrievedAt:  now,
+		Direction:         direction,
+		Percentage:        pct,
+		WaterTempAvg:      avg,
+		WaterTemps:        temps,
+		Predictions:       predictions,
+		HourlyPredictions: hourly,
+		RetrievedAt:       now,
 	}, nil
 }
 

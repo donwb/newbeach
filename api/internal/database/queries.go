@@ -129,6 +129,73 @@ func GetRampByAccessID(ctx context.Context, pool *pgxpool.Pool, accessID string)
 	return ramp, nil
 }
 
+// GetRampHistory returns the most recent history entries for a specific ramp,
+// identified by its access_id. Results are ordered newest-first.
+func GetRampHistory(ctx context.Context, pool *pgxpool.Pool, accessID string, limit int) ([]models.RampHistoryEntry, error) {
+	const query = `
+		SELECT id, access_id, access_status, recorded_at
+		FROM ramp_status_history
+		WHERE access_id = $1
+		ORDER BY recorded_at DESC
+		LIMIT $2
+	`
+
+	rows, err := pool.Query(ctx, query, accessID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("querying ramp history for access_id %s: %w", accessID, err)
+	}
+	defer rows.Close()
+
+	var entries []models.RampHistoryEntry
+	for rows.Next() {
+		var e models.RampHistoryEntry
+		if err := rows.Scan(&e.ID, &e.AccessID, &e.AccessStatus, &e.RecordedAt); err != nil {
+			return nil, fmt.Errorf("scanning ramp history row: %w", err)
+		}
+		entries = append(entries, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating ramp history rows: %w", err)
+	}
+
+	return entries, nil
+}
+
+// GetRecentHistory returns the most recent history entries across all ramps,
+// enriched with ramp_name and city from the ramp_status table.
+// Results are ordered newest-first.
+func GetRecentHistory(ctx context.Context, pool *pgxpool.Pool, limit int) ([]models.RampHistoryEntry, error) {
+	const query = `
+		SELECT h.id, h.access_id, h.access_status, h.recorded_at, r.ramp_name, r.city
+		FROM ramp_status_history h
+		JOIN ramp_status r ON h.access_id = r.access_id
+		ORDER BY h.recorded_at DESC
+		LIMIT $1
+	`
+
+	rows, err := pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("querying recent history: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []models.RampHistoryEntry
+	for rows.Next() {
+		var e models.RampHistoryEntry
+		if err := rows.Scan(&e.ID, &e.AccessID, &e.AccessStatus, &e.RecordedAt, &e.RampName, &e.City); err != nil {
+			return nil, fmt.Errorf("scanning recent history row: %w", err)
+		}
+		entries = append(entries, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating recent history rows: %w", err)
+	}
+
+	return entries, nil
+}
+
 // scanRamps collects all rows from a pgx.Rows into a slice of RampStatus.
 func scanRamps(rows pgx.Rows) ([]models.RampStatus, error) {
 	var ramps []models.RampStatus

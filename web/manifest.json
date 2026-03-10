@@ -1,0 +1,16 @@
+{
+    "name": "Beach Ramp Status",
+    "short_name": "Beach Ramps",
+    "description": "Real-time beach access ramp status for Volusia County, Florida",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#fefcf3",
+    "theme_color": "#0d9488",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}
