@@ -362,6 +362,9 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - Minimum deployment target: iOS 17
 - Swift 5.9+
 - SwiftData for local persistence/caching
+- Universal app (iPhone + iPad)
+- Support both landscape and portrait orientations
+- Match web app color scheme and visual design (sand/cream tones, teal accents, status colors)
 
 ### 8.2 Features (carry forward from BeachInfo + BeachLife)
 
@@ -869,11 +872,13 @@ These items are not in scope for the initial rebuild but the architecture should
 - Smoke test: v1 endpoints (Tidbyt compatibility), v2 endpoints, website
 
 ### Phase 4 — iOS App
-- Unified SwiftUI app
-- Shared Swift package for models/networking
-- All carry-forward features + new features
-- Historical analytics view
-- Home screen widgets
+- Universal SwiftUI app (iPhone + iPad), landscape + portrait
+- Shared Swift package (`BeachStatus/`) for models, networking, utilities
+- Match web app look/feel (sand/cream, teal header, status colors)
+- All carry-forward features + city/status filtering, favorites
+- Weather + wind display, tide chart, webcam
+- MVVM architecture, async/await networking, SwiftData caching
+- Xcode project scaffolding created manually; all Swift code written by Claude Code
 
 ### Phase 5 — Apple Watch & Apple TV
 - Watch app with complications
