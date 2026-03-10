@@ -26,6 +26,7 @@ type Conditions struct {
 	Temperature   float64   `json:"temperature_f"`
 	WindSpeed     string    `json:"wind_speed"`
 	WindDirection string    `json:"wind_direction"`
+	WindGust      string    `json:"wind_gust,omitempty"`
 	Description   string    `json:"description"`
 	Humidity      int       `json:"humidity"`
 	Icon          string    `json:"icon"`
@@ -41,6 +42,7 @@ type Forecast struct {
 	TempUnit     string `json:"temp_unit"`
 	WindSpeed    string `json:"wind_speed"`
 	WindDir      string `json:"wind_direction"`
+	WindGust     string `json:"wind_gust,omitempty"`
 	ShortDesc    string `json:"short_description"`
 	DetailedDesc string `json:"detailed_description"`
 	IsDaytime    bool   `json:"is_daytime"`
@@ -161,6 +163,9 @@ type nwsObservationResponse struct {
 		WindDirection struct {
 			Value *float64 `json:"value"`
 		} `json:"windDirection"`
+		WindGust struct {
+			Value *float64 `json:"value"`
+		} `json:"windGust"`
 		RelativeHumidity struct {
 			Value *float64 `json:"value"`
 		} `json:"relativeHumidity"`
@@ -172,15 +177,16 @@ type nwsObservationResponse struct {
 type nwsForecastResponse struct {
 	Properties struct {
 		Periods []struct {
-			Name             string `json:"name"`
-			Temperature      int    `json:"temperature"`
-			TemperatureUnit  string `json:"temperatureUnit"`
-			WindSpeed        string `json:"windSpeed"`
-			WindDirection    string `json:"windDirection"`
-			ShortForecast    string `json:"shortForecast"`
-			DetailedForecast string `json:"detailedForecast"`
-			IsDaytime        bool   `json:"isDaytime"`
-			Icon             string `json:"icon"`
+			Name             string  `json:"name"`
+			Temperature      int     `json:"temperature"`
+			TemperatureUnit  string  `json:"temperatureUnit"`
+			WindSpeed        string  `json:"windSpeed"`
+			WindDirection    string  `json:"windDirection"`
+			WindGust         *string `json:"windGust"`
+			ShortForecast    string  `json:"shortForecast"`
+			DetailedForecast string  `json:"detailedForecast"`
+			IsDaytime        bool    `json:"isDaytime"`
+			Icon             string  `json:"icon"`
 		} `json:"periods"`
 	} `json:"properties"`
 }
@@ -270,6 +276,12 @@ func (c *Client) fetchCurrentConditions(ctx context.Context) (*Conditions, error
 		cond.WindSpeed = fmt.Sprintf("%.0f mph", mph)
 	}
 
+	// Wind gust from NWS is in km/h — convert to mph and format.
+	if obs.Properties.WindGust.Value != nil {
+		gust := kmhToMph(*obs.Properties.WindGust.Value)
+		cond.WindGust = fmt.Sprintf("%.0f mph", gust)
+	}
+
 	// Wind direction in degrees — convert to cardinal direction.
 	if obs.Properties.WindDirection.Value != nil {
 		cond.WindDirection = degreesToCardinal(*obs.Properties.WindDirection.Value)
@@ -302,7 +314,7 @@ func (c *Client) fetchForecast(ctx context.Context) ([]Forecast, error) {
 	periods := nwsResp.Properties.Periods
 	forecasts := make([]Forecast, 0, len(periods))
 	for _, p := range periods {
-		forecasts = append(forecasts, Forecast{
+		f := Forecast{
 			Name:         p.Name,
 			Temperature:  p.Temperature,
 			TempUnit:     p.TemperatureUnit,
@@ -312,7 +324,11 @@ func (c *Client) fetchForecast(ctx context.Context) ([]Forecast, error) {
 			DetailedDesc: p.DetailedForecast,
 			IsDaytime:    p.IsDaytime,
 			Icon:         p.Icon,
-		})
+		}
+		if p.WindGust != nil {
+			f.WindGust = *p.WindGust
+		}
+		forecasts = append(forecasts, f)
 	}
 
 	return forecasts, nil
