@@ -73,4 +73,4 @@ jobs:
       - name: Smoke test
         run: |
           sleep 30
-          curl -sf https://donwb.com/api/v2/health || exit 1
+          curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/health || exit 1
