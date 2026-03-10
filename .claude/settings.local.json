@@ -28,7 +28,24 @@
       "Bash(curl -s http://localhost:8080/api/v2/tides/chart)",
       "Bash(curl -s http://localhost:8080/api/v2/weather)",
       "Bash(python3 -c \"import sys,json; cities=set\\(r[''city''] for r in json.load\\(sys.stdin\\)\\); print\\(sorted\\(cities\\)\\)\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(docker build -f api/Dockerfile -t beach-api:test .)",
+      "Bash(docker run --rm beach-api:test ls -la /web/ /migrations/ /beach-api)",
+      "Bash(gh run list --limit 3)",
+      "Bash(gh run list --limit 5)",
+      "Bash(gh run view 22911941925 --log-failed)",
+      "Bash(gh run view 22911941925)",
+      "Bash(gh run view --log-failed)",
+      "Bash(gh run view 22911941925 -v)",
+      "Bash(gh run view 22911941925 --job 66488364788 --log-failed)",
+      "Bash(doctl apps list --format ID,DefaultIngress,ActiveDeployment.Phase)",
+      "Bash(doctl apps list --format ID,DefaultIngress)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/health)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/rampstatus)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps)",
+      "Bash(curl -sf https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/weather)",
+      "Bash(gh run list --limit 1)",
+      "Bash(gh run watch 22912719672)"
     ]
   }
 }
