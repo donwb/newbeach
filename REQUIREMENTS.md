@@ -1,7 +1,7 @@
 # Beach Ramp Status — Rebuild Requirements
 
-**Version:** 1.0 (Draft)
-**Date:** March 9, 2026
+**Version:** 1.0
+**Date:** March 11, 2026
 **Author:** Don Browning + Claude
 
 ---
@@ -24,7 +24,7 @@ The existing system is a monorepo (`donwb/beach`) containing:
 - **iOS app (SwiftUI)** (`BeachLife/`) — newer prototype, simpler feature set
 - **Tidbyt display** (`tidbyt/`) — Pixlet script for Tidbyt IoT display (discontinued hardware)
 - **Website** (`svc/view/`) — vanilla HTML/JS/CSS dashboard at donwb.com
-- **TRML device** — separate codebase (not in repo), to be provided and rewritten
+- **TRMNL device** — separate codebase (not in repo), to be provided and rewritten
 
 ### What works well and should be preserved
 
@@ -94,7 +94,7 @@ The existing system is a monorepo (`donwb/beach`) containing:
 | Apple Watch | N/A | SwiftUI (new) |
 | Apple TV | N/A | SwiftUI (new) |
 | Tidbyt | Pixlet/Starlark | Frozen — no changes |
-| TRMNL display | Liquid template + plugin webhook | Rewrite template + add `/api/v2/trmnl` endpoint |
+| TRMNL display | Liquid template + plugin webhook | Rewrite template, polling plugin using existing v2 endpoints |
 
 ---
 
@@ -519,38 +519,45 @@ All values via environment variables:
 - The Tidbyt Pixlet script (`tidbyt/main.star`) remains in the repo unchanged
 - No testing or CI coverage needed for the Tidbyt code
 
-### 12.2 TRMNL E-Ink Display (Active Platform — Rewrite)
+### 12.2 TRMNL E-Ink Display (Active Platform)
 
-**Status:** Active platform under continuous development. Existing Liquid template provided. To be rewritten for the new API.
+**Status:** ✅ Complete. Template rewritten for the v2 API.
 
-**Device:** TRMNL — a low-power e-ink dashboard display that renders HTML/CSS via Liquid templates. The TRMNL platform fetches data from a configured API endpoint (a "plugin webhook") and injects it as Liquid variables into the template for rendering.
+**Device:** TRMNL — a low-power e-ink dashboard display (800×480) that renders HTML/CSS via Liquid templates. The TRMNL platform polls configured URLs on a schedule and injects the JSON responses as Liquid variables into the template for rendering.
 
-**Current implementation:**
+**Implementation:**
 - Liquid template (HTML + CSS) rendered by the TRMNL platform
-- Monochrome design optimized for e-ink (no color, high contrast)
-- Shows NSB-only: 4 ramps (3rd Ave, Crawford, Flagler, Beachway)
-- Displays: current local time, tide direction, tide percentage, water temperature
-- Status styling: normal text (open), underline (closed), lighter weight (limited)
+- Monochrome design optimized for e-ink (no color, high contrast, no gradients)
+- NSB-focused: 4 ramps ordered top-to-bottom: 3rd Ave, Flagler Ave, Crawford Rd, Beachway Ave
+- Header: title + water temperature (rounded) + local clock
+- Tide bar: direction arrow (↑/↓) + label + visual percentage bar + numeric percentage
+- Ramp rows: human-readable name + abbreviated status with visual differentiation
+- Footer: location + app name
 - Time calculated from `trmnl.user.utc_offset` (TRMNL platform variable)
 
-**Data contract — current template variables:**
+**TRMNL polling plugin configuration (two URLs, line-break separated):**
 
-| Variable | Type | Source | Example |
-|----------|------|--------|---------|
-| `tide_dir` | string | API | "Rising" |
-| `tide_pct` | number | API | 54 |
-| `water_temp` | number | API | 72 |
-| `r_3rd.accessStatus` | string | API | "OPEN" |
-| `r_crawford.accessStatus` | string | API | "OPEN" |
-| `r_flagler.accessStatus` | string | API | "4X4 ONLY" |
-| `r_beachway.accessStatus` | string | API | "CLOSED" |
+| URL | Endpoint | Template variable |
+|-----|----------|-------------------|
+| URL 1 | `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH` | `IDX_0.data[]` (array wrapped by TRMNL) |
+| URL 2 | `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides` | `IDX_1.*` (object keys directly) |
 
-**Status abbreviation (applies to all IoT devices):**
+**Variable paths used in template:**
 
-Ramp status strings from GIS can be long (e.g., "CLOSED - CLEARED FOR TURTLES", "OPEN - ENTRANCE ONLY"). On space-constrained IoT displays, statuses longer than 12 characters must be abbreviated. The API should return both `access_status` (full) and `access_status_short` (≤12 chars) in IoT-targeted responses. Suggested abbreviations:
+| Variable | Type | Example |
+|----------|------|---------|
+| `IDX_0.data[].ramp_name` | string | "3RD AV" |
+| `IDX_0.data[].access_status` | string | "OPEN", "CLOSED FOR HIGH TIDE" |
+| `IDX_0.data[].status_category` | string | "open", "limited", "closed" |
+| `IDX_1.tide_direction` | string | "Rising" or "Dropping" |
+| `IDX_1.tide_percentage` | number | 54 |
+| `IDX_1.water_temp_avg` | float | 72.5 |
+| `trmnl.user.utc_offset` | number | -4 (TRMNL platform variable) |
 
-| Full Status | Abbreviated (≤12 chars) |
-|-------------|------------------------|
+**Status abbreviation (≤12 chars, handled in Liquid template):**
+
+| Full Status | Abbreviated |
+|-------------|-------------|
 | OPEN | OPEN |
 | CLOSED | CLOSED |
 | 4X4 ONLY | 4X4 ONLY |
@@ -560,18 +567,22 @@ Ramp status strings from GIS can be long (e.g., "CLOSED - CLEARED FOR TURTLES", 
 | CLOSING IN PROGRESS | CLOSING |
 | OPEN - ENTRANCE ONLY | ENTER ONLY |
 
-**Rebuild requirements:**
+**Status differentiation (no color — e-ink monochrome):**
+- Open → **bold** (font-weight 800)
+- Limited → *italic* (font-weight 600, font-style italic)
+- Closed → ~~strikethrough~~ (font-weight 300, text-decoration line-through)
+- Category determined from `status_category` field (not string matching)
 
-- **New API endpoint:** `/api/v2/trmnl` — a dedicated endpoint that returns JSON shaped exactly for the TRMNL plugin webhook, mapping ramp data into the named variables the template expects
-- **Template rewrite:** Modernize the Liquid template while preserving the monochrome, high-contrast e-ink aesthetic
-- **Design improvements:**
-  - Cleaner typography hierarchy (the current 58-62px sizes are appropriate for e-ink readability)
-  - Better status differentiation without color (bold/normal/strikethrough or icons)
-  - Consider adding "last updated" timestamp
-  - Maintain the compact 4-ramp NSB-focused layout
-- **TRMNL plugin configuration:** The plugin webhook URL will point to the new `/api/v2/trmnl` endpoint
-- **Template file location:** `trmnl/template.html` in the monorepo
-- **No server-side rendering needed** — TRMNL handles rendering; we just provide the data endpoint and the template file
+**Key decisions:**
+- No dedicated `/api/v2/trmnl` endpoint — uses existing v2 endpoints with TRMNL's multi-URL polling plugin
+- Polling plugin (not webhook): TRMNL fetches from our URLs on a schedule; data accessed via `IDX_0`, `IDX_1` index-based namespacing
+- Root array response (`/api/v2/ramps`) automatically wrapped in `data` key by TRMNL → accessed as `IDX_0.data`
+- City filtering via query parameter (`?city=NEW%20SMYRNA%20BEACH`) — no template-side filtering needed
+- Template loops through ramps array and matches by `ramp_name` to assign display variables — avoids hardcoded array indices
+- All status abbreviation handled in Liquid template logic (no backend changes)
+- Template pasted into TRMNL dashboard (not served from URL)
+- Pure CSS layout (flexbox), no JavaScript — e-ink displays don't execute JS
+- Template file location: `trmnl/template.html` in the monorepo
 
 ---
 
@@ -615,8 +626,7 @@ beach/
 │   └── app.yaml            # App Platform app spec
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml          # Lint, test, build on every PR
-│       └── deploy.yml      # Deploy to App Platform on push to main
+│       └── ci.yml          # Lint, test, build on PR; deploy to App Platform on push to main
 ├── docker-compose.yml      # Local dev environment
 ├── README.md
 ├── REQUIREMENTS.md         # This document
@@ -637,29 +647,19 @@ beach/
 
 ### 14.2 CI/CD — GitHub Actions
 
-**Workflow: `ci.yml`** (runs on every PR and push to `main`)
+**Workflow: `ci.yml`** (single file, two jobs)
 
-| Step | What It Does |
-|------|-------------|
-| Lint | `go vet ./...` + `staticcheck ./...` |
-| Test | `go test ./...` with race detector enabled |
-| Build | `go build -o beach-api ./cmd/server` to verify compilation |
-
-**Workflow: `deploy.yml`** (runs on push to `main` only, after CI passes)
-
-| Step | What It Does |
-|------|-------------|
-| Build Docker image | Multi-stage build from `api/Dockerfile` |
-| Run migrations | Execute pending SQL migrations against production DB |
-| Deploy | Trigger App Platform deployment (auto-deploy on push, or via `doctl` CLI) |
-| Smoke test | Hit `/api/v2/health` and verify 200 response |
+| Job | Trigger | Steps |
+|-----|---------|-------|
+| `lint-test-build` | All pushes to main + PRs | `go vet`, `staticcheck`, `go test -race`, `go build` (with PostgreSQL 16 service container) |
+| `deploy` | Push to main only (after `lint-test-build` passes) | `doctl` deploy to DigitalOcean App Platform + 30-second smoke test of `/api/v2/health` |
 
 ### 14.3 Dockerfile
 
 The Dockerfile lives at `api/Dockerfile` and uses a multi-stage build:
 
 ```
-Stage 1 (builder): golang:1.22-alpine
+Stage 1 (builder): golang:1.24-alpine
   - Copy go.mod, go.sum → download dependencies
   - Copy api/ source + web/ directory → build static binary
 
@@ -717,7 +717,7 @@ region: nyc
 services:
   - name: beach-api
     github:
-      repo: donwb/beach
+      repo: donwb/newbeach
       branch: main
       deploy_on_push: true
     dockerfile_path: api/Dockerfile
@@ -796,7 +796,7 @@ Local machine                    GitHub                    DigitalOcean
 
 **What lives outside App Platform:**
 - Apple apps → Apple App Store
-- TRMNL template → hosted by TRMNL platform (calls back to `donwb.com/api/v2/trmnl`)
+- TRMNL template → hosted by TRMNL platform (polls `donwb.com/api/v2/ramps` + `/api/v2/tides`)
 - Tidbyt script → runs on the local Tidbyt device (calls back to `donwb.com/rampstatus`)
 
 ---
@@ -846,38 +846,30 @@ These items are not in scope for the initial rebuild but the architecture should
 
 ## 17. Implementation Phases (Suggested)
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✅
 - New Go API with v1 backward-compatible endpoints + v2 endpoints
 - Go-based data ingester (replacing Python)
 - Updated database schema with migrations (including `ramp_status_history`)
-- Weather data integration (NOAA Weather API or OpenWeatherMap)
-- `.do/app.yaml` App Platform spec
-- Docker Compose local dev setup
+- `.do/app.yaml` App Platform spec, Docker Compose local dev setup
 
-### Phase 2 — Website
+### Phase 2 — Website ✅
 - Rebuild website with Tailwind CSS
 - All existing features + dark mode, favorites, tide chart
-- Weather conditions display (including wind speed/gusts)
-- Historical analytics dashboard (ramp open/close patterns)
+- Weather conditions display (NWS API, including wind speed/gusts)
 - PWA support
 
-### Phase 3 — Production Deploy & CI/CD
-- Dockerfile validation and optimization
-- GitHub Actions CI pipeline (lint, test, build on every PR)
-- GitHub Actions CD pipeline (build and push Docker image on merge to main)
-- Deploy to DigitalOcean App Platform
-- Verify migrations run automatically at startup in production
-- Validate all environment variables in production
-- Smoke test: v1 endpoints (Tidbyt compatibility), v2 endpoints, website
+### Phase 3 — Production Deploy & CI/CD ✅
+- Merged CI/CD into single GitHub Actions workflow (lint, test, build → deploy)
+- Deploy to DigitalOcean App Platform with smoke test
+- Migrations run automatically at startup in production
 
-### Phase 4 — iOS App
+### Phase 4 — iOS App ✅
 - Universal SwiftUI app (iPhone + iPad), landscape + portrait
 - Shared Swift package (`BeachStatus/`) for models, networking, utilities
 - Match web app look/feel (sand/cream, teal header, status colors)
-- All carry-forward features + city/status filtering, favorites
+- All carry-forward features + city/status filtering
 - Weather + wind display, tide chart, webcam
-- MVVM architecture, async/await networking, SwiftData caching
-- Xcode project scaffolding created manually; all Swift code written by Claude Code
+- MVVM architecture, async/await networking
 
 ### Phase 5 — Apple Watch & Apple TV ✅
 - Watch glance-first app with NSB default and drill-down to all cities
@@ -886,8 +878,8 @@ These items are not in scope for the initial rebuild but the architecture should
 
 ### Phase 6 — TRMNL Device ✅
 - TRMNL e-ink template rewrite for 800×480 monochrome display
-- Uses existing v2 endpoints via TRMNL multi-URL namespaced webhooks
-- Abbreviated status strings + monochrome visual differentiation (bold/italic/strikethrough)
+- Polling plugin using existing v2 endpoints (index-based `IDX_0`/`IDX_1` access)
+- 4 NSB ramps + abbreviated status strings + monochrome visual differentiation (bold/italic/strikethrough)
 
 ---
 
@@ -915,7 +907,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - Database: pgx v5 with connection pool (max 10 conns, min 2)
 - Credentials managed via `api/.env` (git-ignored) with `api/.env.example` committed as template
 
-**Deferred:** Weather integration (moved to Phase 2), CI/CD pipeline and production deploy (moved to Phase 3)
+**Deferred to later phases (now complete):** Weather integration (delivered in Phase 2), CI/CD pipeline and production deploy (delivered in Phase 3)
 
 ### Phase 2 — Website ✅ Complete (March 10, 2026)
 
@@ -1098,21 +1090,23 @@ These items are not in scope for the initial rebuild but the architecture should
 - `CLOSED FOR HIGH TIDE` → `CLOSED-TIDE`, `CLOSED - AT CAPACITY` → `CLOSED-FULL`, `CLOSED - CLEARED FOR TURTLES` → `CLOSED-TRTL`, `CLOSING IN PROGRESS` → `CLOSING`, `OPEN - ENTRANCE ONLY` → `ENTER ONLY`
 - Short statuses (`OPEN`, `CLOSED`, `4X4 ONLY`) pass through unchanged
 
-**TRMNL plugin webhook configuration (two namespaced URLs):**
-- `ramps` → `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH`
-- `tides` → `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides`
+**TRMNL polling plugin configuration (two URLs, line-break separated):**
+- URL 1: `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH` → `IDX_0`
+- URL 2: `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides` → `IDX_1`
 
-**Variable paths used in template:**
-- `ramps[]` — array of ramp objects, looped and matched by `ramp_name`
-- `ramps[].access_status` — raw status string (abbreviated in template)
-- `ramps[].status_category` — `"open"`, `"limited"`, `"closed"` (drives CSS class)
-- `tides.tide_direction` — `"Rising"` or `"Dropping"`
-- `tides.tide_percentage` — 0–100
-- `tides.water_temp_avg` — float, rounded in template with `| round`
+**Variable paths used in template (polling → index-based access):**
+- `IDX_0.data[]` — ramp array (root array auto-wrapped in `data` key by TRMNL), looped and matched by `ramp_name`
+- `IDX_0.data[].access_status` — raw status string (abbreviated in template)
+- `IDX_0.data[].status_category` — `"open"`, `"limited"`, `"closed"` (drives CSS class)
+- `IDX_1.tide_direction` — `"Rising"` or `"Dropping"`
+- `IDX_1.tide_percentage` — 0–100
+- `IDX_1.water_temp_avg` — float, rounded in template with `| round`
 - `trmnl.user.utc_offset` — TRMNL platform variable for local time calculation
 
 **Key decisions:**
-- No dedicated `/api/v2/trmnl` endpoint — uses existing v2 endpoints with TRMNL's multi-URL namespaced webhook
+- No dedicated `/api/v2/trmnl` endpoint — uses existing v2 endpoints with TRMNL's multi-URL polling plugin
+- Polling plugin (not webhook): TRMNL fetches from our URLs on a schedule; data accessed via `IDX_0`, `IDX_1` index-based namespacing
+- Root array response (`/api/v2/ramps`) automatically wrapped in `data` key by TRMNL → accessed as `IDX_0.data`
 - City filtering done via query parameter (`?city=NEW%20SMYRNA%20BEACH`) rather than template-side filtering
 - Template loops through ramps array and matches by `ramp_name` to assign display variables — avoids hardcoded array indices
 - Uses `status_category` field for CSS class selection (cleaner than string-matching `access_status`)
@@ -1123,4 +1117,29 @@ These items are not in scope for the initial rebuild but the architecture should
 
 ---
 
-*This is a living document. It will be updated as architectural decisions are finalized during implementation.*
+## 19. v1 Milestone — All Platforms Shippable (March 11, 2026)
+
+All six implementation phases are complete. Every platform has reached a shippable baseline:
+
+| Platform | Status | What's Live |
+|----------|--------|-------------|
+| **Go API** | ✅ Production | v1 + v2 endpoints, GIS ingester, NOAA tides/temp, NWS weather — running on DigitalOcean App Platform |
+| **Website** | ✅ Production | Responsive dashboard with ramp grid, tide chart, weather, webcam, dark mode, favorites, PWA |
+| **iOS** | ✅ Buildable | Universal SwiftUI app (iPhone + iPad) with ramps, tide chart, weather, webcam, city/status filtering |
+| **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
+| **tvOS** | ✅ Buildable | Ambient dashboard with ramps, tide chart, weather, auto-refresh, Siri Remote city navigation |
+| **TRMNL** | ✅ Ready to paste | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
+
+**Known loose ends (not blocking v1):**
+- Historical analytics dashboard (ramp open/close pattern visualization)
+- iOS: favorites, push notifications, widgets, Live Activities, settings screen, SwiftData caching
+- watchOS: complications, background refresh
+- tvOS: screensaver prevention
+- PWA offline page
+- Apple apps not yet submitted to App Store
+
+**What's next:** Polish, test on real devices, submit Apple apps, iterate on TRMNL template after live testing.
+
+---
+
+*This document tracks the Beach Ramp Status rebuild from requirements through implementation. All phases are complete as of v1.*

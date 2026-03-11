@@ -29,11 +29,13 @@ Volusia County GIS ──poll 60s──▶ Go Service ◀── NOAA Tides
                                     │
                                     ▼
                           REST API (v1 + v2)
-                         ╱    │    │     ╲
-                       Web   iOS  Watch   TV
+                     ╱    │    │     │      ╲
+                   Web   iOS  Watch  TV    TRMNL
+                                            ▲
+                   Tidbyt ──── v1 ──────────┘
 ```
 
-One Go binary does everything: HTTP API, data ingestion, and static file serving. The Apple apps share a Swift package (`BeachStatus`) for models, networking, and utilities — no duplicated code across iOS, watchOS, and tvOS.
+One Go binary does everything: HTTP API, data ingestion, and static file serving. The Apple apps share a Swift package (`BeachStatus`) for models, networking, and utilities — no duplicated code across iOS, watchOS, and tvOS. The TRMNL e-ink display polls the v2 API directly; the legacy Tidbyt device still consumes v1.
 
 ## Repository Structure
 
@@ -76,7 +78,7 @@ v1 endpoints maintain backward compatibility for the Tidbyt device:
 | `GET /rampstatus` | All ramps (Tidbyt format) |
 | `GET /tides` | Tide + water temp (Tidbyt format) |
 
-v2 endpoints power the website and Apple apps:
+v2 endpoints power the website, Apple apps, and TRMNL display:
 
 | Endpoint | Purpose |
 |----------|---------|
