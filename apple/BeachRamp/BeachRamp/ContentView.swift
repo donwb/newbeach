@@ -16,6 +16,7 @@ import BeachStatus
 struct ContentView: View {
     @State private var viewModel = BeachViewModel()
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -32,6 +33,13 @@ struct ContentView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task {
+                    await viewModel.refresh()
+                }
+            }
         }
     }
 

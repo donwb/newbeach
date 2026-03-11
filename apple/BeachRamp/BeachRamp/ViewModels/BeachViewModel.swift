@@ -77,6 +77,14 @@ final class BeachViewModel {
             group.addTask { await self.loadConfig() }
         }
 
+        // Default to New Smyrna Beach on first load
+        if selectedCity == nil {
+            let defaultCity = config.map { $0.defaultCity.titleCased } ?? "New Smyrna Beach"
+            if cities.contains(defaultCity) {
+                selectedCity = defaultCity
+            }
+        }
+
         isLoading = false
     }
 

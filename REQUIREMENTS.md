@@ -402,26 +402,25 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 
 - SwiftUI
 - watchOS 10+
-- Shares networking/model code with iOS via shared Swift package
+- Shares networking/model code with iOS via shared `BeachStatus` package
 
 ### 9.2 Features
 
-- **Glanceable ramp status** — show favorite ramps with color-coded status dots
-- **Tide info** — current direction, percentage to next change
-- **Water temperature** — single number display
-- **Complications:**
-  - Corner: ramp count (e.g., "4/5 open")
-  - Circular: tide percentage ring
-  - Rectangular: next tide time + direction
+- **Glance-style main screen** — shows NSB ramps with color-coded status indicators at a glance (optimized for 2-second wrist check)
+- **Drill-down list** — ability to browse all Volusia County ramps with scrollable list
+- **Ramps only** — no tide or weather data on watch (phone/iPad handles that)
+- **Complications (both styles):**
+  - Count-based: show open/closed/limited counts (e.g., "8 Open")
+  - Single ramp: show a favorite ramp's name and current status
 - **Background refresh** — update data on a schedule (every 15 min)
 - **Works independently** — does not require iPhone nearby (uses WiFi/cellular)
 
 ### 9.3 Design Considerations
 
 - Large, legible text
-- Minimal interaction — optimized for quick glances
+- Minimal interaction — glance first, drill-down second
 - Green/yellow/red color coding should be distinguishable on small display
-- Use SF Symbols for tide direction (arrow.up / arrow.down)
+- Use SF Symbols for status icons (checkmark.circle, exclamationmark.triangle, xmark.circle)
 
 ---
 
@@ -431,21 +430,21 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 
 - SwiftUI
 - tvOS 17+
-- Shares networking/model code via shared Swift package
+- Shares networking/model code via shared `BeachStatus` package
 
 ### 10.2 Features
 
-- **Ambient dashboard mode** — designed to run continuously as a living room beach monitor
-- **Full-screen layout** showing:
-  - All favorite ramps with large status indicators
-  - Current tide direction and percentage (large visual arc or wave graphic)
-  - Water temperature (prominent display)
-  - Webcam feed (large image, auto-refreshing)
+- **Ambient dashboard mode** — auto-refreshing full-screen status board designed to stay on screen (beach house / surf shop display)
+- **Full-screen layout** showing all data:
+  - Ramp status grid with large color-coded status indicators
+  - Tide chart with current direction and percentage
+  - Weather: current conditions and forecast
   - Current time
-  - Next tide time countdown
-- **Auto-refresh** — data and webcam both update every 60 seconds
+- **Default to New Smyrna Beach** — matches phone/web behavior, with Siri Remote navigation to switch cities
+- **Auto-refresh** — data updates every 60 seconds
 - **Screensaver prevention** — keeps display active while app is foregrounded
-- **Minimal remote interaction** — Siri Remote can switch between cities or toggle webcam view
+- **Minimal remote interaction** — Siri Remote can switch between cities
+- **No Top Shelf extension** — just the main dashboard app
 - **Beautiful typography** — designed to be viewed from across the room
 
 ### 10.3 Design Considerations
@@ -994,6 +993,48 @@ These items are not in scope for the initial rebuild but the architecture should
 - Single GitHub Actions workflow file (not separate CI and deploy files) — deploy job uses `needs:` to depend on CI passing
 - Smoke test uses DO app ingress URL (not custom domain) for reliability
 - Docker image validated locally before first push (`docker build -f api/Dockerfile`)
+
+### Phase 4 — iOS App ✅ Complete (March 11, 2026)
+
+**BeachStatus shared Swift package (`apple/BeachRamp/BeachStatus/`):**
+- SPM package targeting iOS 17, watchOS 10, tvOS 17, macOS 13
+- Models: `Ramp`, `TideInfo`, `TideChartData`, `WaterTempReading`, `TidePrediction`, `WeatherInfo`, `CurrentConditions`, `ForecastPeriod`, `AppConfig` — all Codable/Sendable with snake_case CodingKeys matching API
+- Networking: `APIClient` actor with async/await, custom date decoding (ISO 8601 + fractional seconds + time-only), all five v2 endpoints
+- Utilities: `String.titleCased` for GIS data normalization (uppercase → Title Case)
+
+**App architecture:**
+- SwiftUI with `@Observable` view model (MVVM)
+- Universal app (iPhone + iPad) with adaptive layout: single-column scroll on iPhone, two-column split on iPad
+- Landscape and portrait orientation support
+- `BeachViewModel` fetches all data concurrently via `TaskGroup`
+- Foreground refresh: `scenePhase` observer triggers data reload when app becomes active
+- Pull-to-refresh support
+
+**Views created:**
+- `HeaderView` — ocean gradient header with weather/wind/tide info pills and water temp badge
+- `FilterBarView` — horizontal scrolling city picker + status filter pills with count badges
+- `RampCardView` — card with status icon, ramp name, location, and colored status badge
+- `TideChartView` — Swift Charts tide graph with area fill, high/low point markers, "now" rule line, and prediction labels
+- `WeatherSectionView` — horizontally scrolling forecast cards with SF Symbol weather icons, temperature, wind, and gust display
+- `WaterTempView` — NOAA station temperature readings with average
+- `WebcamView` — AsyncImage webcam feed with loading/error states
+- `ContentView` — main view orchestrating layout, data loading, and refresh
+
+**Theme (`AppTheme.swift`):**
+- Ocean palette (teal): ocean50–ocean900 matching web Tailwind config
+- Sand palette: sand50–sand300 for warm backgrounds
+- Status colors: emerald/amber/red for open/limited/closed
+- Tide chart colors: ocean-600 high, indigo-500 low, amber-600 now marker
+- `StatusCategory` extensions for color, label, and SF Symbol icon name
+
+**Key decisions:**
+- Default city filter set to "New Smyrna Beach" on first launch (matching web app behavior, driven by `/api/v2/config` `default_city`)
+- No UIKit dependency — pure SwiftUI + Color extensions for adaptive colors
+- Xcode project scaffolding managed manually; all Swift source written by Claude Code (pbxproj never edited by agent)
+- `Item.swift` (SwiftData template) left in project for user to remove in Xcode
+- `.gitignore` updated with Xcode/Swift exclusions (xcuserdata, DerivedData, .build, .swiftpm, Package.resolved)
+
+**Not yet built from Phase 4 requirements:** Favorites system, push notifications, widgets, Live Activities, haptic feedback, settings screen, SwiftData caching
 
 ---
 
