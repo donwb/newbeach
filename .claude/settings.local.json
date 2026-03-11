@@ -54,7 +54,16 @@
       "Bash(swift build)",
       "Bash(xcodebuild -list)",
       "Bash(xcodebuild -scheme BeachRamp -destination 'platform=iOS Simulator,name=iPhone 16' -quiet build)",
-      "Bash(xcodebuild -scheme BeachRamp -destination 'platform=iOS Simulator,name=iPhone 17' build)"
+      "Bash(xcodebuild -scheme BeachRamp -destination 'platform=iOS Simulator,name=iPhone 17' build)",
+      "Bash(python3 -c \"from PIL import Image; print\\(''Pillow available''\\)\")",
+      "Bash(open \"/Users/donwb/dev/new beach/apple/BeachRamp/generated_icons\")",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRamp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png\")",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampWatch Watch App/Assets.xcassets/AppIcon.appiconset/WatchIcon-1024.png\")",
+      "Bash(sips -z 1024 1024 \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRamp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png\")",
+      "Bash(sips -z 1024 1024 \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampWatch Watch App/Assets.xcassets/AppIcon.appiconset/WatchIcon-1024.png\")",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-400x240.png\")",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-800x480.png\")",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon - App Store.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-1280x768.png\")"
     ]
   }
 }

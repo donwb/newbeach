@@ -879,10 +879,10 @@ These items are not in scope for the initial rebuild but the architecture should
 - MVVM architecture, async/await networking, SwiftData caching
 - Xcode project scaffolding created manually; all Swift code written by Claude Code
 
-### Phase 5 — Apple Watch & Apple TV
-- Watch app with complications
-- TV ambient dashboard (including weather data)
-- Background refresh
+### Phase 5 — Apple Watch & Apple TV ✅
+- Watch glance-first app with NSB default and drill-down to all cities
+- TV ambient dashboard with ramps, tide chart, weather, auto-refresh
+- Programmatic app icons for all three platforms (iOS, watchOS, tvOS)
 
 ### Phase 6 — TRMNL Device & Polish
 - TRMNL e-ink template rewrite + dedicated `/api/v2/trmnl` endpoint
@@ -1035,6 +1035,48 @@ These items are not in scope for the initial rebuild but the architecture should
 - `.gitignore` updated with Xcode/Swift exclusions (xcuserdata, DerivedData, .build, .swiftpm, Package.resolved)
 
 **Not yet built from Phase 4 requirements:** Favorites system, push notifications, widgets, Live Activities, haptic feedback, settings screen, SwiftData caching
+
+### Phase 5 — Apple Watch & Apple TV ✅ Complete (March 11, 2026)
+
+**watchOS app (`BeachRampWatch Watch App/`):**
+- Glance-first design — main screen shows NSB ramp count summary (colored status dots) with scrollable ramp list below
+- Drill-down toggle: "Show All Cities" expands from NSB-only to all Volusia County ramps
+- `WatchViewModel` fetches ramps + config only (no tide/weather — phone handles that)
+- `WatchTheme.swift` with watch-specific color definitions and `StatusCategory` extensions (`watchColor`, `label`, `iconName`)
+- NavigationStack with List-based UI: `WatchRampRow` cards with SF Symbol status icons, ramp name, location, and colored status text
+- `StatusDot` summary row at top for quick open/limited/closed counts
+- Foreground refresh on app activation
+- Works independently via WiFi/cellular (no iPhone dependency)
+
+**tvOS app (`BeachRampTV/`):**
+- Ambient dashboard — full-screen status board designed to stay on screen (beach house / surf shop display)
+- Ocean gradient background (ocean800 → ocean700 → ocean600)
+- Top bar: "Beach Ramp Status" title + live clock (Eastern time, updated every 30s)
+- Left panel: ramp grid (2-column `LazyVGrid`) with `TVRampCard` showing status icon, ramp name, location, and colored status text
+- Right panel: tide section with Swift Charts area/line chart, current direction arrow, percentage, H/L predictions; weather section with current temp, conditions, wind/gusts, and 4-period forecast row
+- City header with `TVStatusBadge` counts (open/limited/closed) and navigation hint
+- Siri Remote navigation: left/right `onMoveCommand` cycles through cities
+- Default to New Smyrna Beach on first load (via `/api/v2/config`)
+- Auto-refresh every 60 seconds via `Task.sleep` loop with cancellation support
+- `TVViewModel` loads all data concurrently via `TaskGroup` (ramps, tides, tideChart, weather, config)
+- `TVTheme.swift` with TV-optimized color palette and `StatusCategory` extensions (`tvColor`, `tvLabel`, `tvIcon`)
+- No Top Shelf extension
+
+**App icons (all three platforms):**
+- Programmatic icon generation via Swift/AppKit scripts (`generate_icons.swift`, `generate_tv_icons.swift`)
+- Design: teal ocean wave on sand/cream background with white wave crests
+- iOS: 1024×1024 single icon in `AppIcon.appiconset` (Xcode auto-generates all sizes)
+- watchOS: 1024×1024 single icon in `AppIcon.appiconset`
+- tvOS: layered imagestack with landscape icons — Back layer at 400×240 (1x), 800×480 (2x) for home screen; 1280×768 for App Store
+
+**Key decisions:**
+- Separate theme files per platform (AppTheme, WatchTheme, TVTheme) with platform-specific `StatusCategory` extensions to avoid UIKit/AppKit cross-compilation issues
+- Watch created as "Watch-only App" (not companion) since it fetches data directly from the API — no iPhone dependency
+- TV auto-refresh uses structured concurrency (`Task` with `while !Task.isCancelled` loop) instead of `Timer` for better lifecycle management
+- `NSImage(size:)` creates Retina (2x) images on macOS — icons resized to correct pixel dimensions via `sips`
+- tvOS icons are landscape (5:3 ratio), not square — separate generation script for correct aspect ratios
+
+**Not yet built from Phase 5 requirements:** Watch complications (count-based and single-ramp), watch background refresh (15-min schedule), screensaver prevention on tvOS
 
 ---
 
