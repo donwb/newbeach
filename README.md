@@ -2,7 +2,7 @@
 
 Real-time beach access ramp status, tide data, and weather for Volusia County, Florida — across six platforms from a single codebase.
 
-**Live:** [beach-ramp-status-kff7g.ondigitalocean.app](https://beach-ramp-status-kff7g.ondigitalocean.app)
+**Live:** [https://donwb.com](https://donwb.com)
 
 ## What It Does
 
