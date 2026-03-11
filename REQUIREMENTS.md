@@ -884,11 +884,10 @@ These items are not in scope for the initial rebuild but the architecture should
 - TV ambient dashboard with ramps, tide chart, weather, auto-refresh
 - Programmatic app icons for all three platforms (iOS, watchOS, tvOS)
 
-### Phase 6 — TRMNL Device & Polish
-- TRMNL e-ink template rewrite + dedicated `/api/v2/trmnl` endpoint
-- Push notifications infrastructure
-- Performance optimization
-- Documentation
+### Phase 6 — TRMNL Device ✅
+- TRMNL e-ink template rewrite for 800×480 monochrome display
+- Uses existing v2 endpoints via TRMNL multi-URL namespaced webhooks
+- Abbreviated status strings + monochrome visual differentiation (bold/italic/strikethrough)
 
 ---
 
@@ -1077,6 +1076,50 @@ These items are not in scope for the initial rebuild but the architecture should
 - tvOS icons are landscape (5:3 ratio), not square — separate generation script for correct aspect ratios
 
 **Not yet built from Phase 5 requirements:** Watch complications (count-based and single-ramp), watch background refresh (15-min schedule), screensaver prevention on tvOS
+
+### Phase 6 — TRMNL Device ✅ Complete (March 11, 2026)
+
+**TRMNL e-ink template (`trmnl/template.html`):**
+- Clean monochrome design for 800×480 e-ink display
+- NSB-focused: 4 ramps ordered top-to-bottom: 3rd Ave, Flagler Ave, Crawford Rd, Beachway Ave
+- Header: title + water temperature (rounded from `water_temp_avg`) + local clock (via `trmnl.user.utc_offset`)
+- Tide bar: direction arrow (↑/↓) + label + visual percentage bar (CSS fill) + numeric percentage
+- Ramp rows: human-readable name + abbreviated status with visual differentiation
+- Footer: location label + app name
+
+**Status differentiation (no color — e-ink monochrome):**
+- Open → **bold** (font-weight 800)
+- Limited → *italic* (font-weight 600, font-style italic)
+- Closed → ~~strikethrough~~ (font-weight 300, text-decoration line-through)
+- Category determined from `status_category` field (not string matching)
+
+**Status abbreviation (Liquid logic in template):**
+- Long GIS strings abbreviated to ≤12 characters per requirements table
+- `CLOSED FOR HIGH TIDE` → `CLOSED-TIDE`, `CLOSED - AT CAPACITY` → `CLOSED-FULL`, `CLOSED - CLEARED FOR TURTLES` → `CLOSED-TRTL`, `CLOSING IN PROGRESS` → `CLOSING`, `OPEN - ENTRANCE ONLY` → `ENTER ONLY`
+- Short statuses (`OPEN`, `CLOSED`, `4X4 ONLY`) pass through unchanged
+
+**TRMNL plugin webhook configuration (two namespaced URLs):**
+- `ramps` → `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH`
+- `tides` → `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides`
+
+**Variable paths used in template:**
+- `ramps[]` — array of ramp objects, looped and matched by `ramp_name`
+- `ramps[].access_status` — raw status string (abbreviated in template)
+- `ramps[].status_category` — `"open"`, `"limited"`, `"closed"` (drives CSS class)
+- `tides.tide_direction` — `"Rising"` or `"Dropping"`
+- `tides.tide_percentage` — 0–100
+- `tides.water_temp_avg` — float, rounded in template with `| round`
+- `trmnl.user.utc_offset` — TRMNL platform variable for local time calculation
+
+**Key decisions:**
+- No dedicated `/api/v2/trmnl` endpoint — uses existing v2 endpoints with TRMNL's multi-URL namespaced webhook
+- City filtering done via query parameter (`?city=NEW%20SMYRNA%20BEACH`) rather than template-side filtering
+- Template loops through ramps array and matches by `ramp_name` to assign display variables — avoids hardcoded array indices
+- Uses `status_category` field for CSS class selection (cleaner than string-matching `access_status`)
+- All status abbreviation handled in Liquid template logic (no backend changes needed)
+- Template pasted into TRMNL dashboard (not served from URL)
+- Pure CSS layout (flexbox), no JavaScript — e-ink displays don't execute JS
+- 27th Ave removed for space — 4 ramps displayed (3rd Ave, Flagler, Crawford, Beachway)
 
 ---
 

@@ -63,7 +63,13 @@
       "Bash(sips -z 1024 1024 \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampWatch Watch App/Assets.xcassets/AppIcon.appiconset/WatchIcon-1024.png\")",
       "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-400x240.png\")",
       "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-800x480.png\")",
-      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon - App Store.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-1280x768.png\")"
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/donwb/dev/new beach/apple/BeachRamp/BeachRampTV/Assets.xcassets/App Icon & Top Shelf Image.brandassets/App Icon - App Store.imagestack/Back.imagestacklayer/Content.imageset/tv-icon-1280x768.png\")",
+      "Bash(curl -s \"https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps\")",
+      "Bash(curl -s \"https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides\")",
+      "Bash(curl -s \"https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH\")",
+      "WebFetch(domain:help.trmnl.com)",
+      "WebFetch(domain:docs.trmnl.com)",
+      "WebFetch(domain:danielgt.com)"
     ]
   }
 }
