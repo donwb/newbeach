@@ -66,7 +66,7 @@ func main() {
 
 	tideStation := os.Getenv("NOAA_TIDE_STATION")
 	if tideStation == "" {
-		tideStation = "8721164"
+		tideStation = "8721147"
 	}
 
 	tempStationsStr := os.Getenv("NOAA_TEMP_STATIONS")

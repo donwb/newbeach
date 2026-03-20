@@ -15,6 +15,18 @@ import (
 
 const baseURL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
 
+// eastern is the IANA timezone for US Eastern, used to parse NOAA's
+// "lst_ldt" timestamps regardless of the server's local timezone.
+var eastern *time.Location
+
+func init() {
+	var err error
+	eastern, err = time.LoadLocation("America/New_York")
+	if err != nil {
+		panic(fmt.Sprintf("failed to load America/New_York timezone: %v", err))
+	}
+}
+
 // Client fetches tide predictions and water temperature from the NOAA
 // Tides & Currents API.
 type Client struct {
@@ -24,7 +36,7 @@ type Client struct {
 }
 
 // NewClient creates a NOAA API client.
-//   - tideStation is the NOAA station ID used for tide predictions (e.g. "8721164").
+//   - tideStation is the NOAA station ID used for tide predictions (e.g. "8721147").
 //   - tempStations is a slice of NOAA station IDs used for water temperature readings.
 func NewClient(tideStation string, tempStations []string) *Client {
 	return &Client{
@@ -59,7 +71,7 @@ type noaaTempResponse struct {
 // FetchTidePredictions retrieves today's high/low tide predictions from the
 // configured NOAA tide station.
 func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePrediction, error) {
-	now := time.Now()
+	now := time.Now().In(eastern)
 	today := now.Format("20060102")
 
 	params := url.Values{
@@ -98,7 +110,7 @@ func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePredict
 
 	predictions := make([]models.TidePrediction, 0, len(noaaResp.Predictions))
 	for _, p := range noaaResp.Predictions {
-		t, err := time.ParseInLocation("2006-01-02 15:04", p.T, now.Location())
+		t, err := time.ParseInLocation("2006-01-02 15:04", p.T, eastern)
 		if err != nil {
 			slog.Warn("skipping unparseable tide prediction time", "raw", p.T, "err", err)
 			continue
@@ -116,7 +128,7 @@ func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePredict
 // the configured NOAA tide station. These provide the granular data points
 // needed to render a smooth tide chart curve.
 func (c *Client) FetchHourlyPredictions(ctx context.Context) ([]models.TidePredictionPoint, error) {
-	now := time.Now()
+	now := time.Now().In(eastern)
 	today := now.Format("20060102")
 
 	params := url.Values{
@@ -155,7 +167,7 @@ func (c *Client) FetchHourlyPredictions(ctx context.Context) ([]models.TidePredi
 
 	points := make([]models.TidePredictionPoint, 0, len(noaaResp.Predictions))
 	for _, p := range noaaResp.Predictions {
-		t, err := time.ParseInLocation("2006-01-02 15:04", p.T, now.Location())
+		t, err := time.ParseInLocation("2006-01-02 15:04", p.T, eastern)
 		if err != nil {
 			slog.Warn("skipping unparseable hourly prediction time", "raw", p.T, "err", err)
 			continue
@@ -265,7 +277,7 @@ func (c *Client) GetTideInfo(ctx context.Context) (*models.TideInfo, error) {
 		slog.Warn("failed to fetch hourly predictions, continuing without them", "err", err)
 	}
 
-	now := time.Now()
+	now := time.Now().In(eastern)
 	direction, pct := calculateTidePosition(predictions, now)
 
 	var tempSum float64

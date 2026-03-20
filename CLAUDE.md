@@ -111,7 +111,7 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 | `LOG_LEVEL` | API, Ingester | Logging verbosity (default: info) |
 | `PORT` | API | HTTP listen port (default: 8080) |
 | `WEBCAM_URL` | API | Configurable webcam image URL |
-| `NOAA_TIDE_STATION` | API | NOAA tide station ID (default: 8721164) |
+| `NOAA_TIDE_STATION` | API | NOAA tide station ID (default: 8721147) |
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
 | `WEB_DIR` | API | Path to web static files (auto-detected in dev, `/web` in Docker) |
 

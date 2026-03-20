@@ -25,6 +25,6 @@ services:
       - key: WEBCAM_URL
         value: "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/dynamic/wesh/CAM13.jpg"
       - key: NOAA_TIDE_STATION
-        value: "8721164"
+        value: "8721147"
       - key: NOAA_TEMP_STATIONS
         value: "8721604,8720218"
