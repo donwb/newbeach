@@ -128,11 +128,12 @@ The existing system is a monorepo (`donwb/beach`) containing:
 **Base URL:** `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter`
 
 **Tide predictions:**
-- Station: 8721164
+- Station: 8721147 (Ponce De Leon Inlet South — closest to NSB beach ramps)
 - Product: predictions
 - Datum: MLLW
-- Timezone: lst_ldt (local)
+- Timezone: lst_ldt (local) — parsed explicitly in America/New_York to avoid server timezone mismatch
 - Units: english
+- Tide percentage: cosine interpolation between high/low events (models natural sinusoidal tide curve)
 
 **Water temperature:**
 - Station 8721604 (Canaveral)
@@ -521,13 +522,15 @@ All values via environment variables:
 
 ### 12.2 TRMNL E-Ink Display (Active Platform)
 
-**Status:** ✅ Complete. Template rewritten for the v2 API.
+**Status:** ✅ Complete. Template rewritten for the v2 API and migrated to TRMNL Framework v2.
 
 **Device:** TRMNL — a low-power e-ink dashboard display (800×480) that renders HTML/CSS via Liquid templates. The TRMNL platform polls configured URLs on a schedule and injects the JSON responses as Liquid variables into the template for rendering.
 
 **Implementation:**
 - Liquid template (HTML + CSS) rendered by the TRMNL platform
+- TRMNL Framework v2 structure: `layout` + `title_bar` wrappers required; custom CSS uses `nsb-` prefixed classes to avoid collisions with framework built-in classes (`title`, `label`, `value`, `description`)
 - Monochrome design optimized for e-ink (no color, high contrast, no gradients)
+- Ramp name and status font size: 40px for readability at a distance
 - NSB-focused: 4 ramps ordered top-to-bottom: 3rd Ave, Flagler Ave, Crawford Rd, Beachway Ave
 - Header: title + water temperature (rounded) + local clock
 - Tide bar: direction arrow (↑/↓) + label + visual percentage bar + numeric percentage
@@ -582,6 +585,7 @@ All values via environment variables:
 - All status abbreviation handled in Liquid template logic (no backend changes)
 - Template pasted into TRMNL dashboard (not served from URL)
 - Pure CSS layout (flexbox), no JavaScript — e-ink displays don't execute JS
+- Template requires TRMNL Framework v2 CSS (set in plugin dashboard); custom CSS classes prefixed with `nsb-` to avoid framework collisions
 - Template file location: `trmnl/template.html` in the monorepo
 
 ---
@@ -737,7 +741,7 @@ services:
       - key: WEBCAM_URL
         value: "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/dynamic/wesh/CAM13.jpg"
       - key: NOAA_TIDE_STATION
-        value: "8721164"
+        value: "8721147"
       - key: NOAA_TEMP_STATIONS
         value: "8721604,8720218"
 databases:
@@ -893,7 +897,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - Go API service with Echo v4 — v1 backward-compatible endpoints (`/rampstatus`, `/tides`, `/ramps`) + v2 endpoints (`/api/v2/ramps`, `/api/v2/tides`, `/api/v2/health`, `/api/v2/config`)
 - Go data ingester replacing Python — polls GIS every 60s with 3-retry exponential backoff, upserts to DB, tracks status changes in history table
 - PostgreSQL schema with auto-running migrations (`ramp_status`, `ramp_status_history`, `schema_migrations`)
-- NOAA client for tide predictions and water temperature with direction/percentage calculation
+- NOAA client for tide predictions and water temperature with direction/percentage calculation (cosine interpolation, explicit Eastern timezone parsing)
 - Dockerfile (multi-stage), docker-compose.yml, `.do/app.yaml`, GitHub Actions CI/CD
 - Makefile with `dev` (Air hot reload), `test`, `lint`, `build` targets
 - Unit tests for models and ingester with table-driven tests and httptest mocks
