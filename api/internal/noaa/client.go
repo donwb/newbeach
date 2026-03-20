@@ -289,7 +289,11 @@ func (c *Client) GetTideInfo(ctx context.Context) (*models.TideInfo, error) {
 // the previous and next tide events relative to the given time.
 //
 // Direction: If the next event is High → "Rising"; if Low → "Dropping".
-// Percentage: 0 at the last event, 100 at the next event, linearly interpolated.
+// Percentage: Uses cosine interpolation to model the natural sinusoidal
+// tide curve. At the midpoint of a cycle, this returns ~50% rather than
+// the linear 50%, but near the start and end of a cycle the curve
+// accelerates/decelerates realistically (tides change fastest at mid-cycle
+// and slowest near the extremes).
 func calculateTidePosition(predictions []models.TidePrediction, now time.Time) (direction string, percentage int) {
 	if len(predictions) == 0 {
 		return "Unknown", 0
@@ -323,7 +327,7 @@ func calculateTidePosition(predictions []models.TidePrediction, now time.Time) (
 		direction = "Dropping"
 	}
 
-	// Calculate percentage between prev and next.
+	// Calculate percentage between prev and next using cosine interpolation.
 	if prev == nil {
 		// No previous event today — treat as 0%.
 		return direction, 0
@@ -336,7 +340,11 @@ func calculateTidePosition(predictions []models.TidePrediction, now time.Time) (
 		return direction, 0
 	}
 
-	pct := int(math.Round((elapsed / totalDuration) * 100))
+	// Cosine interpolation: maps linear progress [0,1] through a half-cosine
+	// curve to produce a value that starts slow, accelerates through the
+	// middle, and decelerates at the end — matching natural tide behavior.
+	linearPct := elapsed / totalDuration
+	pct := int(math.Round((1 - math.Cos(linearPct*math.Pi)) / 2 * 100))
 	if pct < 0 {
 		pct = 0
 	}
