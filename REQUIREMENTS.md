@@ -530,13 +530,14 @@ All values via environment variables:
 - Liquid template (HTML + CSS) rendered by the TRMNL platform
 - TRMNL Framework v2 structure: `layout` + `title_bar` wrappers required; custom CSS uses `nsb-` prefixed classes to avoid collisions with framework built-in classes (`title`, `label`, `value`, `description`)
 - Monochrome design optimized for e-ink (no color, high contrast, no gradients)
-- Ramp name and status font size: 40px for readability at a distance
+- Ramp name and status font size: 52px (weight 800) for readability at a distance
+- Inter font via Google Fonts (falls back to system sans-serif)
 - NSB-focused: 4 ramps ordered top-to-bottom: 3rd Ave, Flagler Ave, Crawford Rd, Beachway Ave
 - Header: title + water temperature (rounded) + local clock
 - Tide bar: direction arrow (↑/↓) + label + visual percentage bar + numeric percentage
 - Ramp rows: human-readable name + abbreviated status with visual differentiation
-- Footer: location + app name
-- Time calculated from `trmnl.user.utc_offset` (TRMNL platform variable)
+- No footer — maximizes vertical space for ramp display
+- Time hardcoded to US Eastern (EDT, UTC-4) — `trmnl.user.utc_offset` was unreliable in preview/render contexts
 
 **TRMNL polling plugin configuration (two URLs, line-break separated):**
 
@@ -555,7 +556,7 @@ All values via environment variables:
 | `IDX_1.tide_direction` | string | "Rising" or "Dropping" |
 | `IDX_1.tide_percentage` | number | 54 |
 | `IDX_1.water_temp_avg` | float | 72.5 |
-| `trmnl.user.utc_offset` | number | -4 (TRMNL platform variable) |
+| *(time offset)* | hardcoded | UTC-4 (EDT) — hardcoded, not from platform variable |
 
 **Status abbreviation (≤12 chars, handled in Liquid template):**
 
@@ -1077,11 +1078,12 @@ These items are not in scope for the initial rebuild but the architecture should
 
 **TRMNL e-ink template (`trmnl/template.html`):**
 - Clean monochrome design for 800×480 e-ink display
+- Inter font via Google Fonts (falls back to system sans-serif)
 - NSB-focused: 4 ramps ordered top-to-bottom: 3rd Ave, Flagler Ave, Crawford Rd, Beachway Ave
-- Header: title + water temperature (rounded from `water_temp_avg`) + local clock (via `trmnl.user.utc_offset`)
+- Header: title + water temperature (rounded from `water_temp_avg`) + local clock (hardcoded EDT)
 - Tide bar: direction arrow (↑/↓) + label + visual percentage bar (CSS fill) + numeric percentage
-- Ramp rows: human-readable name + abbreviated status with visual differentiation
-- Footer: location label + app name
+- Ramp rows: 52px bold text for both name and status — optimized for at-a-distance readability
+- No footer — vertical space maximized for ramp display
 
 **Status differentiation (no color — e-ink monochrome):**
 - Open → **bold** (font-weight 800)
@@ -1105,7 +1107,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - `IDX_1.tide_direction` — `"Rising"` or `"Dropping"`
 - `IDX_1.tide_percentage` — 0–100
 - `IDX_1.water_temp_avg` — float, rounded in template with `| round`
-- `trmnl.user.utc_offset` — TRMNL platform variable for local time calculation
+- Time offset hardcoded to UTC-4 (EDT) — `trmnl.user.utc_offset` was unreliable in preview/render contexts
 
 **Key decisions:**
 - No dedicated `/api/v2/trmnl` endpoint — uses existing v2 endpoints with TRMNL's multi-URL polling plugin
@@ -1118,6 +1120,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - Template pasted into TRMNL dashboard (not served from URL)
 - Pure CSS layout (flexbox), no JavaScript — e-ink displays don't execute JS
 - 27th Ave removed for space — 4 ramps displayed (3rd Ave, Flagler, Crawford, Beachway)
+- Footer and title_bar removed to maximize space for ramp status display
 
 ---
 
