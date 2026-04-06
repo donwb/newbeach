@@ -897,7 +897,7 @@ These items are not in scope for the initial rebuild but the architecture should
 **Delivered:**
 - Go API service with Echo v4 — v1 backward-compatible endpoints (`/rampstatus`, `/tides`, `/ramps`) + v2 endpoints (`/api/v2/ramps`, `/api/v2/tides`, `/api/v2/health`, `/api/v2/config`)
 - Go data ingester replacing Python — polls GIS every 60s with 3-retry exponential backoff, upserts to DB, tracks status changes in history table
-- PostgreSQL schema with auto-running migrations (`ramp_status`, `ramp_status_history`, `schema_migrations`)
+- PostgreSQL schema with auto-running migrations (`ramp_status`, `ramp_status_history`, `settings`, `schema_migrations`)
 - NOAA client for tide predictions and water temperature with direction/percentage calculation (cosine interpolation, explicit Eastern timezone parsing)
 - Dockerfile (multi-stage), docker-compose.yml, `.do/app.yaml`, GitHub Actions CI/CD
 - Makefile with `dev` (Air hot reload), `test`, `lint`, `build` targets
@@ -1052,7 +1052,7 @@ These items are not in scope for the initial rebuild but the architecture should
   - Left: single-column ramp list with custom display order for NSB (3rd Av, Flagler Av, Crawford Rd, Beachway Av, 27th Av); scrollable for cities with more ramps
   - Center: HLS video player (`TVVideoPlayerView`) with live beach cam stream, 16:9 aspect ratio, autoplay on launch, play/pause toggle via Siri Remote
   - Right rail: compact tide section (mini chart, H/L predictions, water temp) and weather section (current temp, conditions, wind, 3-day forecast) using explicit point-size fonts for narrow rail layout
-- Video stream URL hardcoded in `TVViewModel.videoStreamURL` — easy to change when URL rotates; planned migration to API config
+- Video stream URL loaded from API config (`video_stream_url` in `settings` table), with hardcoded fallback in `TVViewModel.fallbackVideoStreamURL`; updates within 60s of a change via auto-refresh
 - Siri Remote navigation: left/right `onMoveCommand` cycles through cities
 - Default to New Smyrna Beach on first load (via `/api/v2/config`)
 - Auto-refresh every 60 seconds via `Task.sleep` loop with cancellation support
@@ -1073,6 +1073,14 @@ These items are not in scope for the initial rebuild but the architecture should
 - TV auto-refresh uses structured concurrency (`Task` with `while !Task.isCancelled` loop) instead of `Timer` for better lifecycle management
 - `NSImage(size:)` creates Retina (2x) images on macOS — icons resized to correct pixel dimensions via `sips`
 - tvOS icons are landscape (5:3 ratio), not square — separate generation script for correct aspect ratios
+
+**Runtime settings system:**
+- `settings` table in PostgreSQL — key-value store for runtime-configurable values (e.g., `video_stream_url`)
+- `GET /api/v2/admin/settings` — returns all settings (requires `X-Api-Key` header)
+- `POST /api/v2/admin/settings` — upserts a setting with `{"key": "...", "value": "..."}` body (requires `X-Api-Key` header)
+- `ADMIN_API_KEY` env var controls admin endpoint access
+- `GET /api/v2/config` now merges database settings with env-var config, exposing `video_stream_url` to all clients
+- tvOS app picks up URL changes within 60s via auto-refresh cycle
 
 **Not yet built from Phase 5 requirements:** Watch complications (count-based and single-ramp), watch background refresh (15-min schedule), screensaver prevention on tvOS
 

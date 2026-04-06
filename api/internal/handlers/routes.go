@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"net/http"
+	"os"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -18,7 +21,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	// CORS: allow all origins (public API).
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
-		AllowMethods: []string{"GET", "HEAD", "OPTIONS"},
+		AllowMethods: []string{"GET", "POST", "HEAD", "OPTIONS"},
 	}))
 
 	// Request logging.
@@ -61,5 +64,30 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))
 	v2.GET("/weather", HandleV2Weather(weatherClient))
 	v2.GET("/health", HandleV2Health(pool))
-	v2.GET("/config", HandleV2Config())
+	v2.GET("/config", HandleV2Config(pool))
+
+	// --- Admin endpoints (API key protected) ---
+
+	admin := v2.Group("/admin")
+	admin.Use(apiKeyAuth())
+	admin.GET("/settings", HandleAdminGetSettings(pool))
+	admin.POST("/settings", HandleAdminUpdateSetting(pool))
+}
+
+// apiKeyAuth returns middleware that validates the X-Api-Key header
+// against the ADMIN_API_KEY environment variable.
+func apiKeyAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			expected := os.Getenv("ADMIN_API_KEY")
+			if expected == "" {
+				return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "admin API not configured"})
+			}
+			key := c.Request().Header.Get("X-Api-Key")
+			if key != expected {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid API key"})
+			}
+			return next(c)
+		}
+	}
 }

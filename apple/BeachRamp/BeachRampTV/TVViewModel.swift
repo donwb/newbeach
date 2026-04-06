@@ -7,8 +7,11 @@ import BeachStatus
 final class TVViewModel {
 
     // MARK: - Video Configuration
-    // Change this URL when the stream rotates. Will move to API config later.
-    static let videoStreamURL = URL(string: "https://content-ause1.uplynk.com/channel/c83af3ec33e84700a3b82f9f51bace99/a.m3u8?pbs=daae6611b04b4ac8a62818ee2da3cf0b")!
+    // Fallback URL used when the API hasn't provided one yet.
+    static let fallbackVideoStreamURL = URL(string: "https://content-ause1-up-1.uplynk.com/channel/c83af3ec33e84700a3b82f9f51bace99/a.m3u8?pbs=c8ac89c7069b45cb9542edb87fc6653f")!
+
+    /// The active video stream URL — loaded from the API config, falls back to hardcoded.
+    var videoStreamURL: URL = fallbackVideoStreamURL
 
     var isVideoPlaying = true
 
@@ -182,7 +185,14 @@ final class TVViewModel {
 
     @MainActor
     private func loadConfig() async {
-        do { config = try await api.fetchConfig() }
-        catch { /* non-critical */ }
+        do {
+            config = try await api.fetchConfig()
+            // Update video stream URL from API if provided.
+            if let urlString = config?.videoStreamURL,
+               !urlString.isEmpty,
+               let url = URL(string: urlString) {
+                videoStreamURL = url
+            }
+        } catch { /* non-critical */ }
     }
 }

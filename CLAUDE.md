@@ -59,6 +59,7 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 - Always provide both up and down migrations
 - Primary table: `ramp_status` — upsert on `access_id`
 - History table: `ramp_status_history` — append-only log of status changes
+- Settings table: `settings` — key-value store for runtime config (e.g., `video_stream_url`)
 - Use `TIMESTAMPTZ` for all timestamps
 - Connection via `DATABASE_URL` environment variable
 
@@ -114,6 +115,7 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 | `NOAA_TIDE_STATION` | API | NOAA tide station ID (default: 8721147) |
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
 | `WEB_DIR` | API | Path to web static files (auto-detected in dev, `/web` in Docker) |
+| `ADMIN_API_KEY` | API | Secret key for admin endpoints (`/api/v2/admin/*`) |
 
 ## Agent Team Notes
 

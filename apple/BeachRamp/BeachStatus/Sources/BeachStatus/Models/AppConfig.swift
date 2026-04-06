@@ -7,6 +7,7 @@ public struct AppConfig: Codable, Sendable {
     public let tideStation: String
     public let waterTempAvg: Double?
     public let webcamURL: String?
+    public let videoStreamURL: String?
 
     enum CodingKeys: String, CodingKey {
         case defaultCity = "default_city"
@@ -14,5 +15,6 @@ public struct AppConfig: Codable, Sendable {
         case tideStation = "tide_station"
         case waterTempAvg = "water_temp_avg"
         case webcamURL = "webcam_url"
+        case videoStreamURL = "video_stream_url"
     }
 }

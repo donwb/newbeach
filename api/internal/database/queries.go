@@ -196,6 +196,61 @@ func GetRecentHistory(ctx context.Context, pool *pgxpool.Pool, limit int) ([]mod
 	return entries, nil
 }
 
+// --- Settings ---
+
+// GetSetting returns the value for a single settings key.
+// Returns empty string if the key does not exist.
+func GetSetting(ctx context.Context, pool *pgxpool.Pool, key string) (string, error) {
+	var value string
+	err := pool.QueryRow(ctx, `SELECT value FROM settings WHERE key = $1`, key).Scan(&value)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil
+		}
+		return "", fmt.Errorf("fetching setting %s: %w", key, err)
+	}
+	return value, nil
+}
+
+// UpsertSetting inserts or updates a settings key-value pair.
+func UpsertSetting(ctx context.Context, pool *pgxpool.Pool, key, value string) error {
+	const query = `
+		INSERT INTO settings (key, value, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (key) DO UPDATE SET
+			value = EXCLUDED.value,
+			updated_at = NOW()
+	`
+	tag, err := pool.Exec(ctx, query, key, value)
+	if err != nil {
+		return fmt.Errorf("upserting setting %s: %w", key, err)
+	}
+	fmt.Printf("[DEBUG] UpsertSetting key=%q value=%q rows_affected=%d\n", key, value, tag.RowsAffected())
+	return nil
+}
+
+// GetAllSettings returns all settings as a map.
+func GetAllSettings(ctx context.Context, pool *pgxpool.Pool) (map[string]string, error) {
+	rows, err := pool.Query(ctx, `SELECT key, value FROM settings ORDER BY key`)
+	if err != nil {
+		return nil, fmt.Errorf("querying all settings: %w", err)
+	}
+	defer rows.Close()
+
+	settings := make(map[string]string)
+	for rows.Next() {
+		var k, v string
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, fmt.Errorf("scanning settings row: %w", err)
+		}
+		settings[k] = v
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating settings rows: %w", err)
+	}
+	return settings, nil
+}
+
 // scanRamps collects all rows from a pgx.Rows into a slice of RampStatus.
 func scanRamps(rows pgx.Rows) ([]models.RampStatus, error) {
 	var ramps []models.RampStatus

@@ -28,3 +28,6 @@ services:
         value: "8721147"
       - key: NOAA_TEMP_STATIONS
         value: "8721604,8720218"
+      - key: ADMIN_API_KEY
+        type: SECRET
+        value: "CHANGE_ME_IN_PLATFORM_UI"

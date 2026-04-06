@@ -64,7 +64,7 @@ struct ContentView: View {
 
                 // Center: Video (sized to content)
                 TVVideoPlayerView(
-                    url: TVViewModel.videoStreamURL,
+                    url: viewModel.videoStreamURL,
                     isPlaying: $viewModel.isVideoPlaying
                 )
 

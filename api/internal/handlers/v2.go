@@ -186,19 +186,62 @@ func HandleV2Health(pool *pgxpool.Pool) echo.HandlerFunc {
 	}
 }
 
-// HandleV2Config returns client configuration from environment variables.
+// HandleV2Config returns client configuration from environment variables
+// merged with database settings.
 // GET /api/v2/config
-func HandleV2Config() echo.HandlerFunc {
+func HandleV2Config(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		webcamURL := os.Getenv("WEBCAM_URL")
+		ctx := c.Request().Context()
+
+		videoStreamURL, _ := database.GetSetting(ctx, pool, "video_stream_url")
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"webcam_url":        webcamURL,
+			"webcam_url":        os.Getenv("WEBCAM_URL"),
 			"tide_station":      os.Getenv("NOAA_TIDE_STATION"),
 			"temp_stations":     os.Getenv("NOAA_TEMP_STATIONS"),
 			"water_temp_avg":    true,
 			"default_city":      "New Smyrna Beach",
+			"video_stream_url":  videoStreamURL,
 		})
+	}
+}
+
+// HandleAdminGetSettings returns all settings from the database.
+// GET /api/v2/admin/settings
+func HandleAdminGetSettings(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		settings, err := database.GetAllSettings(ctx, pool)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to read settings"})
+		}
+		return c.JSON(http.StatusOK, settings)
+	}
+}
+
+// HandleAdminUpdateSetting upserts a single setting.
+// POST /api/v2/admin/settings
+// Body: {"key": "video_stream_url", "value": "https://..."}
+func HandleAdminUpdateSetting(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		var body struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		}
+		if err := c.Bind(&body); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		}
+		if body.Key == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "key is required"})
+		}
+
+		if err := database.UpsertSetting(ctx, pool, body.Key, body.Value); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update setting"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "key": body.Key, "value": body.Value})
 	}
 }
 
