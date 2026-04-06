@@ -5,6 +5,19 @@ import BeachStatus
 /// View model for the tvOS ambient dashboard — all data, auto-refreshing.
 @Observable
 final class TVViewModel {
+
+    // MARK: - Video Configuration
+    // Change this URL when the stream rotates. Will move to API config later.
+    static let videoStreamURL = URL(string: "https://content-ause1.uplynk.com/channel/c83af3ec33e84700a3b82f9f51bace99/a.m3u8?pbs=daae6611b04b4ac8a62818ee2da3cf0b")!
+
+    var isVideoPlaying = true
+
+    func toggleVideo() {
+        isVideoPlaying.toggle()
+    }
+
+    // MARK: - Data
+
     var ramps: [Ramp] = []
     var tideInfo: TideInfo?
     var tideChart: TideChartData?
@@ -36,8 +49,21 @@ final class TVViewModel {
         selectedCity ?? defaultCity
     }
 
+    // MARK: - Ramp Display Order
+    // Preferred display order for NSB ramps. Ramps not listed sort to the end alphabetically.
+    private static let nsbRampOrder = ["3rd av", "flagler av", "crawford rd", "beachway av", "27th av"]
+
     var displayedRamps: [Ramp] {
-        ramps.filter { $0.cityDisplay == currentCity }
+        ramps
+            .filter { $0.cityDisplay == currentCity }
+            .sorted { a, b in
+                let aName = a.rampName.lowercased()
+                let bName = b.rampName.lowercased()
+                let aIdx = Self.nsbRampOrder.firstIndex(of: aName) ?? Int.max
+                let bIdx = Self.nsbRampOrder.firstIndex(of: bName) ?? Int.max
+                if aIdx != bIdx { return aIdx < bIdx }
+                return aName < bName
+            }
     }
 
     var allRamps: [Ramp] { ramps }

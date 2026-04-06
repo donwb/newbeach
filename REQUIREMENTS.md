@@ -1047,10 +1047,12 @@ These items are not in scope for the initial rebuild but the architecture should
 **tvOS app (`BeachRampTV/`):**
 - Ambient dashboard — full-screen status board designed to stay on screen (beach house / surf shop display)
 - Ocean gradient background (ocean800 → ocean700 → ocean600)
-- Top bar: "Beach Ramp Status" title + live clock (Eastern time, updated every 30s)
-- Left panel: ramp grid (2-column `LazyVGrid`) with `TVRampCard` showing status icon, ramp name, location, and colored status text
-- Right panel: tide section with Swift Charts area/line chart, current direction arrow, percentage, H/L predictions; weather section with current temp, conditions, wind/gusts, and 4-period forecast row
-- City header with `TVStatusBadge` counts (open/limited/closed) and navigation hint
+- Top bar (2 rows): "Beach Ramp Status" title + live clock (Eastern time, updated every 30s); city name + `TVStatusBadge` counts (open/limited/closed) with navigation hint
+- 3-column layout:
+  - Left: single-column ramp list with custom display order for NSB (3rd Av, Flagler Av, Crawford Rd, Beachway Av, 27th Av); scrollable for cities with more ramps
+  - Center: HLS video player (`TVVideoPlayerView`) with live beach cam stream, 16:9 aspect ratio, autoplay on launch, play/pause toggle via Siri Remote
+  - Right rail: compact tide section (mini chart, H/L predictions, water temp) and weather section (current temp, conditions, wind, 3-day forecast) using explicit point-size fonts for narrow rail layout
+- Video stream URL hardcoded in `TVViewModel.videoStreamURL` — easy to change when URL rotates; planned migration to API config
 - Siri Remote navigation: left/right `onMoveCommand` cycles through cities
 - Default to New Smyrna Beach on first load (via `/api/v2/config`)
 - Auto-refresh every 60 seconds via `Task.sleep` loop with cancellation support
@@ -1063,7 +1065,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - Design: teal ocean wave on sand/cream background with white wave crests
 - iOS: 1024×1024 single icon in `AppIcon.appiconset` (Xcode auto-generates all sizes)
 - watchOS: 1024×1024 single icon in `AppIcon.appiconset`
-- tvOS: layered imagestack with landscape icons — Back layer at 400×240 (1x), 800×480 (2x) for home screen; 1280×768 for App Store
+- tvOS: layered imagestack with landscape icons — Front + Back layers at 400×240 (1x), 800×480 (2x) for home screen; 1280×768 for App Store
 
 **Key decisions:**
 - Separate theme files per platform (AppTheme, WatchTheme, TVTheme) with platform-specific `StatusCategory` extensions to avoid UIKit/AppKit cross-compilation issues
@@ -1134,7 +1136,7 @@ All six implementation phases are complete. Every platform has reached a shippab
 | **Website** | ✅ Production | Responsive dashboard with ramp grid, tide chart, weather, webcam, dark mode, favorites, PWA |
 | **iOS** | ✅ Buildable | Universal SwiftUI app (iPhone + iPad) with ramps, tide chart, weather, webcam, city/status filtering |
 | **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
-| **tvOS** | ✅ Buildable | Ambient dashboard with ramps, tide chart, weather, auto-refresh, Siri Remote city navigation |
+| **tvOS** | ✅ Buildable | Ambient dashboard with live beach cam video, ramps, tide/weather rail, auto-refresh, Siri Remote city navigation |
 | **TRMNL** | ✅ Ready to paste | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
 
 **Known loose ends (not blocking v1):**
