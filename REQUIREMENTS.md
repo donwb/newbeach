@@ -1081,6 +1081,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - `ADMIN_API_KEY` env var controls admin endpoint access
 - `GET /api/v2/config` now merges database settings with env-var config, exposing `video_stream_url` to all clients
 - tvOS app picks up URL changes within 60s via auto-refresh cycle
+- **Bug fix:** `AppConfig.waterTempAvg` changed from `Double?` to `Bool` with custom decoder — Go API returns a boolean `true` but Swift expected a number, causing the entire config decode to silently fail (video URL, default city, etc. all fell back to hardcoded defaults)
 
 **Not yet built from Phase 5 requirements:** Watch complications (count-based and single-ramp), watch background refresh (15-min schedule), screensaver prevention on tvOS
 
