@@ -1049,9 +1049,9 @@ These items are not in scope for the initial rebuild but the architecture should
 - Ocean gradient background (ocean800 → ocean700 → ocean600)
 - Top bar (2 rows): "Beach Ramp Status" title + live clock (Eastern time, updated every 30s); city name + `TVStatusBadge` counts (open/limited/closed) with navigation hint
 - 3-column layout:
-  - Left: single-column ramp list with custom display order for NSB (3rd Av, Flagler Av, Crawford Rd, Beachway Av, 27th Av); scrollable for cities with more ramps
-  - Center: HLS video player (`TVVideoPlayerView`) with live beach cam stream, 16:9 aspect ratio, autoplay on launch, play/pause toggle via Siri Remote
-  - Right rail: compact tide section (mini chart, H/L predictions, water temp) and weather section (current temp, conditions, wind, 3-day forecast) using explicit point-size fonts for narrow rail layout
+  - Left (2/3 width): 3-column ramp tile grid with compact cards (icon + name top, status below); custom display order for NSB (Beachway Av, Crawford Rd, 3rd Av, Flagler Av, 27th Av); scrollable for cities with more ramps
+  - Right (1/3 width): combined tide+weather card — tide (chart, H/L predictions, water temp) on left, weather (current temp, conditions, wind, 3-day forecast) on right, separated by divider
+  - Bottom: panoramic beach cam banner (1280x270 ~4.7:1 aspect ratio) spanning full width; HLS stream from YouTube via `yt-dlp` extraction script (`scripts/update-stream-url.sh`), URL stored in database settings table, autoplay on launch
 - Video stream URL loaded from API config (`video_stream_url` in `settings` table), with hardcoded fallback in `TVViewModel.fallbackVideoStreamURL`; updates within 60s of a change via auto-refresh
 - Siri Remote navigation: left/right `onMoveCommand` cycles through cities
 - Default to New Smyrna Beach on first load (via `/api/v2/config`)
@@ -1145,7 +1145,7 @@ All six implementation phases are complete. Every platform has reached a shippab
 | **Website** | ✅ Production | Responsive dashboard with ramp grid, tide chart, weather, webcam, dark mode, favorites, PWA |
 | **iOS** | ✅ Buildable | Universal SwiftUI app (iPhone + iPad) with ramps, tide chart, weather, webcam, city/status filtering |
 | **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
-| **tvOS** | ✅ Buildable | Ambient dashboard with live beach cam video, ramps, tide/weather rail, auto-refresh, Siri Remote city navigation |
+| **tvOS** | ✅ Buildable | Ambient dashboard with panoramic beach cam, ramp tile grid, combined tide/weather card, auto-refresh, Siri Remote city navigation |
 | **TRMNL** | ✅ Ready to paste | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
 
 **Known loose ends (not blocking v1):**

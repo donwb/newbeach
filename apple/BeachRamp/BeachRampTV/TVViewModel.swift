@@ -8,7 +8,7 @@ final class TVViewModel {
 
     // MARK: - Video Configuration
     // Fallback URL used when the API hasn't provided one yet.
-    static let fallbackVideoStreamURL = URL(string: "https://content-ause1-up-1.uplynk.com/channel/c83af3ec33e84700a3b82f9f51bace99/a.m3u8?pbs=c8ac89c7069b45cb9542edb87fc6653f")!
+    static let fallbackVideoStreamURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/adv_dv_atmos/main.m3u8")!
 
     /// The active video stream URL — loaded from the API config, falls back to hardcoded.
     var videoStreamURL: URL = fallbackVideoStreamURL
@@ -54,7 +54,7 @@ final class TVViewModel {
 
     // MARK: - Ramp Display Order
     // Preferred display order for NSB ramps. Ramps not listed sort to the end alphabetically.
-    private static let nsbRampOrder = ["3rd av", "flagler av", "crawford rd", "beachway av", "27th av"]
+    private static let nsbRampOrder = ["beachway av", "crawford rd", "3rd av", "flagler av", "27th av"]
 
     var displayedRamps: [Ramp] {
         ramps
