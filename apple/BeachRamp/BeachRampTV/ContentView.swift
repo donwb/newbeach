@@ -93,7 +93,7 @@ struct ContentView: View {
         VStack(spacing: 8) {
             // Row 1: Title + Time
             HStack(alignment: .firstTextBaseline) {
-                Text("Beach Ramp Status")
+                Text("What's Up at the Beach")
                     .font(.largeTitle.weight(.bold))
                 Spacer()
                 Text(currentTime)
@@ -141,23 +141,23 @@ struct ContentView: View {
     // MARK: - Combined Tide + Weather Card
 
     private var tideWeatherCard: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 20) {
             // Tide side
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "water.waves")
-                        .font(.system(size: 16))
+                        .font(.system(size: 20))
                     Text("Tide")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 26, weight: .semibold))
                 }
                 .foregroundStyle(.white)
 
                 if let tide = viewModel.tideInfo {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 4) {
                         Image(systemName: tide.isRising ? "arrow.up.right" : "arrow.down.right")
-                            .font(.system(size: 16))
+                            .font(.system(size: 20))
                         Text("\(tide.tideDirection) \(tide.tidePercentage)%")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 22, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.9))
                 }
@@ -178,20 +178,20 @@ struct ContentView: View {
                                 y: .value("Height", point.height)
                             )
                             .foregroundStyle(.white.opacity(0.7))
-                            .lineStyle(StrokeStyle(lineWidth: 2))
+                            .lineStyle(StrokeStyle(lineWidth: 4))
                         }
                         RuleMark(x: .value("Now", data.currentTime))
                             .foregroundStyle(.orange)
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .lineStyle(StrokeStyle(lineWidth: 4))
                     }
                     .chartXAxis(.hidden)
                     .chartYAxis(.hidden)
-                    .frame(height: 40)
+                    .frame(height: 50)
                 }
 
                 // Predictions
                 if let preds = viewModel.tideInfo?.predictions, !preds.isEmpty {
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 2) {
                         ForEach(preds) { pred in
                             HStack {
                                 Text(pred.label)
@@ -200,7 +200,7 @@ struct ContentView: View {
                                 Text(pred.timeDisplay)
                                     .opacity(0.7)
                             }
-                            .font(.system(size: 15))
+                            .font(.system(size: 19))
                             .foregroundStyle(pred.type == "H" ? .white : .white.opacity(0.7))
                         }
                     }
@@ -208,11 +208,11 @@ struct ContentView: View {
 
                 // Water temp
                 if let temp = viewModel.tideInfo?.waterTempAvg {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 4) {
                         Image(systemName: "thermometer.water")
-                            .font(.system(size: 16))
+                            .font(.system(size: 20))
                         Text("Water \(Int(temp))°F")
-                            .font(.system(size: 19, weight: .medium))
+                            .font(.system(size: 22, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.9))
                 }
@@ -225,34 +225,34 @@ struct ContentView: View {
                 .frame(width: 1)
 
             // Weather side
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "cloud.sun.fill")
-                        .font(.system(size: 16))
+                        .font(.system(size: 20))
                     Text("Weather")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 26, weight: .semibold))
                 }
                 .foregroundStyle(.white)
 
                 if let current = viewModel.weather?.current {
                     Text(current.tempDisplay)
-                        .font(.system(size: 28, weight: .light))
+                        .font(.system(size: 36, weight: .light))
                         .foregroundStyle(.white)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         if let desc = current.description {
                             Label(desc, systemImage: "cloud")
                         }
                         Label(current.windDisplay, systemImage: "wind")
                     }
-                    .font(.system(size: 16))
+                    .font(.system(size: 20))
                     .foregroundStyle(.white.opacity(0.8))
                 }
 
                 // Forecast
                 if let forecast = viewModel.weather?.forecast {
                     let daytime = forecast.filter(\.isDaytime).prefix(3)
-                    VStack(spacing: 2) {
+                    VStack(spacing: 3) {
                         ForEach(Array(daytime)) { period in
                             HStack {
                                 Text(period.shortName)
@@ -261,7 +261,7 @@ struct ContentView: View {
                                 Text(period.tempDisplay)
                                     .fontWeight(.semibold)
                             }
-                            .font(.system(size: 18))
+                            .font(.system(size: 22))
                             .foregroundStyle(.white)
                         }
                     }
@@ -342,18 +342,18 @@ struct TVRampTile: View {
             // Top row: indicator + name
             HStack(spacing: 8) {
                 Image(systemName: ramp.category.tvIcon)
-                    .font(.system(size: 22))
+                    .font(.system(size: 30))
                     .foregroundStyle(ramp.category.tvColor)
 
                 Text(ramp.rampName.titleCased)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
             }
 
             // Status text — full width
             Text(ramp.accessStatus.titleCased)
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 28, weight: .medium))
                 .foregroundStyle(ramp.category.tvColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)

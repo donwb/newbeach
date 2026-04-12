@@ -11,7 +11,7 @@ extension Color {
 
     static let tvSand50 = Color(red: 1.0, green: 0.99, blue: 0.95)
 
-    static let tvStatusOpen = Color(red: 0.06, green: 0.73, blue: 0.51)
+    static let tvStatusOpen = Color(red: 0.20, green: 0.90, blue: 0.40)
     static let tvStatusLimited = Color(red: 0.96, green: 0.62, blue: 0.04)
     static let tvStatusClosed = Color(red: 0.94, green: 0.27, blue: 0.27)
 }

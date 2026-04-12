@@ -1047,7 +1047,8 @@ These items are not in scope for the initial rebuild but the architecture should
 **tvOS app (`BeachRampTV/`):**
 - Ambient dashboard — full-screen status board designed to stay on screen (beach house / surf shop display)
 - Ocean gradient background (ocean800 → ocean700 → ocean600)
-- Top bar (2 rows): "Beach Ramp Status" title + live clock (Eastern time, updated every 30s); city name + `TVStatusBadge` counts (open/limited/closed) with navigation hint
+- Screensaver disabled (`isIdleTimerDisabled = true`) — stays on screen indefinitely as ambient display
+- Top bar (2 rows): "What's Up at the Beach" title + live clock (Eastern time, updated every 30s); city name + `TVStatusBadge` counts (open/limited/closed) with navigation hint
 - 3-column layout:
   - Left (2/3 width): 3-column ramp tile grid with compact cards (icon + name top, status below); custom display order for NSB (Beachway Av, Crawford Rd, 3rd Av, Flagler Av, 27th Av); scrollable for cities with more ramps
   - Right (1/3 width): combined tide+weather card — tide (chart, H/L predictions, water temp) on left, weather (current temp, conditions, wind, 3-day forecast) on right, separated by divider
@@ -1083,7 +1084,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - tvOS app picks up URL changes within 60s via auto-refresh cycle
 - **Bug fix:** `AppConfig.waterTempAvg` changed from `Double?` to `Bool` with custom decoder — Go API returns a boolean `true` but Swift expected a number, causing the entire config decode to silently fail (video URL, default city, etc. all fell back to hardcoded defaults)
 
-**Not yet built from Phase 5 requirements:** Watch complications (count-based and single-ramp), watch background refresh (15-min schedule), screensaver prevention on tvOS
+**Not yet built from Phase 5 requirements:** Watch complications (count-based and single-ramp), watch background refresh (15-min schedule)
 
 ### Phase 6 — TRMNL Device ✅ Complete (March 11, 2026)
 
@@ -1152,7 +1153,6 @@ All six implementation phases are complete. Every platform has reached a shippab
 - Historical analytics dashboard (ramp open/close pattern visualization)
 - iOS: favorites, push notifications, widgets, Live Activities, settings screen, SwiftData caching
 - watchOS: complications, background refresh
-- tvOS: screensaver prevention
 - PWA offline page
 - Apple apps not yet submitted to App Store
 
