@@ -92,7 +92,7 @@ async function loadAllData() {
         }
         if (config.status === 'fulfilled') {
             state.config = config.value;
-            renderWebcam();
+            renderVideo();
         }
         if (weather.status === 'fulfilled') {
             state.weatherInfo = weather.value;
@@ -347,24 +347,99 @@ function renderCounts() {
 }
 
 // ---------------------------------------------------------------------------
-// Webcam
+// Live beach cam (HLS video)
 // ---------------------------------------------------------------------------
-function renderWebcam() {
-    if (!state.config?.webcam_url) {
-        $('#webcam-section').classList.add('hidden');
+let videoState = {
+    hls: null,
+    lastRefreshAttempt: 0,
+    refreshInflight: false,
+};
+
+function renderVideo() {
+    const url = state.config?.video_stream_url;
+    if (!url) {
+        $('#video-section').classList.add('hidden');
         return;
     }
-    const img = $('#webcam-img');
-    img.src = state.config.webcam_url;
-    img.onload = () => $('#webcam-loading').classList.add('hidden');
-    img.onerror = () => {
-        $('#webcam-loading').textContent = 'Webcam unavailable';
+    $('#video-section').classList.remove('hidden');
+
+    const video = $('#video-player');
+    const loading = $('#video-loading');
+
+    const onPlaying = () => loading.classList.add('hidden');
+    video.addEventListener('playing', onPlaying, { once: true });
+
+    attachStream(video, url);
+}
+
+function attachStream(video, url) {
+    // Tear down any prior hls.js instance.
+    if (videoState.hls) {
+        videoState.hls.destroy();
+        videoState.hls = null;
+    }
+
+    const tryPlay = () => {
+        const p = video.play();
+        if (p && typeof p.catch === 'function') {
+            // Autoplay rejection — likely needs user gesture. Surface a hint.
+            p.catch(() => { /* user can press play */ });
+        }
     };
 
-    // Refresh webcam every 60 seconds
-    setInterval(() => {
-        img.src = state.config.webcam_url + '?t=' + Date.now();
-    }, 60000);
+    // Safari (and iOS) play HLS natively.
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.onerror = () => requestVideoRefresh();
+        video.addEventListener('loadedmetadata', tryPlay, { once: true });
+        return;
+    }
+
+    // Other browsers: use hls.js.
+    if (window.Hls && Hls.isSupported()) {
+        const hls = new Hls({ maxBufferLength: 30 });
+        videoState.hls = hls;
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, tryPlay);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+            // Only act on fatal errors — most network/media errors recover on their own.
+            if (data?.fatal) {
+                requestVideoRefresh();
+            }
+        });
+        return;
+    }
+
+    // No HLS support at all — fall back to direct src and let the browser fail gracefully.
+    video.src = url;
+}
+
+// Ask the API to re-resolve the rotating YouTube HLS URL, then re-attach the stream.
+// 30s client-side throttle + single-flight gate so a flapping video element can't
+// hammer the endpoint (server has its own cooldown too).
+function requestVideoRefresh() {
+    const now = Date.now();
+    if (videoState.refreshInflight) return;
+    if (now - videoState.lastRefreshAttempt < 30000) return;
+    videoState.lastRefreshAttempt = now;
+    videoState.refreshInflight = true;
+
+    fetch('/api/v2/video/refresh', { method: 'POST' })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+        .then(payload => {
+            const newURL = payload?.video_stream_url;
+            if (newURL && newURL !== state.config?.video_stream_url) {
+                state.config = { ...(state.config || {}), video_stream_url: newURL };
+            }
+            if (newURL) {
+                $('#video-loading').classList.remove('hidden');
+                $('#video-loading').textContent = 'Reconnecting...';
+                attachStream($('#video-player'), newURL);
+            }
+        })
+        .catch(() => { /* swallow — server safety-poll will catch up */ })
+        .finally(() => { videoState.refreshInflight = false; });
 }
 
 // ---------------------------------------------------------------------------

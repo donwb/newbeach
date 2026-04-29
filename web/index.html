@@ -136,7 +136,7 @@
             <p class="text-gray-500 dark:text-gray-400">No ramps match your filters.</p>
         </div>
 
-        <!-- Tide Chart + Webcam + Weather row -->
+        <!-- Tide Chart + Weather Forecast row -->
         <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- Tide Chart -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -149,21 +149,21 @@
                 </div>
             </div>
 
-            <!-- Webcam -->
-            <div id="webcam-section" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Live Webcam</h2>
-                <div class="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video">
-                    <img id="webcam-img" class="w-full h-full object-cover" alt="Beach webcam" loading="lazy">
-                    <div id="webcam-loading" class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">Loading webcam...</div>
+            <!-- Weather Forecast -->
+            <div id="weather-section" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Weather Forecast</h2>
+                <div id="weather-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <!-- Populated by JS -->
                 </div>
             </div>
         </section>
 
-        <!-- Weather Section -->
-        <section id="weather-section" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Weather Forecast</h2>
-            <div id="weather-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                <!-- Populated by JS -->
+        <!-- Live Beach Cam (panoramic HLS video) -->
+        <section id="video-section" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hidden">
+            <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Live Beach Cam</h2>
+            <div class="relative rounded-lg overflow-hidden bg-gray-900" style="aspect-ratio: 1280 / 270;">
+                <video id="video-player" class="w-full h-full object-cover" muted autoplay playsinline controls></video>
+                <div id="video-loading" class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm pointer-events-none">Loading stream...</div>
             </div>
         </section>
 
@@ -185,6 +185,8 @@
         </div>
     </footer>
 
+    <!-- hls.js for HLS playback in Chrome/Firefox/Edge (Safari plays HLS natively). -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
     <script src="/app.js"></script>
 </body>
 </html>
