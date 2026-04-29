@@ -15,6 +15,7 @@ import (
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
 )
 
@@ -242,6 +243,30 @@ func HandleAdminUpdateSetting(pool *pgxpool.Pool) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "key": body.Key, "value": body.Value})
+	}
+}
+
+// HandleV2VideoRefresh resolves the current HLS URL from YouTube and persists
+// it to settings. Called by clients (tvOS) when their player encounters a
+// playback error, indicating the cached URL has rotated. Concurrent calls and
+// rapid retries are coalesced/cooldown-throttled inside the Refresher.
+// POST /api/v2/video/refresh
+func HandleV2VideoRefresh(refresher *videostream.Refresher) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		result, err := refresher.Refresh(ctx)
+		if err != nil {
+			slog.Error("video stream refresh failed", "err", err)
+			return c.JSON(http.StatusBadGateway, map[string]string{
+				"error": "failed to refresh video stream URL",
+			})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"video_stream_url": result.URL,
+			"cached":           result.Cached,
+		})
 	}
 }
 

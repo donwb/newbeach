@@ -456,6 +456,43 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - Safe area awareness for TV overscan
 - No small text or dense information — everything readable from 10 feet away
 
+### 10.4 Beach Cam Stream — Automatic HLS URL Refresh
+
+The beach cam is a YouTube live broadcast. YouTube rotates the underlying HLS manifest URL several times per day, so the cached URL stored in the `video_stream_url` setting goes stale and the AVPlayer fails to load. Refresh is **demand-driven** with a long-interval safety net. yt-dlp is **never** invoked on a fixed short timer (avoids YouTube bot challenges and 429s on cloud-provider IPs).
+
+**Resolver (server-side):** `internal/videostream.Refresher`
+- Shells out to `yt-dlp -g -f "best[protocol=m3u8_native]" <YouTube live URL>` to extract the current HLS URL.
+- Persists the result to the `settings` table under `video_stream_url`.
+- **Single-flight coalescing** (`golang.org/x/sync/singleflight`): concurrent refresh requests share one yt-dlp invocation.
+- **60-second cooldown:** after a successful refresh, returns the cached URL without re-invoking yt-dlp until the cooldown elapses. Protects against a misbehaving client driving traffic.
+- 30-second per-invocation timeout on yt-dlp.
+
+**On-demand endpoint:** `POST /api/v2/video/refresh`
+- Public (no admin key) — clients call this on playback failure.
+- Returns `{ "video_stream_url": "...", "cached": bool }`.
+- Returns 502 if yt-dlp fails.
+
+**Safety-net poll:** background goroutine in `cmd/server` re-invokes Refresh every 2 hours (override via `VIDEO_REFRESH_INTERVAL` seconds). Keeps the stored URL warm when no client is watching during a rotation. The 60s cooldown means this is also a no-op if a client just refreshed.
+
+**Client (tvOS):** `TVVideoPlayerView` observes:
+- `AVPlayerItem.status == .failed`
+- `AVPlayer.error != nil`
+- `AVPlayerItem.failedToPlayToEndTimeNotification`
+
+Any signal calls `TVViewModel.refreshVideoStream()`, which POSTs to `/api/v2/video/refresh` and swaps `videoStreamURL`. The view model applies its own 30-second client-side throttle and a single-task gate so a tight failure loop cannot fan out into many refresh requests.
+
+**Container:** the API Docker image installs `python3` and the static `yt-dlp` binary at `/usr/local/bin/yt-dlp`; `YT_DLP_PATH` is set in the image and overridable via env var.
+
+**Configuration:**
+
+| Variable | Purpose |
+|----------|---------|
+| `VIDEO_YOUTUBE_URL` | YouTube live page URL (default: hardcoded NSB cam). |
+| `YT_DLP_PATH` | Path to yt-dlp binary (default: `yt-dlp` from PATH; Docker image sets `/usr/local/bin/yt-dlp`). |
+| `VIDEO_REFRESH_INTERVAL` | Safety-net poll interval in seconds (default: 7200). |
+
+The `scripts/update-stream-url.sh` script remains in the repo as a manual escape hatch but is no longer expected to be run on a routine basis.
+
 ---
 
 ## 11. Data Ingester Requirements (Rebuild)

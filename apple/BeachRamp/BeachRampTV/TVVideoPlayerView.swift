@@ -13,8 +13,12 @@ import AVKit
 struct TVVideoPlayerView: View {
     let url: URL
     @Binding var isPlaying: Bool
+    /// Called when AVPlayer reports a playback failure. The owner should ask
+    /// the API to re-resolve the rotating YouTube HLS URL and update `url`.
+    var onPlaybackFailure: (() -> Void)? = nil
 
     @State private var player: AVPlayer?
+    @State private var failureObserver: PlayerFailureObserver?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -63,6 +67,7 @@ struct TVVideoPlayerView: View {
             setupPlayer()
         }
         .onDisappear {
+            failureObserver = nil
             player?.pause()
             player = nil
         }
@@ -80,11 +85,64 @@ struct TVVideoPlayerView: View {
 
     private func setupPlayer(url override: URL? = nil) {
         let streamURL = override ?? url
-        let newPlayer = AVPlayer(url: streamURL)
+        let item = AVPlayerItem(url: streamURL)
+        let newPlayer = AVPlayer(playerItem: item)
         newPlayer.isMuted = false
+
+        failureObserver = PlayerFailureObserver(item: item, player: newPlayer) {
+            onPlaybackFailure?()
+        }
+
         player = newPlayer
         if isPlaying {
             newPlayer.play()
+        }
+    }
+}
+
+/// Observes AVPlayer/AVPlayerItem failure signals and invokes a callback.
+/// Wired up once per AVPlayerItem; replaced when the URL changes.
+private final class PlayerFailureObserver {
+    private let onFailure: () -> Void
+    private var statusObservation: NSKeyValueObservation?
+    private var errorObservation: NSKeyValueObservation?
+    private var notificationToken: NSObjectProtocol?
+
+    init(item: AVPlayerItem, player: AVPlayer, onFailure: @escaping () -> Void) {
+        self.onFailure = onFailure
+
+        statusObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+            if item.status == .failed {
+                self?.fire()
+            }
+        }
+
+        errorObservation = player.observe(\.error, options: [.new]) { [weak self] player, _ in
+            if player.error != nil {
+                self?.fire()
+            }
+        }
+
+        notificationToken = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.failedToPlayToEndTimeNotification,
+            object: item,
+            queue: .main
+        ) { [weak self] _ in
+            self?.fire()
+        }
+    }
+
+    deinit {
+        statusObservation?.invalidate()
+        errorObservation?.invalidate()
+        if let token = notificationToken {
+            NotificationCenter.default.removeObserver(token)
+        }
+    }
+
+    private func fire() {
+        DispatchQueue.main.async { [onFailure] in
+            onFailure()
         }
     }
 }

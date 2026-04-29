@@ -19,6 +19,37 @@ final class TVViewModel {
         isVideoPlaying.toggle()
     }
 
+    /// Min interval between client-driven refresh requests, regardless of how
+    /// many AVPlayer failures fire. Server has its own cooldown but we avoid
+    /// hammering it from the client too.
+    private static let videoRefreshMinInterval: TimeInterval = 30
+    private var lastVideoRefreshAttempt: Date?
+    private var videoRefreshTask: Task<Void, Never>?
+
+    /// Called by the player on playback failure. Asks the API to re-resolve
+    /// the rotating YouTube HLS URL and swaps it in.
+    @MainActor
+    func refreshVideoStream() {
+        if let last = lastVideoRefreshAttempt,
+           Date().timeIntervalSince(last) < Self.videoRefreshMinInterval {
+            return
+        }
+        if videoRefreshTask != nil { return }
+        lastVideoRefreshAttempt = Date()
+
+        videoRefreshTask = Task { @MainActor in
+            defer { videoRefreshTask = nil }
+            do {
+                let newURL = try await api.refreshVideoStream()
+                if newURL != videoStreamURL {
+                    videoStreamURL = newURL
+                }
+            } catch {
+                // Swallow — safety-net poll on the server will catch up.
+            }
+        }
+    }
+
     // MARK: - Data
 
     var ramps: [Ramp] = []

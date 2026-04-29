@@ -82,13 +82,37 @@ public actor APIClient {
         try await get("/api/v2/config")
     }
 
+    /// Ask the server to re-resolve the YouTube live HLS URL. Called by the
+    /// tvOS player when playback fails (the cached URL has rotated). The
+    /// server coalesces concurrent calls and applies a cooldown.
+    public func refreshVideoStream() async throws -> URL {
+        struct Response: Decodable {
+            let videoStreamURL: String
+            enum CodingKeys: String, CodingKey { case videoStreamURL = "video_stream_url" }
+        }
+        let response: Response = try await post("/api/v2/video/refresh")
+        guard let url = URL(string: response.videoStreamURL) else {
+            throw APIError.invalidResponse
+        }
+        return url
+    }
+
     // MARK: - Private
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
+        try await send(path: path, method: "GET")
+    }
+
+    private func post<T: Decodable>(_ path: String) async throws -> T {
+        try await send(path: path, method: "POST")
+    }
+
+    private func send<T: Decodable>(path: String, method: String) async throws -> T {
         let url = baseURL.appendingPathComponent(path)
         var request = URLRequest(url: url)
+        request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 15
+        request.timeoutInterval = 30
 
         let (data, response) = try await session.data(for: request)
 

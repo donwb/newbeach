@@ -75,7 +75,8 @@ struct ContentView: View {
             // Panoramic beach cam banner across the bottom
             TVVideoPlayerView(
                 url: viewModel.videoStreamURL,
-                isPlaying: $viewModel.isVideoPlaying
+                isPlaying: $viewModel.isVideoPlaying,
+                onPlaybackFailure: { viewModel.refreshVideoStream() }
             )
             .padding(.horizontal, 60)
             .padding(.bottom, 8)

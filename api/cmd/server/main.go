@@ -20,6 +20,7 @@ import (
 	"github.com/donwb/beach/api/internal/handlers"
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
 )
 
@@ -124,15 +125,36 @@ func main() {
 		slog.Warn("web directory not found, static file serving disabled")
 	}
 
+	// Video stream refresher — resolves the rotating YouTube live HLS URL via
+	// yt-dlp, persists to the `video_stream_url` setting. Driven primarily by
+	// client-reported playback failures; the safety poll keeps it warm.
+	videoRefresher := videostream.New(
+		pool,
+		os.Getenv("VIDEO_YOUTUBE_URL"),
+		os.Getenv("YT_DLP_PATH"),
+	)
+
 	// Register API routes.
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient)
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher)
 
 	// Start the data ingester in a background goroutine.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	videoRefresher.PrimeFromDB(ctx)
+
 	ing := ingester.New(pool, gisHost, pollInterval)
 	go ing.Start(ctx)
+
+	// Safety-net poll: re-resolve the HLS URL every 2 hours so the stored
+	// value stays warm when no client triggers an on-demand refresh.
+	videoSafetyInterval := 2 * time.Hour
+	if v := os.Getenv("VIDEO_REFRESH_INTERVAL"); v != "" {
+		if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
+			videoSafetyInterval = time.Duration(secs) * time.Second
+		}
+	}
+	go videoRefresher.SafetyPoll(ctx, videoSafetyInterval)
 
 	// Start the HTTP server in a goroutine.
 	go func() {
