@@ -24,7 +24,13 @@ import (
 
 const (
 	settingKey       = "video_stream_url"
-	defaultCooldown  = 60 * time.Second
+	// defaultCooldown deduplicates the burst of failure callbacks AVPlayer can
+	// fire (status KVO + error KVO + notification all within milliseconds) and
+	// near-simultaneous failures from multiple devices. Singleflight already
+	// coalesces concurrent in-flight calls; this only governs back-to-back
+	// calls. Keep it well below the client-side throttle (30s) so a legitimate
+	// recovery retry actually re-resolves instead of getting a cached URL back.
+	defaultCooldown  = 5 * time.Second
 	defaultYouTubeURL = "https://www.youtube.com/watch?v=kB2PZC-ow68"
 	ytDLPTimeout     = 30 * time.Second
 )

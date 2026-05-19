@@ -13,6 +13,14 @@ final class TVViewModel {
     /// The active video stream URL — loaded from the API config, falls back to hardcoded.
     var videoStreamURL: URL = fallbackVideoStreamURL
 
+    /// Ticks on every refresh attempt that clears the throttle, even when the
+    /// URL string comes back unchanged. The player view observes this so it
+    /// can rebuild AVPlayer for recovery — YouTube's manifest URL often stays
+    /// the same across yt-dlp re-resolves, but the underlying player can still
+    /// be stuck (expired segment tokens, prior failure) and needs a fresh
+    /// AVPlayerItem.
+    var videoStreamGeneration: Int = 0
+
     var isVideoPlaying = true
 
     func toggleVideo() {
@@ -37,6 +45,15 @@ final class TVViewModel {
         if videoRefreshTask != nil { return }
         lastVideoRefreshAttempt = Date()
 
+        // Bump the generation token before kicking off the network call. The
+        // player view watches this and rebuilds AVPlayer even when the URL
+        // comes back unchanged — the player was wedged for a reason and a
+        // fresh AVPlayerItem is the only reliable recovery. Bumping outside
+        // the task means a rebuild happens whether or not the API call
+        // succeeds, so the stall watcher gets replaced and can fire again.
+        // The 30s throttle above caps the rebuild rate.
+        videoStreamGeneration &+= 1
+
         videoRefreshTask = Task { @MainActor in
             defer { videoRefreshTask = nil }
             do {
@@ -45,7 +62,7 @@ final class TVViewModel {
                     videoStreamURL = newURL
                 }
             } catch {
-                // Swallow — safety-net poll on the server will catch up.
+                // Swallow — periodic poll on the server will catch up.
             }
         }
     }
