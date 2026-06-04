@@ -126,9 +126,13 @@ func main() {
 	}
 
 	// Video stream refresher — resolves the rotating YouTube live HLS URL via
-	// yt-dlp and persists to the `video_stream_url` setting. The background
-	// poller below is the primary refresh path; the /api/v2/video/refresh
-	// endpoint remains as an on-demand fallback for client playback failures.
+	// yt-dlp and persists to the `video_stream_url` setting. There is no
+	// server-side polling: YouTube bot-blocks yt-dlp from datacenter IPs, so
+	// the refresh is driven externally by scripts/update-stream-url.sh running
+	// from a residential IP (e.g. a cron job on an always-on home machine). The
+	// /api/v2/video/refresh endpoint remains only as an on-demand fallback for
+	// client playback failures; it shares that datacenter-IP limitation and may
+	// fail.
 	videoRefresher := videostream.New(
 		pool,
 		os.Getenv("VIDEO_YOUTUBE_URL"),
@@ -146,18 +150,6 @@ func main() {
 
 	ing := ingester.New(pool, gisHost, pollInterval)
 	go ing.Start(ctx)
-
-	// Periodic poll: re-resolve the HLS URL every 5 minutes so the stored
-	// value tracks YouTube's URL rotation without depending on client-side
-	// playback-failure detection. 5 min is well below any rate limit yt-dlp
-	// would trip against YouTube.
-	videoPollInterval := 5 * time.Minute
-	if v := os.Getenv("VIDEO_REFRESH_INTERVAL"); v != "" {
-		if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
-			videoPollInterval = time.Duration(secs) * time.Second
-		}
-	}
-	go videoRefresher.SafetyPoll(ctx, videoPollInterval)
 
 	// Start the HTTP server in a goroutine.
 	go func() {

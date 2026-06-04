@@ -472,7 +472,7 @@ The beach cam is a YouTube live broadcast. YouTube rotates the underlying HLS ma
 - Returns `{ "video_stream_url": "...", "cached": bool }`.
 - Returns 502 if yt-dlp fails.
 
-**Safety-net poll:** background goroutine in `cmd/server` re-invokes Refresh every 2 hours (override via `VIDEO_REFRESH_INTERVAL` seconds). Keeps the stored URL warm when no client is watching during a rotation. The 60s cooldown means this is also a no-op if a client just refreshed.
+**External refresh (primary path):** YouTube bot-blocks yt-dlp from datacenter IPs (the DigitalOcean App Platform host), so there is no server-side polling — a server-side poll fails after YouTube rotates the URL and the stream wedges on the stale value. The refresh is instead driven from a **residential IP** by running `scripts/update-stream-url.sh` on a schedule (a 2-hour cron job on an always-on home machine), which POSTs the freshly-resolved URL to `POST /api/v2/admin/settings`.
 
 **Client (tvOS):** `TVVideoPlayerView` observes:
 - `AVPlayerItem.status == .failed`
@@ -489,9 +489,8 @@ Any signal calls `TVViewModel.refreshVideoStream()`, which POSTs to `/api/v2/vid
 |----------|---------|
 | `VIDEO_YOUTUBE_URL` | YouTube live page URL (default: hardcoded NSB cam). |
 | `YT_DLP_PATH` | Path to yt-dlp binary (default: `yt-dlp` from PATH; Docker image sets `/usr/local/bin/yt-dlp`). |
-| `VIDEO_REFRESH_INTERVAL` | Safety-net poll interval in seconds (default: 7200). |
 
-The `scripts/update-stream-url.sh` script remains in the repo as a manual escape hatch but is no longer expected to be run on a routine basis.
+The `scripts/update-stream-url.sh` script is the routine refresh mechanism and is expected to run on a schedule from a residential IP (see **External refresh** above).
 
 ---
 
