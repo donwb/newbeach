@@ -1,6 +1,10 @@
 <!doctype html>
 <!--
-  Local development preview for template-x.html (TRMNL X, 1872×1404).
+  Local development preview for template-x.html (TRMNL X).
+
+  The TRMNL platform renders X templates on a 1040×780 CSS pixel canvas
+  (screen--v2 size); the firmware upscales 1.8× to the 1872×1404 panel.
+  This harness reproduces that 1040×780 canvas.
 
   Serve this directory with any static server and open preview-x.html.
   It fetches template-x.html, renders the Liquid with the sample payload
@@ -14,18 +18,18 @@
 <style>
   body { margin: 0; background: #888; font-family: sans-serif; }
   #frame {
-    width: 1872px; height: 1404px;
+    width: 1040px; height: 780px;
     background: #f4f2ea;
-    transform: scale(0.48);
+    transform: scale(0.85);
     transform-origin: top left;
     overflow: hidden;
   }
-  #stage { width: 899px; height: 674px; margin: 20px; }
+  #stage { width: 884px; height: 663px; margin: 20px; }
   /* Minimal stand-ins for the TRMNL framework classes the template uses. */
   #frame .layout {
     display: flex; flex-direction: column;
     width: 100%; height: 100%;
-    padding: 36px 44px; box-sizing: border-box;
+    padding: 20px 24px; box-sizing: border-box;
   }
 </style>
 </head>

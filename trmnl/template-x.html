@@ -1,6 +1,10 @@
 <!--
   TRMNL X Template — Beach Ramp Status (New Smyrna Beach)
-  Display: 1872×1404, 16-level grayscale e-ink (TRMNL X, 10.3")
+  Display: TRMNL X, 10.3" e-ink, 1872×1404 panel, 16-level grayscale.
+
+  IMPORTANT: the TRMNL platform renders X templates on a 1040×780 CSS pixel
+  canvas (the screen--v2 size) and the firmware upscales 1.8× to the panel.
+  All sizes below target 1040×780 — do NOT size for 1872×1404.
 
   Plugin polling configuration (single URL):
     https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/trmnl
@@ -28,8 +32,7 @@
     activity[]            today's status changes, newest first (max 6)
                           .time, .name, .status
 
-  Sizing targets the X's native 1872×1404 CSS pixels. The OG device keeps
-  using template.html — this file is for the X plugin only.
+  The OG device keeps using template.html — this file is for the X plugin only.
 -->
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
@@ -44,22 +47,27 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding-bottom: 18px;
-    border-bottom: 6px solid #000;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #000;
   }
 
   .xb-title {
-    font-size: 84px;
+    font-size: 46px;
     font-weight: 800;
-    letter-spacing: -2px;
+    letter-spacing: -1px;
+    white-space: nowrap;
   }
 
   .xb-header-meta {
     display: flex;
     align-items: baseline;
-    gap: 36px;
-    font-size: 40px;
+    gap: 20px;
+    font-size: 22px;
     font-weight: 500;
+  }
+
+  .xb-header-meta span {
+    white-space: nowrap;
   }
 
   .xb-header-meta .xb-dim {
@@ -71,8 +79,8 @@
   .xb-body {
     flex: 1;
     display: flex;
-    gap: 40px;
-    padding-top: 28px;
+    gap: 22px;
+    padding-top: 16px;
     min-height: 0;
   }
 
@@ -86,8 +94,8 @@
   }
 
   .xb-ramp-row {
-    padding: 16px 8px;
-    border-bottom: 2px solid #c8c8c8;
+    padding: 9px 4px;
+    border-bottom: 1px solid #c8c8c8;
   }
 
   .xb-ramp-row:last-child {
@@ -103,20 +111,20 @@
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 8px 24px;
+    gap: 4px 13px;
   }
 
   .xb-ramp-name {
-    font-size: 76px;
+    font-size: 42px;
     font-weight: 800;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
     white-space: nowrap;
   }
 
   .xb-ramp-status {
-    font-size: 60px;
+    font-size: 33px;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     text-align: right;
     flex-shrink: 0;
   }
@@ -124,22 +132,22 @@
   .xb-cat-closed .xb-ramp-status {
     background: #000;
     color: #fff;
-    padding: 8px 28px;
-    font-size: 48px;
+    padding: 4px 15px;
+    font-size: 26px;
   }
 
   .xb-cat-limited .xb-ramp-status {
     font-style: italic;
-    border: 5px solid #000;
-    padding: 6px 24px;
-    font-size: 48px;
+    border: 3px solid #000;
+    padding: 3px 13px;
+    font-size: 26px;
   }
 
   .xb-ramp-since {
-    font-size: 34px;
+    font-size: 19px;
     font-weight: 400;
     color: #555;
-    padding-top: 8px;
+    padding-top: 4px;
   }
 
   /* ── Right: cards ── */
@@ -147,59 +155,63 @@
     flex: 9;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 18px;
     min-width: 0;
   }
 
   .xb-card {
-    border: 5px solid #000;
-    padding: 24px 28px;
+    border: 3px solid #000;
+    padding: 13px 16px;
   }
 
   .xb-card-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    font-size: 38px;
+    font-size: 21px;
     font-weight: 700;
+  }
+
+  .xb-card-head span {
+    white-space: nowrap;
   }
 
   .xb-card-head .xb-dim {
     color: #555;
     font-weight: 500;
-    font-size: 32px;
+    font-size: 18px;
   }
 
   /* Tide */
   .xb-tide-svg {
     width: 100%;
     display: block;
-    margin-top: 14px;
+    margin-top: 8px;
   }
 
   .xb-tide-foot {
     display: flex;
     justify-content: space-between;
-    font-size: 30px;
+    font-size: 17px;
     color: #555;
-    padding-top: 10px;
+    padding-top: 6px;
   }
 
   /* Weather */
   .xb-wx-now {
     display: flex;
     align-items: baseline;
-    gap: 24px;
-    padding-top: 14px;
+    gap: 13px;
+    padding-top: 8px;
   }
 
   .xb-wx-temp {
-    font-size: 76px;
+    font-size: 42px;
     font-weight: 800;
   }
 
   .xb-wx-desc {
-    font-size: 38px;
+    font-size: 21px;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -208,24 +220,24 @@
   }
 
   .xb-wx-detail {
-    font-size: 32px;
+    font-size: 18px;
     color: #555;
-    padding-top: 8px;
+    padding-top: 4px;
   }
 
   .xb-wx-forecast {
     display: flex;
     gap: 0;
-    margin-top: 20px;
-    border-top: 2px solid #c8c8c8;
-    padding-top: 18px;
+    margin-top: 11px;
+    border-top: 1px solid #c8c8c8;
+    padding-top: 10px;
   }
 
   .xb-wx-period {
     flex: 1;
     min-width: 0;
-    padding: 0 12px;
-    border-left: 2px solid #c8c8c8;
+    padding: 0 7px;
+    border-left: 1px solid #c8c8c8;
   }
 
   .xb-wx-period:first-child {
@@ -234,7 +246,7 @@
   }
 
   .xb-wx-period-name {
-    font-size: 28px;
+    font-size: 16px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -242,13 +254,13 @@
   }
 
   .xb-wx-period-temp {
-    font-size: 44px;
+    font-size: 24px;
     font-weight: 800;
-    padding: 4px 0;
+    padding: 2px 0;
   }
 
   .xb-wx-period-short {
-    font-size: 26px;
+    font-size: 14px;
     color: #555;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -263,15 +275,15 @@
   .xb-act-row {
     display: flex;
     align-items: baseline;
-    gap: 20px;
-    font-size: 32px;
-    padding-top: 16px;
+    gap: 11px;
+    font-size: 18px;
+    padding-top: 9px;
   }
 
   .xb-act-time {
     color: #555;
     font-weight: 500;
-    min-width: 170px;
+    min-width: 95px;
     flex-shrink: 0;
   }
 
@@ -289,9 +301,9 @@
   }
 
   .xb-act-empty {
-    font-size: 32px;
+    font-size: 18px;
     color: #555;
-    padding-top: 16px;
+    padding-top: 9px;
   }
 </style>
 
@@ -347,13 +359,13 @@
           <path d="{{ tide.curve_path }}" fill="none" stroke="#000" stroke-width="5"/>
           {% for ev in tide.events %}
             {% if ev.type == 'high' %}
-            <text x="{{ ev.x }}" y="24" font-size="26" font-weight="600" fill="#333" text-anchor="middle">{{ ev.time }}</text>
+            <text x="{{ ev.x }}" y="26" font-size="32" font-weight="600" fill="#333" text-anchor="middle">{{ ev.time }}</text>
             {% else %}
-            <text x="{{ ev.x }}" y="252" font-size="26" font-weight="600" fill="#333" text-anchor="middle">{{ ev.time }}</text>
+            <text x="{{ ev.x }}" y="252" font-size="32" font-weight="600" fill="#333" text-anchor="middle">{{ ev.time }}</text>
             {% endif %}
           {% endfor %}
-          <line x1="{{ tide.now_x }}" y1="32" x2="{{ tide.now_x }}" y2="250" stroke="#000" stroke-width="3" stroke-dasharray="8,8"/>
-          <circle cx="{{ tide.now_x }}" cy="{{ tide.now_y }}" r="9" fill="#000"/>
+          <line x1="{{ tide.now_x }}" y1="34" x2="{{ tide.now_x }}" y2="250" stroke="#000" stroke-width="3" stroke-dasharray="8,8"/>
+          <circle cx="{{ tide.now_x }}" cy="{{ tide.now_y }}" r="10" fill="#000"/>
         </svg>
         <div class="xb-tide-foot">
           <span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>12 AM</span>
