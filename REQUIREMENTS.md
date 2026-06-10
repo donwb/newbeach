@@ -556,11 +556,11 @@ All values via environment variables:
 - The Tidbyt Pixlet script (`tidbyt/main.star`) remains in the repo unchanged
 - No testing or CI coverage needed for the Tidbyt code
 
-### 12.2 TRMNL E-Ink Display (Active Platform)
+### 12.2 TRMNL OG E-Ink Display (Active Platform)
 
 **Status:** ✅ Complete. Template rewritten for the v2 API and migrated to TRMNL Framework v2.
 
-**Device:** TRMNL — a low-power e-ink dashboard display (800×480) that renders HTML/CSS via Liquid templates. The TRMNL platform polls configured URLs on a schedule and injects the JSON responses as Liquid variables into the template for rendering.
+**Device:** TRMNL OG — a low-power e-ink dashboard display (800×480, 1-bit) that renders HTML/CSS via Liquid templates. The TRMNL platform polls configured URLs on a schedule and injects the JSON responses as Liquid variables into the template for rendering. (The larger TRMNL X device has its own template and endpoint — see §12.3. The OG plugin is untouched by the X work.)
 
 **Implementation:**
 - Liquid template (HTML + CSS) rendered by the TRMNL platform
@@ -614,7 +614,7 @@ All values via environment variables:
 - Category determined from `status_category` field (not string matching)
 
 **Key decisions:**
-- No dedicated `/api/v2/trmnl` endpoint — uses existing v2 endpoints with TRMNL's multi-URL polling plugin
+- No dedicated endpoint for the OG — uses existing v2 endpoints with TRMNL's multi-URL polling plugin (the X later got a dedicated `/api/v2/trmnl` aggregate endpoint, see §12.3)
 - Polling plugin (not webhook): TRMNL fetches from our URLs on a schedule; data accessed via `IDX_0`, `IDX_1` index-based namespacing
 - Root array response (`/api/v2/ramps`) automatically wrapped in `data` key by TRMNL → accessed as `IDX_0.data`
 - City filtering via query parameter (`?city=NEW%20SMYRNA%20BEACH`) — no template-side filtering needed
@@ -624,6 +624,38 @@ All values via environment variables:
 - Pure CSS layout (flexbox), no JavaScript — e-ink displays don't execute JS
 - Template requires TRMNL Framework v2 CSS (set in plugin dashboard); custom CSS classes prefixed with `nsb-` to avoid framework collisions
 - Template file location: `trmnl/template.html` in the monorepo
+
+### 12.3 TRMNL X E-Ink Display (Active Platform)
+
+**Status:** ✅ Complete. Shipped June 10, 2026. Separate private plugin alongside the OG (§12.2), which is untouched.
+
+**Device:** TRMNL X — 10.3" e-ink dashboard display, 1872×1404 panel, 16-level (4-bit) grayscale.
+
+> **Critical sizing fact:** the TRMNL platform renders X templates on a **1040×780 CSS pixel canvas** (the `screen--v2` size); the firmware upscales 1.8× to the physical panel. All template CSS must be sized for 1040×780, *not* 1872×1404. Sizing for the panel resolution makes everything render 1.8× too large and wrap.
+
+**Backend — dedicated `/api/v2/trmnl` aggregate endpoint** (`api/internal/handlers/trmnl.go`):
+- Single polling URL returns everything the template needs, pre-formatted server-side so the Liquid stays near logic-free
+- Ramps: all 5 NSB ramps (27th Ave included — the OG dropped it for space) in fixed display order (3rd, Flagler, Crawford, Beachway, 27th), with pretty display names ("3RD AV" → "3rd Ave") and **status-since times** computed from the latest `ramp_status_history` entry per ramp (lateral join); formatted as "6:02 AM" / "Yest 4:11 PM" / "Jun 8"
+- Tide: direction, percentage, rounded water temp, next high/low times, plus a **server-rendered SVG tide curve** — Catmull-Rom-smoothed path + closed area path in a 1000×260 viewBox, now-marker coordinates, and high/low event markers positioned on the chart (from today's NOAA hourly predictions)
+- Weather: rounded current conditions (temp, wind, humidity, UV) + up to 3 abbreviated NWS forecast periods
+- Activity: today's status changes for the city, newest first, capped at 6
+- Graceful degradation: tide/weather/activity are null/empty if their upstream fetch fails — ramps still render; ramps DB failure is the only 500
+- `?city=` query param, defaults to `NEW SMYRNA BEACH`
+- Times formatted in `America/New_York` (proper tz database, not a hardcoded offset like the OG template)
+
+**TRMNL polling plugin configuration (single URL):**
+- `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/trmnl`
+- Single-URL polling with an object root → JSON keys exposed directly as Liquid variables (`ramps`, `tide`, `weather`, `activity`, `local_time`, `local_date`) — no `IDX_` namespacing
+
+**Template** (`trmnl/template-x.html`, custom CSS prefixed `xb-`):
+- Two-column layout: ramp rows (left, ~55%) with full un-abbreviated statuses and since-times; tide chart, weather, and activity cards (right, ~45%)
+- Status differentiation uses the X's grayscale: closed → inverted black chip on gray-tinted row; limited → outlined italic chip; open → plain bold
+- Long status chips wrap below the ramp name (`flex-wrap`) instead of overflowing
+- Grays for secondary text and chart fill; never grays for small thin type (muddy on e-paper)
+
+**Dev tooling** (`trmnl/preview-x.html`):
+- Local preview harness reproducing the 1040×780 canvas; fetches the real template, renders the Liquid with sample data via liquidjs (CDN), no build step
+- Serve `trmnl/` with any static server (`.claude/launch.json` has a `trmnl-preview` config)
 
 ---
 
@@ -659,8 +691,10 @@ beach/
 │   ├── BeachStatusWatch/   # watchOS app target
 │   ├── BeachStatusTV/      # tvOS app target
 │   └── BeachStatus.xcworkspace
-├── trmnl/                  # TRMNL e-ink display
-│   └── template.html       # Liquid template for TRMNL plugin
+├── trmnl/                  # TRMNL e-ink displays
+│   ├── template.html       # Liquid template for TRMNL OG plugin (800×480)
+│   ├── template-x.html     # Liquid template for TRMNL X plugin (1040×780 canvas)
+│   └── preview-x.html      # Local dev preview harness for template-x (liquidjs)
 ├── tidbyt/                 # Frozen — legacy Tidbyt code
 │   └── main.star
 ├── .do/
@@ -1183,7 +1217,8 @@ All six implementation phases are complete. Every platform has reached a shippab
 | **iOS** | ✅ Buildable | Universal SwiftUI app (iPhone + iPad) with ramps, tide chart, weather, webcam, city/status filtering |
 | **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
 | **tvOS** | ✅ Buildable | Ambient dashboard with panoramic beach cam, ramp tile grid, combined tide/weather card, auto-refresh, Siri Remote city navigation |
-| **TRMNL** | ✅ Ready to paste | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
+| **TRMNL OG** | ✅ Live | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
+| **TRMNL X** | ✅ Live (June 2026) | Grayscale dashboard: 5 NSB ramps with since-times, SVG tide curve, weather + forecast, activity feed — via `/api/v2/trmnl` aggregate endpoint |
 
 **Known loose ends (not blocking v1):**
 - Historical analytics dashboard (ramp open/close pattern visualization)
