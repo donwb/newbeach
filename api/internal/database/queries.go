@@ -93,6 +93,50 @@ func GetRampsByCity(ctx context.Context, pool *pgxpool.Pool, city string) ([]mod
 	return scanRamps(rows)
 }
 
+// GetRampsWithStatusSince returns every ramp for a city along with the time
+// its current status took effect (the most recent history entry, if any).
+func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city string) ([]models.RampStatusWithSince, error) {
+	const query = `
+		SELECT r.id, r.ramp_name, r.access_status, r.status_category, r.object_id, r.city, r.access_id, r.location, r.updated_at,
+		       h.recorded_at
+		FROM ramp_status r
+		LEFT JOIN LATERAL (
+			SELECT recorded_at
+			FROM ramp_status_history
+			WHERE access_id = r.access_id
+			ORDER BY recorded_at DESC
+			LIMIT 1
+		) h ON true
+		WHERE r.city = $1
+		ORDER BY r.ramp_name
+	`
+
+	rows, err := pool.Query(ctx, query, city)
+	if err != nil {
+		return nil, fmt.Errorf("querying ramps with status since for city %s: %w", city, err)
+	}
+	defer rows.Close()
+
+	var ramps []models.RampStatusWithSince
+	for rows.Next() {
+		var r models.RampStatusWithSince
+		if err := rows.Scan(
+			&r.ID, &r.RampName, &r.AccessStatus, &r.StatusCategory,
+			&r.ObjectID, &r.City, &r.AccessID, &r.Location, &r.UpdatedAt,
+			&r.StatusSince,
+		); err != nil {
+			return nil, fmt.Errorf("scanning ramp with status since row: %w", err)
+		}
+		ramps = append(ramps, r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating ramps with status since rows: %w", err)
+	}
+
+	return ramps, nil
+}
+
 // GetRampByID returns a single ramp_status row by its primary key.
 // Returns nil and no error if the row does not exist.
 func GetRampByID(ctx context.Context, pool *pgxpool.Pool, id int64) (*models.RampStatus, error) {

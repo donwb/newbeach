@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+  Local development preview for template-x.html (TRMNL X, 1872×1404).
+
+  Serve this directory with any static server and open preview-x.html.
+  It fetches template-x.html, renders the Liquid with the sample payload
+  below (same shape as /api/v2/trmnl), and displays it scaled to fit.
+  Not used by the TRMNL platform — dev tooling only.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>TRMNL X template preview</title>
+<style>
+  body { margin: 0; background: #888; font-family: sans-serif; }
+  #frame {
+    width: 1872px; height: 1404px;
+    background: #f4f2ea;
+    transform: scale(0.48);
+    transform-origin: top left;
+    overflow: hidden;
+  }
+  #stage { width: 899px; height: 674px; margin: 20px; }
+  /* Minimal stand-ins for the TRMNL framework classes the template uses. */
+  #frame .layout {
+    display: flex; flex-direction: column;
+    width: 100%; height: 100%;
+    padding: 36px 44px; box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+<div id="stage"><div id="frame">Loading…</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/liquidjs@10/dist/liquid.browser.min.js"></script>
+<script>
+  function sineCurve() {
+    const W = 1000, H = 260, PAD = 34;
+    const pts = [];
+    for (let hr = 0; hr <= 23; hr++) {
+      const h = Math.sin((hr - 2.3) / 24 * 2 * Math.PI * 1.93);
+      pts.push([hr / 24 * W, PAD + (1 - (h + 1) / 2) * (H - 2 * PAD)]);
+    }
+    let curve = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    const at = i => pts[Math.max(0, Math.min(pts.length - 1, i))];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, y0] = at(i - 1), [x1, y1] = at(i), [x2, y2] = at(i + 1), [x3, y3] = at(i + 2);
+      curve += ` C${(x1 + (x2 - x0) / 6).toFixed(1)},${(y1 + (y2 - y0) / 6).toFixed(1)}`
+             + ` ${(x2 - (x3 - x1) / 6).toFixed(1)},${(y2 - (y3 - y1) / 6).toFixed(1)}`
+             + ` ${x2.toFixed(1)},${y2.toFixed(1)}`;
+    }
+    const last = pts[pts.length - 1];
+    const area = `${curve} L${last[0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
+    return { curve, area };
+  }
+
+  const { curve, area } = sineCurve();
+
+  const sample = {
+    local_time: "1:09 PM",
+    local_date: "Wed, Jun 10",
+    ramps: [
+      { name: "3rd Ave", access_status: "OPEN", access_status_short: "OPEN", status_category: "open", status_since: "6:02 AM" },
+      { name: "Flagler Ave", access_status: "OPEN", access_status_short: "OPEN", status_category: "open", status_since: "6:02 AM" },
+      { name: "Crawford Rd", access_status: "CLOSED FOR HIGH TIDE", access_status_short: "CLOSED-TIDE", status_category: "closed", status_since: "12:48 PM" },
+      { name: "Beachway Ave", access_status: "OPEN - ENTRANCE ONLY", access_status_short: "ENTER ONLY", status_category: "limited", status_since: "11:15 AM" },
+      { name: "27th Ave", access_status: "OPEN", access_status_short: "OPEN", status_category: "open", status_since: "Yest 4:11 PM" }
+    ],
+    tide: {
+      direction: "Rising", percentage: 24, water_temp_f: 79,
+      curve_path: curve, area_path: area,
+      now_x: 548, now_y: 96,
+      events: [
+        { type: "low", time: "8:21 AM", x: 348 },
+        { type: "high", time: "2:41 PM", x: 612 },
+        { type: "low", time: "8:55 PM", x: 872 }
+      ],
+      next_high: "2:41 PM", next_low: "8:55 PM"
+    },
+    weather: {
+      temp_f: 82, description: "Sunny", wind_speed: "12 mph", wind_direction: "E",
+      humidity: 64, uv_index: 8,
+      forecast: [
+        { name: "This Afternoon", temp_f: 84, short: "Sunny" },
+        { name: "Tonight", temp_f: 71, short: "Mostly Clear" },
+        { name: "Thursday", temp_f: 84, short: "Chance Showers" }
+      ]
+    },
+    activity: [
+      { time: "12:48 PM", name: "Crawford Rd", status: "CLOSED FOR HIGH TIDE" },
+      { time: "12:31 PM", name: "Crawford Rd", status: "CLOSING IN PROGRESS" },
+      { time: "11:15 AM", name: "Beachway Ave", status: "OPEN - ENTRANCE ONLY" },
+      { time: "6:02 AM", name: "3rd Ave", status: "OPEN" }
+    ]
+  };
+
+  fetch("template-x.html")
+    .then(r => r.text())
+    .then(tpl => new liquidjs.Liquid().parseAndRender(tpl, sample))
+    .then(html => { document.getElementById("frame").innerHTML = html; })
+    .catch(err => { document.getElementById("frame").textContent = "Render error: " + err; });
+</script>
+</body>
+</html>

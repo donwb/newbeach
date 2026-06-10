@@ -65,10 +65,11 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 
 ## TRMNL (E-Ink Display)
 
-- Template is a Liquid/HTML file at `trmnl/template.html`
-- Monochrome only — design for e-ink (no color, high contrast, no gradients)
-- Data comes from `/api/v2/trmnl` endpoint shaped for TRMNL plugin webhook
-- Status strings > 12 chars must use abbreviated form (`access_status_short`)
+- Two devices, two templates:
+  - `trmnl/template.html` — TRMNL OG (800×480, 1-bit). Polls `/api/v2/ramps` + `/api/v2/tides`. Status strings > 12 chars use abbreviated form (`access_status_short`).
+  - `trmnl/template-x.html` — TRMNL X (1872×1404, 16-level grayscale). Polls the `/api/v2/trmnl` aggregate endpoint, which pre-formats everything (display names, since-times, SVG tide curve paths) so the Liquid stays near logic-free. Full status strings fit — no abbreviations.
+- `trmnl/preview-x.html` — local dev harness: renders the X template with sample data via liquidjs (serve the `trmnl/` dir with any static server)
+- No color — design for e-ink (high contrast; grays are fine on the X for secondary text and fills, never for small thin type)
 - This is an active platform — expect frequent iteration
 
 ## Tidbyt (Legacy)

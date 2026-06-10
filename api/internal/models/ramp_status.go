@@ -19,6 +19,14 @@ type RampStatus struct {
 	UpdatedAt      time.Time `json:"last_updated" db:"updated_at"`
 }
 
+// RampStatusWithSince pairs a ramp's current status with the time that status
+// took effect, taken from the most recent history entry. StatusSince is nil
+// when the ramp has no recorded status changes.
+type RampStatusWithSince struct {
+	RampStatus
+	StatusSince *time.Time `json:"status_since,omitempty"`
+}
+
 // RampStatusHistory represents a single historical record of a ramp status change.
 type RampStatusHistory struct {
 	ID           int64     `json:"id" db:"id"`

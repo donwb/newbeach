@@ -64,6 +64,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/tides", HandleV2Tides(noaaClient))
 	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))
 	v2.GET("/weather", HandleV2Weather(weatherClient))
+	v2.GET("/trmnl", HandleV2Trmnl(pool, noaaClient, weatherClient))
 	v2.GET("/health", HandleV2Health(pool))
 	v2.GET("/config", HandleV2Config(pool))
 	v2.POST("/video/refresh", HandleV2VideoRefresh(videoRefresher))

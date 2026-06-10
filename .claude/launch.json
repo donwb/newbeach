@@ -6,6 +6,12 @@
       "runtimeExecutable": "make",
       "runtimeArgs": ["-C", "api", "dev"],
       "port": 8080
+    },
+    {
+      "name": "trmnl-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "trmnl"],
+      "port": 8765
     }
   ]
 }
