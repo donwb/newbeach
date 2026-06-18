@@ -438,11 +438,12 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Ambient dashboard mode** — auto-refreshing full-screen status board designed to stay on screen (beach house / surf shop display)
 - **Full-screen layout** showing all data:
   - Ramp status grid with large color-coded status indicators
-  - Tide chart with current direction and percentage
-  - Weather: current conditions and forecast
-  - Current time
+  - Tide: direction, mini tide curve, water temperature, and next high/low — large type, one detail line
+  - Weather: current temperature, conditions, wind, and tomorrow's forecast — large type, one detail line
+  - Current time plus sunrise / sunset times
+- **Time-of-day ambient sky** — the background tracks the real sun (see §10.4)
 - **Default to New Smyrna Beach** — matches phone/web behavior, with Siri Remote navigation to switch cities
-- **Auto-refresh** — data updates every 60 seconds
+- **Auto-refresh** — data updates every 60 seconds; the sky/clock tick every 30 seconds
 - **Screensaver prevention** — keeps display active while app is foregrounded
 - **Minimal remote interaction** — Siri Remote can switch between cities
 - **No Top Shelf extension** — just the main dashboard app
@@ -452,11 +453,22 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 
 - Optimized for 1080p / 4K displays
 - Large fonts, high contrast
-- Beach-themed ambient aesthetic (gradients, subtle wave animations)
+- Beach-themed ambient aesthetic — a sun-driven gradient sky (§10.4) behind frosted-glass (`.ultraThinMaterial`) cards
 - Safe area awareness for TV overscan
 - No small text or dense information — everything readable from 10 feet away
 
-### 10.4 Beach Cam Stream — Automatic HLS URL Refresh
+### 10.4 Time-of-Day Ambient Sky
+
+The full-screen background gradient is computed from the **real position of the sun** for New Smyrna Beach, so a dashboard left on a wall all day visibly moves through the day rather than showing one static color.
+
+- **Sun model:** `SolarCalculator` in the shared `BeachStatus` package — a pure, unit-tested value type that computes the sun's altitude (degrees above the horizon) and the day's sunrise/sunset for NSB's fixed coordinates (≈29.03°N, 80.93°W). No backend or network dependency; sunrise/sunset also drive the times shown under the clock.
+- **Seven phases:** the sky moves through `sunrise → morning → noon → afternoon → sunset → evening → night`. Each phase is a three-stop gradient plus a dimming factor (night dims the whole board, including the beach cam).
+- **Continuous, not snapping:** phases are anchor palettes keyed by sun altitude; the active palette is linearly interpolated between the two bracketing anchors, and changes are animated (2s ease) so transitions are imperceptible.
+- **Morning ≠ afternoon:** altitude alone is symmetric (8am and 4pm sit at the same height), so the palette also uses the sun's **direction** (`SolarCalculator.isRising`). A rising track (`night → sunrise → morning → noon`) and a falling track (`noon → afternoon → sunset → evening → night`) share identical endpoints at noon and night, so the rising↔falling switch — which only occurs at the solar-noon and solar-midnight extremes — is seamless, while dawn and dusk get distinct personalities (cool fresh mornings, warm afternoons; soft peach sunrises, saturated orange sunsets).
+
+Implementation: `SkyPalette` in `BeachRampTV/TVTheme.swift`; phase selection and animation in `BeachRampTV/ContentView.swift`.
+
+### 10.5 Beach Cam Stream — Automatic HLS URL Refresh
 
 The beach cam is a YouTube live broadcast. YouTube rotates the underlying HLS manifest URL several times per day, so the cached URL stored in the `video_stream_url` setting goes stale and the AVPlayer fails to load. Refresh is **demand-driven** with a long-interval safety net. yt-dlp is **never** invoked on a fixed short timer (avoids YouTube bot challenges and 429s on cloud-provider IPs).
 

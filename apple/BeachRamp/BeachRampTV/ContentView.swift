@@ -10,20 +10,29 @@ import Charts
 import BeachStatus
 
 /// tvOS ambient dashboard — full-screen status board with ramps, tide, weather.
+/// The background tracks the real sun for New Smyrna Beach, shifting through
+/// dawn, day, golden hour, and a dimmed night as the day progresses.
 struct ContentView: View {
     @State private var viewModel = TVViewModel()
     @State private var currentTime = ""
+    @State private var sunAltitude: Double = 30
+    @State private var sunRising = true
+    @State private var sunriseText = ""
+    @State private var sunsetText = ""
+    @State private var solarDay: Date?
     @State private var timeTimer: Timer?
+
+    private let solar = SolarCalculator.newSmyrnaBeach
+
+    /// Eastern time — the beach's local zone, used for the clock and sun times.
+    private static let easternZone = TimeZone(identifier: "America/New_York")!
+
+    private var palette: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
 
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [Color.tvOcean800, Color.tvOcean700, Color.tvOcean600],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            palette.gradient
+                .ignoresSafeArea()
 
             if viewModel.isLoading && viewModel.ramps.isEmpty {
                 ProgressView("Loading Beach Status…")
@@ -32,7 +41,14 @@ struct ContentView: View {
             } else {
                 dashboardContent
             }
+
+            // Night dimming scrim — darkens the whole board after sunset.
+            Color.black
+                .opacity(palette.dimOverlayOpacity)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
         }
+        .animation(.easeInOut(duration: 2.0), value: sunAltitude)
         .task {
             await viewModel.loadAll()
             viewModel.startAutoRefresh()
@@ -93,14 +109,17 @@ struct ContentView: View {
 
     private var topBar: some View {
         VStack(spacing: 8) {
-            // Row 1: Title + Time
+            // Row 1: Title + Time + Sun times
             HStack(alignment: .firstTextBaseline) {
                 Text("What's Up at the Beach")
                     .font(.largeTitle.weight(.bold))
                 Spacer()
-                Text(currentTime)
-                    .font(.system(size: 48, weight: .light, design: .rounded))
-                    .monospacedDigit()
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(currentTime)
+                        .font(.system(size: 48, weight: .light, design: .rounded))
+                        .monospacedDigit()
+                    sunTimes
+                }
             }
 
             // Row 2: City + Badges
@@ -128,6 +147,19 @@ struct ContentView: View {
         .foregroundStyle(.white)
     }
 
+    /// Sunrise / sunset pair shown beneath the clock.
+    @ViewBuilder
+    private var sunTimes: some View {
+        if !sunriseText.isEmpty {
+            HStack(spacing: 16) {
+                Label(sunriseText, systemImage: "sunrise.fill")
+                Label(sunsetText, systemImage: "sunset.fill")
+            }
+            .font(.system(size: 20, weight: .medium, design: .rounded))
+            .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+
     // MARK: - Ramp Grid
 
     private var rampGrid: some View {
@@ -144,138 +176,130 @@ struct ContentView: View {
 
     private var tideWeatherCard: some View {
         HStack(alignment: .top, spacing: 20) {
-            // Tide side
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: "water.waves")
-                        .font(.system(size: 20))
-                    Text("Tide")
-                        .font(.system(size: 26, weight: .semibold))
-                }
-                .foregroundStyle(.white)
+            tideColumn
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let tide = viewModel.tideInfo {
-                    HStack(spacing: 4) {
-                        Image(systemName: tide.isRising ? "arrow.up.right" : "arrow.down.right")
-                            .font(.system(size: 20))
-                        Text("\(tide.tideDirection) \(tide.tidePercentage)%")
-                            .font(.system(size: 22, weight: .medium))
-                    }
-                    .foregroundStyle(.white.opacity(0.9))
-                }
-
-                // Mini tide chart
-                if let data = viewModel.tideChart, !data.hourly.isEmpty {
-                    Chart {
-                        ForEach(data.hourly) { point in
-                            AreaMark(
-                                x: .value("Time", point.time),
-                                y: .value("Height", point.height)
-                            )
-                            .foregroundStyle(.white.opacity(0.1))
-                        }
-                        ForEach(data.hourly) { point in
-                            LineMark(
-                                x: .value("Time", point.time),
-                                y: .value("Height", point.height)
-                            )
-                            .foregroundStyle(.white.opacity(0.7))
-                            .lineStyle(StrokeStyle(lineWidth: 4))
-                        }
-                        RuleMark(x: .value("Now", data.currentTime))
-                            .foregroundStyle(.orange)
-                            .lineStyle(StrokeStyle(lineWidth: 4))
-                    }
-                    .chartXAxis(.hidden)
-                    .chartYAxis(.hidden)
-                    .frame(height: 50)
-                }
-
-                // Predictions
-                if let preds = viewModel.tideInfo?.predictions, !preds.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(preds) { pred in
-                            HStack {
-                                Text(pred.label)
-                                    .fontWeight(.bold)
-                                Spacer()
-                                Text(pred.timeDisplay)
-                                    .opacity(0.7)
-                            }
-                            .font(.system(size: 19))
-                            .foregroundStyle(pred.type == "H" ? .white : .white.opacity(0.7))
-                        }
-                    }
-                }
-
-                // Water temp
-                if let temp = viewModel.tideInfo?.waterTempAvg {
-                    HStack(spacing: 4) {
-                        Image(systemName: "thermometer.water")
-                            .font(.system(size: 20))
-                        Text("Water \(Int(temp))°F")
-                            .font(.system(size: 22, weight: .medium))
-                    }
-                    .foregroundStyle(.white.opacity(0.9))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Divider
             Rectangle()
                 .fill(.white.opacity(0.2))
                 .frame(width: 1)
 
-            // Weather side
-            VStack(alignment: .leading, spacing: 8) {
+            weatherColumn
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(18)
+        .glassCard()
+    }
+
+    private var tideColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("Tide", systemImage: "water.waves")
+
+            if let tide = viewModel.tideInfo {
                 HStack(spacing: 6) {
-                    Image(systemName: "cloud.sun.fill")
-                        .font(.system(size: 20))
-                    Text("Weather")
-                        .font(.system(size: 26, weight: .semibold))
+                    Image(systemName: tide.isRising ? "arrow.up.right" : "arrow.down.right")
+                    Text(tide.isRising ? "Rising" : "Falling")
                 }
+                .font(.system(size: 30, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
-
-                if let current = viewModel.weather?.current {
-                    Text(current.tempDisplay)
-                        .font(.system(size: 36, weight: .light))
-                        .foregroundStyle(.white)
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        if let desc = current.description {
-                            Label(desc, systemImage: "cloud")
-                        }
-                        Label(current.windDisplay, systemImage: "wind")
-                    }
-                    .font(.system(size: 20))
-                    .foregroundStyle(.white.opacity(0.8))
-                }
-
-                // Forecast
-                if let forecast = viewModel.weather?.forecast {
-                    let daytime = forecast.filter(\.isDaytime).prefix(3)
-                    VStack(spacing: 3) {
-                        ForEach(Array(daytime)) { period in
-                            HStack {
-                                Text(period.shortName)
-                                    .opacity(0.7)
-                                Spacer()
-                                Text(period.tempDisplay)
-                                    .fontWeight(.semibold)
-                            }
-                            .font(.system(size: 22))
-                            .foregroundStyle(.white)
-                        }
-                    }
-                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Mini tide chart
+            if let data = viewModel.tideChart, !data.hourly.isEmpty {
+                Chart {
+                    ForEach(data.hourly) { point in
+                        AreaMark(
+                            x: .value("Time", point.time),
+                            y: .value("Height", point.height)
+                        )
+                        .foregroundStyle(.white.opacity(0.1))
+                    }
+                    ForEach(data.hourly) { point in
+                        LineMark(
+                            x: .value("Time", point.time),
+                            y: .value("Height", point.height)
+                        )
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 4))
+                    }
+                    RuleMark(x: .value("Now", data.currentTime))
+                        .foregroundStyle(.orange)
+                        .lineStyle(StrokeStyle(lineWidth: 4))
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+                .frame(height: 52)
+            }
+
+            // Water temp — large
+            if let temp = viewModel.tideInfo?.waterTempAvg {
+                HStack(spacing: 6) {
+                    Image(systemName: "thermometer.water")
+                    Text("Water \(Int(temp))°")
+                }
+                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            }
+
+            // One detail line: next high/low tide
+            if let next = nextTide {
+                Text("Next \(next.label) · \(next.timeDisplay)")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
         }
-        .padding(14)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.white.opacity(0.1))
+    }
+
+    private var weatherColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("Weather", systemImage: "cloud.sun.fill")
+
+            if let current = viewModel.weather?.current {
+                Text(current.tempDisplay)
+                    .font(.system(size: 56, weight: .thin, design: .rounded))
+                    .foregroundStyle(.white)
+
+                if let desc = current.description {
+                    Text(desc)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                Label(current.windDisplay, systemImage: "wind")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+
+            // One detail line: tomorrow's forecast
+            if let tomorrow = tomorrowForecast {
+                Text("\(tomorrow.shortName) \(tomorrow.tempDisplay)")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
         }
+    }
+
+    private func sectionHeader(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.system(size: 22, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.75))
+    }
+
+    // MARK: - Derived Data
+
+    /// The next upcoming high/low tide prediction.
+    private var nextTide: TidePrediction? {
+        guard let preds = viewModel.tideInfo?.predictions else { return nil }
+        let now = Date()
+        return preds.filter { $0.time > now }.min { $0.time < $1.time }
+    }
+
+    /// Tomorrow's daytime forecast (the second daytime period), for the one-line summary.
+    private var tomorrowForecast: ForecastPeriod? {
+        guard let forecast = viewModel.weather?.forecast else { return nil }
+        let daytime = forecast.filter(\.isDaytime)
+        return daytime.count > 1 ? daytime[1] : daytime.first
     }
 
     // MARK: - Bottom Bar
@@ -295,20 +319,64 @@ struct ContentView: View {
         .foregroundStyle(.white.opacity(0.5))
     }
 
-    // MARK: - Clock
+    // MARK: - Clock & Sun
 
     private func startClock() {
-        updateTime()
+        tick()
         timeTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            updateTime()
+            tick()
         }
     }
 
-    private func updateTime() {
+    /// Updates the clock, recomputes the sun's altitude (driving the background),
+    /// and refreshes sunrise/sunset when the day rolls over.
+    private func tick() {
+        let now = Date()
+
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
-        formatter.timeZone = TimeZone(identifier: "America/New_York")
-        currentTime = formatter.string(from: Date())
+        formatter.timeZone = Self.easternZone
+        currentTime = formatter.string(from: now)
+
+        withAnimation(.easeInOut(duration: 2.0)) {
+            sunAltitude = solar.altitude(at: now)
+            sunRising = solar.isRising(at: now)
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Self.easternZone
+        if solarDay == nil || !calendar.isDate(solarDay!, inSameDayAs: now) {
+            solarDay = now
+            let events = solar.events(on: now, calendar: calendar)
+            sunriseText = events.sunrise.map { formatter.string(from: $0) } ?? ""
+            sunsetText = events.sunset.map { formatter.string(from: $0) } ?? ""
+        }
+    }
+}
+
+// MARK: - Glass Card Styling
+
+/// Frosted-glass card surface — translucent material with a hairline highlight,
+/// so cards read as floating over the sky rather than flat fills.
+private struct GlassCard: ViewModifier {
+    var cornerRadius: CGFloat = 16
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.ultraThinMaterial)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+            }
+    }
+}
+
+private extension View {
+    func glassCard(cornerRadius: CGFloat = 16) -> some View {
+        modifier(GlassCard(cornerRadius: cornerRadius))
     }
 }
 
@@ -363,10 +431,7 @@ struct TVRampTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.white.opacity(0.1))
-        }
+        .glassCard()
     }
 }
 

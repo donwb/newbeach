@@ -15,5 +15,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "BeachStatus"),
+        .testTarget(name: "BeachStatusTests", dependencies: ["BeachStatus"]),
     ]
 )
