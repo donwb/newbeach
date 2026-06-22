@@ -180,18 +180,15 @@ struct StatusCount: View {
     var body: some View {
         VStack(spacing: 4) {
             Text("\(count)")
-                .font(.title2.weight(.bold))
+                .font(.system(.title, design: .rounded).weight(.bold))
                 .foregroundStyle(color)
             Text(label)
                 .font(.caption)
                 .foregroundStyle(AppColors.secondaryText)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(AppColors.cardBackground)
-        }
+        .padding(.vertical, 14)
+        .cardSurface(cornerRadius: 14)
     }
 }
 

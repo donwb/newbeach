@@ -36,10 +36,7 @@ struct WebcamView: View {
             }
         }
         .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(AppColors.cardBackground)
-        }
+        .cardSurface()
     }
 
     private func webcamPlaceholder(message: String) -> some View {
@@ -54,8 +51,8 @@ struct WebcamView: View {
         .frame(height: 200)
         .frame(maxWidth: .infinity)
         .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(AppColors.cardBackground)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(AppColors.nestedCardBackground)
         }
     }
 }

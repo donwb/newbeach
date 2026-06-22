@@ -24,8 +24,8 @@ struct WaterTempView: View {
                         Spacer()
 
                         Text("\(Int(reading.tempF))°F")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(Color.ocean600)
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .foregroundStyle(AppColors.oceanAccent)
                     }
                     .padding(.vertical, 4)
                 }
@@ -38,8 +38,8 @@ struct WaterTempView: View {
                             .font(.subheadline.weight(.medium))
                         Spacer()
                         Text("\(Int(avg))°F")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(Color.ocean700)
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .foregroundStyle(AppColors.oceanAccent)
                     }
                 }
             } else {
@@ -51,9 +51,6 @@ struct WaterTempView: View {
             }
         }
         .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(AppColors.cardBackground)
-        }
+        .cardSurface()
     }
 }

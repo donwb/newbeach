@@ -10,7 +10,7 @@ struct HeaderView: View {
             // Gradient header
             VStack(spacing: 12) {
                 // Title row
-                HStack {
+                HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Beach Ramp Status")
                             .font(.title2.weight(.bold))
@@ -20,57 +20,82 @@ struct HeaderView: View {
                     }
                     Spacer()
 
-                    // Water temp pill
-                    if let temp = viewModel.waterTempDisplay {
-                        HStack(spacing: 4) {
-                            Image(systemName: "thermometer.medium")
-                                .font(.caption)
-                            Text(temp)
-                                .font(.subheadline.weight(.semibold))
+                    VStack(alignment: .trailing, spacing: 6) {
+                        // Water temp pill
+                        if let temp = viewModel.waterTempDisplay {
+                            HStack(spacing: 4) {
+                                Image(systemName: "thermometer.medium")
+                                    .font(.caption)
+                                Text(temp)
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.white.opacity(0.15))
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.white.opacity(0.15))
-                        .clipShape(Capsule())
+
+                        // Sunrise / sunset — always visible
+                        if let sun = sunTimes {
+                            HStack(spacing: 10) {
+                                Label(sun.sunrise, systemImage: "sunrise.fill")
+                                Label(sun.sunset, systemImage: "sunset.fill")
+                            }
+                            .font(.caption2.weight(.medium))
+                            .opacity(0.9)
+                        }
                     }
                 }
 
-                // Info pills row
-                HStack(spacing: 8) {
-                    // Weather pill
-                    if let current = viewModel.weather?.current {
-                        InfoPill(
-                            icon: "cloud.sun.fill",
-                            text: current.tempDisplay,
-                            detail: current.description
-                        )
-                    }
+                // Info pills row — horizontally scrollable so it never crowds.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        // Weather pill
+                        if let current = viewModel.weather?.current {
+                            InfoPill(
+                                icon: "cloud.sun.fill",
+                                text: current.tempDisplay,
+                                detail: current.description
+                            )
+                        }
 
-                    // Wind pill
-                    if let current = viewModel.weather?.current, current.windSpeed != nil {
-                        InfoPill(
-                            icon: "wind",
-                            text: current.windDisplay,
-                            detail: current.gustDisplay
-                        )
-                    }
+                        // Wind pill
+                        if let current = viewModel.weather?.current, current.windSpeed != nil {
+                            InfoPill(
+                                icon: "wind",
+                                text: current.windDisplay,
+                                detail: current.gustDisplay
+                            )
+                        }
 
-                    // Tide pill
-                    if let tide = viewModel.tideInfo {
-                        InfoPill(
-                            icon: tide.isRising ? "arrow.up.right" : "arrow.down.right",
-                            text: "\(tide.tidePercentage)%",
-                            detail: tide.tideDirection
-                        )
+                        // Tide pill
+                        if let tide = viewModel.tideInfo {
+                            InfoPill(
+                                icon: tide.isRising ? "arrow.up.right" : "arrow.down.right",
+                                text: "\(tide.tidePercentage)%",
+                                detail: tide.tideDirection
+                            )
+                        }
                     }
-
-                    Spacer()
                 }
             }
             .padding()
             .foregroundStyle(.white)
             .background(AppColors.headerGradient)
         }
+    }
+
+    /// Today's sunrise / sunset for New Smyrna Beach, formatted in Eastern time.
+    private var sunTimes: (sunrise: String, sunset: String)? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/New_York")!
+        let events = SolarCalculator.newSmyrnaBeach.events(on: Date(), calendar: calendar)
+        guard let sunrise = events.sunrise, let sunset = events.sunset else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm"
+        formatter.timeZone = calendar.timeZone
+        return (formatter.string(from: sunrise), formatter.string(from: sunset))
     }
 }
 

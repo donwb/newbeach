@@ -101,8 +101,8 @@ struct TideChartView: View {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(AppColors.cardBackground)
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(AppColors.nestedCardBackground)
                                 }
                             }
                         }
@@ -118,10 +118,7 @@ struct TideChartView: View {
             }
         }
         .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(AppColors.cardBackground)
-        }
+        .cardSurface()
     }
 
     /// Find the height at a given time by interpolating the hourly points.

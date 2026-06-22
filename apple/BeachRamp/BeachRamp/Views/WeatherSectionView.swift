@@ -31,10 +31,7 @@ struct WeatherSectionView: View {
             }
         }
         .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(AppColors.cardBackground)
-        }
+        .cardSurface()
     }
 }
 
@@ -56,7 +53,7 @@ struct WeatherCard: View {
 
             // Temperature
             Text(period.tempDisplay)
-                .font(.title3.weight(.bold))
+                .font(.system(.title3, design: .rounded).weight(.bold))
                 .foregroundStyle(AppColors.primaryText)
 
             // Short description
@@ -87,9 +84,8 @@ struct WeatherCard: View {
         .padding(.horizontal, 10)
         .frame(width: 100)
         .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(AppColors.cardBackground)
-                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(AppColors.nestedCardBackground)
         }
     }
 

@@ -31,10 +31,7 @@ struct RampCardView: View {
             StatusBadge(category: ramp.category, text: ramp.accessStatus.titleCased)
         }
         .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(AppColors.cardBackground)
-        }
+        .cardSurface(cornerRadius: 14)
     }
 }
 
