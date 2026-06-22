@@ -36,7 +36,7 @@ struct FilterBarView: View {
                 // Status filter pills
                 StatusPill(
                     label: "All",
-                    count: viewModel.ramps.count,
+                    count: viewModel.cityRamps.count,
                     isSelected: viewModel.selectedStatus == nil,
                     color: .ocean600
                 ) {

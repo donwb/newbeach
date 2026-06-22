@@ -29,19 +29,21 @@ final class BeachViewModel {
         Array(Set(ramps.map(\.cityDisplay))).sorted()
     }
 
-    /// Ramps filtered by current city and status selection.
-    var filteredRamps: [Ramp] {
-        ramps.filter { ramp in
-            let cityMatch = selectedCity == nil || ramp.cityDisplay == selectedCity
-            let statusMatch = selectedStatus == nil || ramp.category == selectedStatus
-            return cityMatch && statusMatch
-        }
+    /// Ramps in the selected city, ignoring the status filter. This is the basis
+    /// for the status counts so the summary reflects the chosen city, not every city.
+    var cityRamps: [Ramp] {
+        ramps.filter { selectedCity == nil || $0.cityDisplay == selectedCity }
     }
 
-    /// Counts per status category.
-    var openCount: Int { ramps.filter { $0.category == .open }.count }
-    var limitedCount: Int { ramps.filter { $0.category == .limited }.count }
-    var closedCount: Int { ramps.filter { $0.category == .closed }.count }
+    /// Ramps filtered by current city and status selection.
+    var filteredRamps: [Ramp] {
+        cityRamps.filter { selectedStatus == nil || $0.category == selectedStatus }
+    }
+
+    /// Counts per status category, scoped to the selected city.
+    var openCount: Int { cityRamps.filter { $0.category == .open }.count }
+    var limitedCount: Int { cityRamps.filter { $0.category == .limited }.count }
+    var closedCount: Int { cityRamps.filter { $0.category == .closed }.count }
 
     /// Webcam image URL from config.
     var webcamURL: URL? {
