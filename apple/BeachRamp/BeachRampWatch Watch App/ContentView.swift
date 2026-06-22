@@ -40,10 +40,10 @@ struct ContentView: View {
         List {
             // Status summary header
             Section {
-                HStack(spacing: 12) {
-                    StatusDot(count: viewModel.openCount, color: .watchStatusOpen)
-                    StatusDot(count: viewModel.limitedCount, color: .watchStatusLimited)
-                    StatusDot(count: viewModel.closedCount, color: .watchStatusClosed)
+                HStack(spacing: 8) {
+                    StatusDot(count: viewModel.openCount, label: "Open", color: .watchStatusOpen)
+                    StatusDot(count: viewModel.limitedCount, label: "Ltd", color: .watchStatusLimited)
+                    StatusDot(count: viewModel.closedCount, label: "Closed", color: .watchStatusClosed)
                 }
                 .listRowBackground(Color.clear)
             }
@@ -70,6 +70,9 @@ struct ContentView: View {
                 }
             }
         }
+        .refreshable {
+            await viewModel.refresh()
+        }
     }
 }
 
@@ -78,10 +81,10 @@ struct WatchRampRow: View {
     let ramp: Ramp
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: ramp.category.iconName)
                 .foregroundStyle(ramp.category.watchColor)
-                .font(.body)
+                .font(.title3)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(ramp.rampName.titleCased)
@@ -91,26 +94,34 @@ struct WatchRampRow: View {
                 Text(ramp.accessStatus.titleCased)
                     .font(.caption2)
                     .foregroundStyle(ramp.category.watchColor)
+                    .lineLimit(1)
             }
         }
+        .padding(.vertical, 2)
     }
 }
 
-/// Compact status count with colored dot.
+/// Compact status count with colored fill — rounded numerals to echo the other apps.
 struct StatusDot: View {
     let count: Int
+    let label: String
     let color: Color
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             Text("\(count)")
-                .font(.title3.weight(.bold))
+                .font(.system(.title3, design: .rounded).weight(.bold))
                 .foregroundStyle(color)
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(color.opacity(0.15))
+        }
     }
 }
 
