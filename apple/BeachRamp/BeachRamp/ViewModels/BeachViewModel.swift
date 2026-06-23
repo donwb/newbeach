@@ -45,12 +45,6 @@ final class BeachViewModel {
     var limitedCount: Int { cityRamps.filter { $0.category == .limited }.count }
     var closedCount: Int { cityRamps.filter { $0.category == .closed }.count }
 
-    /// Webcam image URL from config.
-    var webcamURL: URL? {
-        guard let urlStr = config?.webcamURL else { return nil }
-        return URL(string: urlStr)
-    }
-
     /// Water temperature display.
     var waterTempDisplay: String? {
         guard let avg = tideInfo?.waterTempAvg else { return nil }

@@ -71,10 +71,6 @@ struct ContentView: View {
                 WaterTempView(tideInfo: viewModel.tideInfo)
                     .padding(.horizontal)
 
-                // Webcam
-                WebcamView(webcamURL: viewModel.webcamURL)
-                    .padding(.horizontal)
-
                 // Footer spacer
                 Color.clear.frame(height: 20)
             }
@@ -113,9 +109,6 @@ struct ContentView: View {
                             .padding(.horizontal)
 
                         WaterTempView(tideInfo: viewModel.tideInfo)
-                            .padding(.horizontal)
-
-                        WebcamView(webcamURL: viewModel.webcamURL)
                             .padding(.horizontal)
 
                         Color.clear.frame(height: 20)
