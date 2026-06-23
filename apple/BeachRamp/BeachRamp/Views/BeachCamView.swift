@@ -41,17 +41,18 @@ struct BeachCamView: View {
             }
 
             if let player {
+                // Fit (not fill) so the whole panorama shows at full width;
+                // height follows the aspect ratio — shorter in portrait, taller
+                // in landscape — with no center-cropping.
                 VideoPlayer(player: player)
-                    .aspectRatio(1280.0 / 270.0, contentMode: .fill)
+                    .aspectRatio(1280.0 / 270.0, contentMode: .fit)
                     .frame(maxWidth: .infinity)
-                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(AppColors.nestedCardBackground)
-                    .aspectRatio(1280.0 / 270.0, contentMode: .fill)
+                    .aspectRatio(1280.0 / 270.0, contentMode: .fit)
                     .frame(maxWidth: .infinity)
-                    .clipped()
                     .overlay {
                         Image(systemName: "video.slash")
                             .font(.title)
