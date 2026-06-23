@@ -85,41 +85,53 @@ struct ContentView: View {
     // MARK: - iPad Layout
 
     private var iPadLayout: some View {
-        HStack(spacing: 0) {
-            // Left column — ramps
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    HeaderView(viewModel: viewModel)
-                    FilterBarView(viewModel: viewModel)
-                    statusSummary
-                    rampList
-                    Color.clear.frame(height: 20)
+        VStack(spacing: 0) {
+            // Two columns take the available height above the cam banner.
+            HStack(spacing: 0) {
+                // Left column — ramps
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        HeaderView(viewModel: viewModel)
+                        FilterBarView(viewModel: viewModel)
+                        statusSummary
+                        rampList
+                        Color.clear.frame(height: 20)
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity)
 
-            Divider()
+                Divider()
 
-            // Right column — details
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    TideChartView(chartData: viewModel.tideChart, tideInfo: viewModel.tideInfo)
-                        .padding(.horizontal)
-                        .padding(.top)
+                // Right column — details
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        TideChartView(chartData: viewModel.tideChart, tideInfo: viewModel.tideInfo)
+                            .padding(.horizontal)
+                            .padding(.top)
 
-                    WeatherSectionView(weather: viewModel.weather)
-                        .padding(.horizontal)
+                        WeatherSectionView(weather: viewModel.weather)
+                            .padding(.horizontal)
 
-                    WaterTempView(tideInfo: viewModel.tideInfo)
-                        .padding(.horizontal)
+                        WaterTempView(tideInfo: viewModel.tideInfo)
+                            .padding(.horizontal)
 
-                    WebcamView(webcamURL: viewModel.webcamURL)
-                        .padding(.horizontal)
+                        WebcamView(webcamURL: viewModel.webcamURL)
+                            .padding(.horizontal)
 
-                    Color.clear.frame(height: 20)
+                        Color.clear.frame(height: 20)
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
+
+            // Panoramic beach cam spanning the full width under both columns.
+            BeachCamView(
+                url: viewModel.videoStreamURL,
+                rebuildToken: viewModel.videoStreamGeneration,
+                onPlaybackFailure: { viewModel.refreshVideoStream() }
+            )
+            .padding(.horizontal)
+            .padding(.bottom)
         }
         .background(backgroundGradient)
     }

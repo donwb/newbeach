@@ -57,6 +57,48 @@ final class BeachViewModel {
         return "\(Int(avg))°F"
     }
 
+    // MARK: - Beach Cam Video (iPad only)
+
+    /// Fallback HLS URL used before the API config provides the real one.
+    static let fallbackVideoStreamURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/adv_dv_atmos/main.m3u8")!
+
+    /// Active beach-cam HLS URL — loaded from config, falls back to the sample.
+    var videoStreamURL: URL = fallbackVideoStreamURL
+
+    /// Bumped on each refresh attempt so the player rebuilds even when the
+    /// re-resolved YouTube URL string comes back unchanged but the player is wedged.
+    var videoStreamGeneration: Int = 0
+
+    private static let videoRefreshMinInterval: TimeInterval = 30
+    private var lastVideoRefreshAttempt: Date?
+    private var videoRefreshTask: Task<Void, Never>?
+
+    /// Called by the player on playback failure — asks the API to re-resolve the
+    /// rotating YouTube HLS URL and swaps it in. Mirrors the tvOS behavior, with
+    /// a client-side throttle and single-flight gate.
+    @MainActor
+    func refreshVideoStream() {
+        if let last = lastVideoRefreshAttempt,
+           Date().timeIntervalSince(last) < Self.videoRefreshMinInterval {
+            return
+        }
+        if videoRefreshTask != nil { return }
+        lastVideoRefreshAttempt = Date()
+        videoStreamGeneration &+= 1
+
+        videoRefreshTask = Task { @MainActor in
+            defer { videoRefreshTask = nil }
+            do {
+                let newURL = try await api.refreshVideoStream()
+                if newURL != videoStreamURL {
+                    videoStreamURL = newURL
+                }
+            } catch {
+                // Swallow — the server's periodic poll will catch up.
+            }
+        }
+    }
+
     // MARK: - Networking
 
     private let api: APIClient
@@ -138,6 +180,12 @@ final class BeachViewModel {
     private func loadConfig() async {
         do {
             config = try await api.fetchConfig()
+            // Pick up the configured beach-cam stream URL (used by the iPad layout).
+            if let urlString = config?.videoStreamURL,
+               !urlString.isEmpty,
+               let url = URL(string: urlString) {
+                videoStreamURL = url
+            }
         } catch {
             // Non-critical — config just provides defaults
         }
