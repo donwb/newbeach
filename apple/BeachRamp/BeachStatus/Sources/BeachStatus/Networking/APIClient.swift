@@ -82,6 +82,15 @@ public actor APIClient {
         try await get("/api/v2/config")
     }
 
+    /// Fetch the live camera roster (ordered south-to-north) plus the default
+    /// camera id. Backs the tvOS camera switcher. Re-fetching this is also the
+    /// preferred playback-failure recovery for non-default cameras: it returns
+    /// the freshest HLS URLs the home cron has pushed, without relying on the
+    /// datacenter-bound server-side re-resolve.
+    public func fetchCameras() async throws -> CameraRoster {
+        try await get("/api/v2/cameras")
+    }
+
     /// Ask the server to re-resolve the YouTube live HLS URL. Called by the
     /// tvOS player when playback fails (the cached URL has rotated). The
     /// server coalesces concurrent calls and applies a cooldown.

@@ -34,8 +34,11 @@ final class TVViewModel {
     private var lastVideoRefreshAttempt: Date?
     private var videoRefreshTask: Task<Void, Never>?
 
-    /// Called by the player on playback failure. Asks the API to re-resolve
-    /// the rotating YouTube HLS URL and swaps it in.
+    /// Called by the player on playback failure. Re-fetches the camera roster
+    /// to pick up the freshest cron-pushed HLS URL for the active camera, and
+    /// rebuilds the player. Preferred over the server-side re-resolve, which
+    /// runs yt-dlp from the datacenter (YouTube IP-filters it); the home cron
+    /// on a residential IP is the real freshness mechanism.
     @MainActor
     func refreshVideoStream() {
         if let last = lastVideoRefreshAttempt,
@@ -57,12 +60,13 @@ final class TVViewModel {
         videoRefreshTask = Task { @MainActor in
             defer { videoRefreshTask = nil }
             do {
-                let newURL = try await api.refreshVideoStream()
-                if newURL != videoStreamURL {
-                    videoStreamURL = newURL
+                let roster = try await api.fetchCameras()
+                cameras = roster.cameras
+                if let url = selectedCamera?.url, url != videoStreamURL {
+                    videoStreamURL = url
                 }
             } catch {
-                // Swallow — periodic poll on the server will catch up.
+                // Swallow — the home cron and next poll will catch up.
             }
         }
     }
@@ -74,6 +78,39 @@ final class TVViewModel {
     var tideChart: TideChartData?
     var weather: WeatherInfo?
     var config: AppConfig?
+
+    // MARK: - Cameras
+    /// Live camera roster (south-to-north), backing the cam switcher strip.
+    var cameras: [Camera] = []
+    /// The currently selected camera id. Nil until the roster loads, then set
+    /// to the roster's default.
+    var selectedCameraID: String?
+
+    /// The selected camera, falling back to the first in the roster.
+    var selectedCamera: Camera? {
+        guard !cameras.isEmpty else { return nil }
+        if let id = selectedCameraID, let cam = cameras.first(where: { $0.id == id }) {
+            return cam
+        }
+        return cameras.first
+    }
+
+    /// Switch the active camera. Updating `videoStreamURL` makes the player view
+    /// rebuild its AVPlayer (it observes `onChange(of: url)`).
+    @MainActor
+    func selectCamera(_ id: String) {
+        guard id != selectedCameraID else { return }
+        selectedCameraID = id
+        applySelectedCameraURL()
+    }
+
+    /// Point `videoStreamURL` at the selected camera's stream, if resolved.
+    @MainActor
+    private func applySelectedCameraURL() {
+        if let url = selectedCamera?.url, url != videoStreamURL {
+            videoStreamURL = url
+        }
+    }
 
     var isLoading = false
     var errorMessage: String?
@@ -147,6 +184,7 @@ final class TVViewModel {
             group.addTask { await self.loadTideChart() }
             group.addTask { await self.loadWeather() }
             group.addTask { await self.loadConfig() }
+            group.addTask { await self.loadCameras() }
         }
 
         // Default city on first load
@@ -235,12 +273,27 @@ final class TVViewModel {
     private func loadConfig() async {
         do {
             config = try await api.fetchConfig()
-            // Update video stream URL from API if provided.
-            if let urlString = config?.videoStreamURL,
+            // Legacy single-stream fallback: only used when the camera roster
+            // hasn't selected anything yet (older server, or /cameras failed).
+            // Once a camera is selected, the roster is the source of truth.
+            if selectedCameraID == nil,
+               let urlString = config?.videoStreamURL,
                !urlString.isEmpty,
                let url = URL(string: urlString) {
                 videoStreamURL = url
             }
         } catch { /* non-critical */ }
+    }
+
+    @MainActor
+    private func loadCameras() async {
+        do {
+            let roster = try await api.fetchCameras()
+            cameras = roster.cameras
+            if selectedCameraID == nil {
+                selectedCameraID = roster.defaultID
+            }
+            applySelectedCameraURL()
+        } catch { /* non-critical — keep current/fallback stream */ }
     }
 }

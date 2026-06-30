@@ -14,6 +14,8 @@ import BeachStatus
 /// dawn, day, golden hour, and a dimmed night as the day progresses.
 struct ContentView: View {
     @State private var viewModel = TVViewModel()
+    @FocusState private var focusedCamera: String?
+    @FocusState private var cityFocused: Bool
     @State private var currentTime = ""
     @State private var sunAltitude: Double = 30
     @State private var sunRising = true
@@ -54,12 +56,11 @@ struct ContentView: View {
             viewModel.startAutoRefresh()
             startClock()
         }
-        .onMoveCommand { direction in
-            switch direction {
-            case .left: viewModel.previousCity()
-            case .right: viewModel.nextCity()
-            default: break
-            }
+        .onChange(of: focusedCamera) { _, id in
+            // Channel-flip feel: moving focus across the strip switches the
+            // active stream live. selectCamera is a no-op when the id is
+            // unchanged or the camera's URL isn't resolved yet.
+            if let id { viewModel.selectCamera(id) }
         }
     }
 
@@ -88,6 +89,11 @@ struct ContentView: View {
 
             Spacer()
 
+            // Camera switcher strip
+            cameraStrip
+                .padding(.horizontal, 60)
+                .padding(.bottom, 8)
+
             // Panoramic beach cam banner across the bottom
             TVVideoPlayerView(
                 url: viewModel.videoStreamURL,
@@ -102,6 +108,42 @@ struct ContentView: View {
             bottomBar
                 .padding(.horizontal, 60)
                 .padding(.bottom, 20)
+        }
+    }
+
+    // MARK: - Camera Switcher Strip
+
+    /// Horizontal row of focusable camera-name chips above the cam banner.
+    /// Left/right moves focus across cameras; click switches the active stream.
+    /// The active camera is outlined; the focused camera is scaled + brightened.
+    /// Hidden until the roster loads (older server / pre-deploy → no strip).
+    @ViewBuilder
+    private var cameraStrip: some View {
+        if !viewModel.cameras.isEmpty {
+            HStack(spacing: 12) {
+                ForEach(viewModel.cameras) { cam in
+                    Button {
+                        viewModel.selectCamera(cam.id)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: cam.url == nil ? "video.slash.fill" : "video.fill")
+                                .font(.system(size: 15))
+                            Text(cam.name)
+                                .font(.system(size: 22, weight: .semibold))
+                        }
+                        // Dim cameras the cron hasn't resolved yet (or that are offline).
+                        .opacity(cam.url == nil ? 0.45 : 1.0)
+                    }
+                    .buttonStyle(FlatFocusButtonStyle(
+                        isFocused: cam.id == focusedCamera,
+                        isSelected: cam.id == viewModel.selectedCameraID
+                    ))
+                    .focused($focusedCamera, equals: cam.id)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .focusSection()
+            .animation(.easeOut(duration: 0.15), value: focusedCamera)
         }
     }
 
@@ -124,16 +166,26 @@ struct ContentView: View {
 
             // Row 2: City + Badges
             HStack {
-                Text(viewModel.currentCity)
-                    .font(.title3.weight(.semibold))
-
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left.chevron.right")
-                        .font(.caption)
-                    Text("Cities")
-                        .font(.caption)
+                Button {
+                    viewModel.nextCity()
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(viewModel.currentCity)
+                            .font(.title3.weight(.semibold))
+                        Image(systemName: "chevron.left.chevron.right")
+                            .font(.caption)
+                            .opacity(0.6)
+                    }
                 }
-                .opacity(0.5)
+                .buttonStyle(FlatFocusButtonStyle(
+                    isFocused: cityFocused,
+                    cornerRadius: 10,
+                    horizontalPadding: 14,
+                    verticalPadding: 6
+                ))
+                .focused($cityFocused)
+                // Pull the chip back so its padding doesn't shift the title's left edge.
+                .padding(.leading, -14)
 
                 Spacer()
 
@@ -351,6 +403,41 @@ struct ContentView: View {
             sunriseText = events.sunrise.map { formatter.string(from: $0) } ?? ""
             sunsetText = events.sunset.map { formatter.string(from: $0) } ?? ""
         }
+    }
+}
+
+// MARK: - Flat Focus Button Style
+
+/// A tvOS button style that fully replaces the system's frost-and-lift focus
+/// treatment with a flat chip: a translucent fill and a hairline border that
+/// brighten on focus, plus a tiny press dip. No scaling on focus, so focused
+/// chips stay put instead of ballooning over their neighbors.
+private struct FlatFocusButtonStyle: ButtonStyle {
+    var isFocused: Bool
+    var isSelected: Bool = false
+    var cornerRadius: CGFloat = 12
+    var horizontalPadding: CGFloat = 18
+    var verticalPadding: CGFloat = 10
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.white.opacity(isFocused ? 0.26 : (isSelected ? 0.14 : 0.06)))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(
+                        .white.opacity(isFocused ? 1.0 : (isSelected ? 0.6 : 0)),
+                        lineWidth: isFocused ? 2.5 : 2
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: isFocused)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
