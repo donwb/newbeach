@@ -1,33 +1,67 @@
 #!/bin/bash
-# Extracts the HLS URL from the YouTube live stream and pushes it to the API.
+# Resolves the live HLS URL for every camera in the roster and pushes each back
+# to the API. Runs on a residential-IP host (home Mac Studio) on a cron, because
+# YouTube filters datacenter IPs — so this, not the server-side refresher, is the
+# real freshness mechanism.
+#
+# The roster is pulled from the API (GET /api/v2/admin/cameras), so adding or
+# removing a camera is a database change, never an edit to this script.
 #
 # Usage:
 #   ./update-stream-url.sh
 #
-# Requires: yt-dlp (brew install yt-dlp)
+# Requires: yt-dlp (brew install yt-dlp), jq (brew install jq)
 #
 # Configure these or set as environment variables:
-YOUTUBE_URL="${YOUTUBE_URL:-https://www.youtube.com/watch?v=kB2PZC-ow68}"
 API_BASE="${API_BASE:-https://beach-ramp-status-kff7g.ondigitalocean.app}"
 API_KEY="${API_KEY:-test-secret-123}"
 
-set -euo pipefail
+set -uo pipefail
 
-echo "Extracting HLS URL from: $YOUTUBE_URL"
-HLS_URL=$(yt-dlp -g --no-warnings -f "best[protocol=m3u8_native]" "$YOUTUBE_URL" 2>/dev/null)
+echo "Fetching camera roster from $API_BASE ..."
+ROSTER=$(curl -sf -H "X-Api-Key: $API_KEY" "$API_BASE/api/v2/admin/cameras") || {
+    echo "ERROR: failed to fetch camera roster"
+    exit 1
+}
 
-if [ -z "$HLS_URL" ]; then
-    echo "ERROR: Failed to extract HLS URL"
+COUNT=$(echo "$ROSTER" | jq '.cameras | length')
+if [ -z "$COUNT" ] || [ "$COUNT" -eq 0 ]; then
+    echo "ERROR: roster is empty or unparseable"
     exit 1
 fi
+echo "Roster has $COUNT camera(s)."
 
-echo "Got HLS URL (${#HLS_URL} chars)"
+FAILURES=0
 
-echo "Pushing to API..."
-RESPONSE=$(curl -s -X POST "$API_BASE/api/v2/admin/settings" \
-    -H "X-Api-Key: $API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"key\": \"video_stream_url\", \"value\": \"$HLS_URL\"}")
+# Iterate id<TAB>youtube_url pairs.
+while IFS=$'\t' read -r ID YOUTUBE_URL; do
+    [ -z "$ID" ] && continue
+    echo "----"
+    echo "[$ID] resolving: $YOUTUBE_URL"
 
-echo "API response: $RESPONSE"
-echo "Done. TV app will pick up the new URL within 60 seconds."
+    HLS_URL=$(yt-dlp -g --no-warnings -f "best[protocol=m3u8_native]" "$YOUTUBE_URL" 2>/dev/null)
+    if [ -z "$HLS_URL" ]; then
+        echo "[$ID] ERROR: failed to extract HLS URL — skipping"
+        FAILURES=$((FAILURES + 1))
+        continue
+    fi
+    echo "[$ID] got HLS URL (${#HLS_URL} chars), pushing..."
+
+    RESPONSE=$(jq -nc --arg u "$HLS_URL" '{hls_url: $u}' | curl -sf -X POST \
+        "$API_BASE/api/v2/admin/cameras/$ID/stream" \
+        -H "X-Api-Key: $API_KEY" \
+        -H "Content-Type: application/json" \
+        --data-binary @-) || {
+        echo "[$ID] ERROR: API push failed"
+        FAILURES=$((FAILURES + 1))
+        continue
+    }
+    echo "[$ID] API response: $RESPONSE"
+done < <(echo "$ROSTER" | jq -r '.cameras[] | [.id, .youtube_url] | @tsv')
+
+echo "===="
+if [ "$FAILURES" -gt 0 ]; then
+    echo "Done with $FAILURES failure(s). Clients pick up new URLs within 60 seconds."
+    exit 1
+fi
+echo "Done. All $COUNT cameras refreshed. Clients pick up new URLs within 60 seconds."

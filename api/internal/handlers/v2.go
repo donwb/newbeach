@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 
@@ -194,7 +195,13 @@ func HandleV2Config(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
-		videoStreamURL, _ := database.GetSetting(ctx, pool, "video_stream_url")
+		// Source the legacy video_stream_url from the default camera (lowest
+		// sort_order). Fall back to the settings key if the roster is empty,
+		// so the field is never blank during a transition.
+		videoStreamURL, _ := database.GetDefaultCameraHLS(ctx, pool)
+		if videoStreamURL == "" {
+			videoStreamURL, _ = database.GetSetting(ctx, pool, "video_stream_url")
+		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"webcam_url":        os.Getenv("WEBCAM_URL"),
@@ -203,6 +210,48 @@ func HandleV2Config(pool *pgxpool.Pool) echo.HandlerFunc {
 			"water_temp_avg":    true,
 			"default_city":      "New Smyrna Beach",
 			"video_stream_url":  videoStreamURL,
+		})
+	}
+}
+
+// HandleV2Cameras returns the public camera roster for clients (tvOS cam
+// switcher). Exposes only what a player needs — the rotating HLS stream URL
+// per camera, ordered south-to-north — plus the default camera id.
+// GET /api/v2/cameras
+func HandleV2Cameras(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		cameras, err := database.ListCameras(ctx, pool)
+		if err != nil {
+			slog.Error("failed to list cameras", "err", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to list cameras"})
+		}
+
+		type cameraDTO struct {
+			ID        string `json:"id"`
+			Name      string `json:"name"`
+			Location  string `json:"location"`
+			StreamURL string `json:"stream_url"`
+		}
+		out := make([]cameraDTO, 0, len(cameras))
+		for _, cam := range cameras {
+			out = append(out, cameraDTO{
+				ID:        cam.ID,
+				Name:      cam.Name,
+				Location:  cam.Location,
+				StreamURL: cam.HLSURL,
+			})
+		}
+
+		defaultID := ""
+		if len(cameras) > 0 {
+			defaultID = cameras[0].ID
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"cameras":    out,
+			"default_id": defaultID,
 		})
 	}
 }
@@ -242,7 +291,66 @@ func HandleAdminUpdateSetting(pool *pgxpool.Pool) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update setting"})
 		}
 
+		// Transition bridge: the legacy video_stream_url push (old cron script)
+		// also mirrors into the default camera's hls_url, which is what
+		// /api/v2/config now reads. This keeps the default cam fresh until the
+		// cron is switched to POST /admin/cameras/:id/stream. Best-effort.
+		if body.Key == "video_stream_url" && body.Value != "" {
+			if err := database.UpdateDefaultCameraHLS(ctx, pool, body.Value); err != nil {
+				slog.Warn("failed to mirror video_stream_url to default camera", "err", err)
+			}
+		}
+
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "key": body.Key, "value": body.Value})
+	}
+}
+
+// HandleAdminGetCameras returns the full camera roster (including youtube_url
+// and the last-resolved hls_url) for the home yt-dlp cron to iterate.
+// GET /api/v2/admin/cameras
+func HandleAdminGetCameras(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		cameras, err := database.ListCameras(ctx, pool)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to list cameras"})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{"cameras": cameras})
+	}
+}
+
+// HandleAdminUpdateCameraStream sets the resolved HLS URL for one camera.
+// Called by the home cron after it resolves each YouTube live URL locally.
+// POST /api/v2/admin/cameras/:id/stream
+// Body: {"hls_url": "https://..."}
+func HandleAdminUpdateCameraStream(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		id := c.Param("id")
+		if id == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "camera id is required"})
+		}
+
+		var body struct {
+			HLSURL string `json:"hls_url"`
+		}
+		if err := c.Bind(&body); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		}
+		if body.HLSURL == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "hls_url is required"})
+		}
+
+		if err := database.UpdateCameraHLS(ctx, pool, id, body.HLSURL); err != nil {
+			if err == pgx.ErrNoRows {
+				return c.JSON(http.StatusNotFound, map[string]string{"error": "unknown camera id"})
+			}
+			slog.Error("failed to update camera stream", "id", id, "err", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update camera stream"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "id": id})
 	}
 }
 

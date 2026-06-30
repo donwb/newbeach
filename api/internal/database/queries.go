@@ -240,6 +240,81 @@ func GetRecentHistory(ctx context.Context, pool *pgxpool.Pool, limit int) ([]mod
 	return entries, nil
 }
 
+// --- Cameras ---
+
+// ListCameras returns the full camera roster ordered south-to-north
+// (by sort_order, then id for stability).
+func ListCameras(ctx context.Context, pool *pgxpool.Pool) ([]models.Camera, error) {
+	const query = `
+		SELECT id, name, COALESCE(location, ''), youtube_url, hls_url, sort_order, updated_at
+		FROM cameras
+		ORDER BY sort_order, id
+	`
+	rows, err := pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("querying cameras: %w", err)
+	}
+	defer rows.Close()
+
+	cameras := make([]models.Camera, 0)
+	for rows.Next() {
+		var cam models.Camera
+		if err := rows.Scan(&cam.ID, &cam.Name, &cam.Location, &cam.YouTubeURL, &cam.HLSURL, &cam.SortOrder, &cam.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning camera row: %w", err)
+		}
+		cameras = append(cameras, cam)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating camera rows: %w", err)
+	}
+	return cameras, nil
+}
+
+// GetDefaultCameraHLS returns the HLS URL of the default camera (lowest
+// sort_order). Used to populate the legacy video_stream_url field in
+// /api/v2/config. Returns empty string if no cameras exist.
+func GetDefaultCameraHLS(ctx context.Context, pool *pgxpool.Pool) (string, error) {
+	var hls string
+	err := pool.QueryRow(ctx, `SELECT hls_url FROM cameras ORDER BY sort_order, id LIMIT 1`).Scan(&hls)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil
+		}
+		return "", fmt.Errorf("fetching default camera hls: %w", err)
+	}
+	return hls, nil
+}
+
+// UpdateDefaultCameraHLS sets the HLS URL on the default camera (lowest
+// sort_order). Used as a transition bridge so the legacy settings-based
+// video_stream_url push keeps the default camera fresh until the cron is
+// switched to the per-camera endpoint. No-op (nil) if no cameras exist.
+func UpdateDefaultCameraHLS(ctx context.Context, pool *pgxpool.Pool, hlsURL string) error {
+	_, err := pool.Exec(ctx,
+		`UPDATE cameras SET hls_url = $1, updated_at = NOW()
+		 WHERE id = (SELECT id FROM cameras ORDER BY sort_order, id LIMIT 1)`,
+		hlsURL)
+	if err != nil {
+		return fmt.Errorf("updating default camera hls: %w", err)
+	}
+	return nil
+}
+
+// UpdateCameraHLS sets the resolved HLS URL for a single camera and bumps
+// updated_at. Returns ErrNoRows if the camera id does not exist.
+func UpdateCameraHLS(ctx context.Context, pool *pgxpool.Pool, id, hlsURL string) error {
+	tag, err := pool.Exec(ctx,
+		`UPDATE cameras SET hls_url = $2, updated_at = NOW() WHERE id = $1`,
+		id, hlsURL)
+	if err != nil {
+		return fmt.Errorf("updating camera %s hls: %w", id, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
 // --- Settings ---
 
 // GetSetting returns the value for a single settings key.
