@@ -117,6 +117,18 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
             }
 
+            // Camera switcher above the panoramic beach cam, both full width
+            // under the two columns. Switcher hidden until the roster loads.
+            if !viewModel.cameras.isEmpty {
+                CameraSwitcherView(
+                    cameras: viewModel.cameras,
+                    selectedID: viewModel.selectedCameraID,
+                    onSelect: { viewModel.selectCamera($0) }
+                )
+                .padding(.horizontal)
+                .padding(.bottom, 4)
+            }
+
             // Panoramic beach cam spanning the full width under both columns.
             BeachCamView(
                 url: viewModel.videoStreamURL,

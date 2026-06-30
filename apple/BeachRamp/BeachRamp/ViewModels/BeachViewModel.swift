@@ -63,13 +63,46 @@ final class BeachViewModel {
     /// re-resolved YouTube URL string comes back unchanged but the player is wedged.
     var videoStreamGeneration: Int = 0
 
+    /// Live camera roster (south-to-north) backing the iPad cam switcher.
+    var cameras: [Camera] = []
+    /// Selected camera id; nil until the roster loads, then the roster default.
+    var selectedCameraID: String?
+
+    /// The selected camera, falling back to the first in the roster.
+    var selectedCamera: Camera? {
+        guard !cameras.isEmpty else { return nil }
+        if let id = selectedCameraID, let cam = cameras.first(where: { $0.id == id }) {
+            return cam
+        }
+        return cameras.first
+    }
+
+    /// Switch the active camera. Updating `videoStreamURL` makes the player
+    /// rebuild (it observes `onChange(of: url)`).
+    @MainActor
+    func selectCamera(_ id: String) {
+        guard id != selectedCameraID else { return }
+        selectedCameraID = id
+        applySelectedCameraURL()
+    }
+
+    /// Point `videoStreamURL` at the selected camera's stream, if resolved.
+    @MainActor
+    private func applySelectedCameraURL() {
+        if let url = selectedCamera?.url, url != videoStreamURL {
+            videoStreamURL = url
+        }
+    }
+
     private static let videoRefreshMinInterval: TimeInterval = 30
     private var lastVideoRefreshAttempt: Date?
     private var videoRefreshTask: Task<Void, Never>?
 
-    /// Called by the player on playback failure — asks the API to re-resolve the
-    /// rotating YouTube HLS URL and swaps it in. Mirrors the tvOS behavior, with
-    /// a client-side throttle and single-flight gate.
+    /// Called by the player on playback failure. Re-fetches the camera roster to
+    /// pick up the freshest cron-pushed HLS URL for the active camera. Preferred
+    /// over the server-side re-resolve (yt-dlp from the datacenter is IP-filtered;
+    /// the home cron on a residential IP is the real freshness mechanism). Mirrors
+    /// the tvOS behavior, with a client-side throttle and single-flight gate.
     @MainActor
     func refreshVideoStream() {
         if let last = lastVideoRefreshAttempt,
@@ -83,12 +116,13 @@ final class BeachViewModel {
         videoRefreshTask = Task { @MainActor in
             defer { videoRefreshTask = nil }
             do {
-                let newURL = try await api.refreshVideoStream()
-                if newURL != videoStreamURL {
-                    videoStreamURL = newURL
+                let roster = try await api.fetchCameras()
+                cameras = roster.cameras
+                if let url = selectedCamera?.url, url != videoStreamURL {
+                    videoStreamURL = url
                 }
             } catch {
-                // Swallow — the server's periodic poll will catch up.
+                // Swallow — the home cron and next poll will catch up.
             }
         }
     }
@@ -113,6 +147,7 @@ final class BeachViewModel {
             group.addTask { await self.loadTideChart() }
             group.addTask { await self.loadWeather() }
             group.addTask { await self.loadConfig() }
+            group.addTask { await self.loadCameras() }
         }
 
         // Default to New Smyrna Beach on first load
@@ -174,14 +209,31 @@ final class BeachViewModel {
     private func loadConfig() async {
         do {
             config = try await api.fetchConfig()
-            // Pick up the configured beach-cam stream URL (used by the iPad layout).
-            if let urlString = config?.videoStreamURL,
+            // Legacy single-stream fallback — only until the camera roster selects
+            // something (older server, or /cameras failed). Once a camera is
+            // selected, the roster is the source of truth for the iPad cam.
+            if selectedCameraID == nil,
+               let urlString = config?.videoStreamURL,
                !urlString.isEmpty,
                let url = URL(string: urlString) {
                 videoStreamURL = url
             }
         } catch {
             // Non-critical — config just provides defaults
+        }
+    }
+
+    @MainActor
+    private func loadCameras() async {
+        do {
+            let roster = try await api.fetchCameras()
+            cameras = roster.cameras
+            if selectedCameraID == nil {
+                selectedCameraID = roster.defaultID
+            }
+            applySelectedCameraURL()
+        } catch {
+            // Non-critical — keep the current/fallback stream.
         }
     }
 }
