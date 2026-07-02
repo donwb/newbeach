@@ -519,20 +519,20 @@ struct DayTimelineBar: View {
                 ZStack(alignment: .topLeading) {
                     Capsule()
                         .fill(LinearGradient(stops: gradientStops, startPoint: .leading, endPoint: .trailing))
-                        .frame(height: 18)
-                        .position(x: w / 2, y: 9)
+                        .frame(height: 22)
+                        .position(x: w / 2, y: 11)
 
                     ForEach(labeledEvents, id: \.name) { ev in
                         labelView(ev)
-                            .position(x: clamp(CGFloat(ev.fraction) * w, 46, w - 46), y: 44)
+                            .position(x: clamp(CGFloat(ev.fraction) * w, 60, w - 60), y: 72)
                     }
 
                     markerView
-                        .position(x: min(w, max(0, CGFloat(nowFraction) * w)), y: 9)
+                        .position(x: min(w, max(0, CGFloat(nowFraction) * w)), y: 11)
                         .animation(.easeInOut(duration: 1.0), value: nowFraction)
                 }
             }
-            .frame(height: 62)
+            .frame(height: 102)
 
             captionView
         }
@@ -584,12 +584,12 @@ struct DayTimelineBar: View {
         ZStack {
             Capsule()
                 .fill(.white)
-                .frame(width: 3, height: 28)
+                .frame(width: 4, height: 34)
             Circle()
                 .fill(Self.marker)
-                .frame(width: 12, height: 12)
+                .frame(width: 16, height: 16)
                 .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
-                .offset(y: 20)
+                .offset(y: 25)
         }
     }
 
@@ -607,16 +607,16 @@ struct DayTimelineBar: View {
     }
 
     private func labelView(_ ev: Labeled) -> some View {
-        VStack(spacing: 1) {
-            HStack(spacing: 4) {
+        VStack(spacing: 2) {
+            HStack(spacing: 6) {
                 Image(systemName: ev.icon)
-                    .font(.system(size: 13))
+                    .font(.system(size: 22))
                 Text(ev.timeText)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
             }
             Text(ev.name)
-                .font(.system(size: 13, weight: .medium))
-                .opacity(0.7)
+                .font(.system(size: 20, weight: .medium))
+                .opacity(0.75)
         }
         .foregroundStyle(.white)
         .fixedSize()
@@ -626,16 +626,16 @@ struct DayTimelineBar: View {
 
     private var captionView: some View {
         VStack(spacing: 2) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: captionIcon)
                 Text(captionText)
             }
-            .font(.system(size: 22, weight: .medium, design: .rounded))
+            .font(.system(size: 32, weight: .semibold, design: .rounded))
             .foregroundStyle(.white.opacity(0.95))
 
             if let error = errorMessage {
                 Text(error)
-                    .font(.system(size: 15))
+                    .font(.system(size: 18))
                     .foregroundStyle(.white.opacity(0.5))
             }
         }
