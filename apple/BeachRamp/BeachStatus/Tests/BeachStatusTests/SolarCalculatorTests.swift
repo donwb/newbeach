@@ -65,4 +65,50 @@ struct SolarCalculatorTests {
         #expect(SolarCalculator.newSmyrnaBeach.isRising(at: morning))
         #expect(!SolarCalculator.newSmyrnaBeach.isRising(at: evening))
     }
+
+    @Test func civilTwilightBracketsSunrise() throws {
+        let cal = easternCalendar
+        let solar = SolarCalculator.newSmyrnaBeach
+        let dawn = try #require(solar.crossing(altitude: -6, rising: true, on: summerDay, calendar: cal))
+        let (sunrise, _) = solar.events(on: summerDay, calendar: cal)
+        let rise = try #require(sunrise)
+        // Civil dawn precedes sunrise, and at that instant the sun sits at -6°.
+        #expect(dawn < rise)
+        #expect(abs(solar.altitude(at: dawn) - (-6)) < 0.05)
+    }
+
+    @Test func goldenHourBoundaryIsAboveSunriseAndSitsAtSixDegrees() throws {
+        let cal = easternCalendar
+        let solar = SolarCalculator.newSmyrnaBeach
+        let goldenEnd = try #require(solar.crossing(altitude: 6, rising: true, on: summerDay, calendar: cal))
+        let (sunrise, _) = solar.events(on: summerDay, calendar: cal)
+        let rise = try #require(sunrise)
+        // Morning golden hour ends (sun reaches +6°) after sunrise.
+        #expect(goldenEnd > rise)
+        #expect(abs(solar.altitude(at: goldenEnd) - 6) < 0.05)
+    }
+
+    @Test func descendingCrossingComesAfterAscendingCrossing() throws {
+        let cal = easternCalendar
+        let solar = SolarCalculator.newSmyrnaBeach
+        let goldenAM = try #require(solar.crossing(altitude: 6, rising: true, on: summerDay, calendar: cal))
+        let goldenPM = try #require(solar.crossing(altitude: 6, rising: false, on: summerDay, calendar: cal))
+        #expect(goldenPM > goldenAM)
+    }
+
+    @Test func solarNoonFallsBetweenSunriseAndSunsetAtPeakAltitude() throws {
+        let cal = easternCalendar
+        let solar = SolarCalculator.newSmyrnaBeach
+        let noon = solar.solarNoon(on: summerDay, calendar: cal)
+        let (sunrise, sunset) = solar.events(on: summerDay, calendar: cal)
+        let rise = try #require(sunrise)
+        let set = try #require(sunset)
+        #expect(noon > rise)
+        #expect(noon < set)
+        // Altitude at solar noon exceeds it an hour to either side.
+        let before = noon.addingTimeInterval(-3600)
+        let after = noon.addingTimeInterval(3600)
+        #expect(solar.altitude(at: noon) > solar.altitude(at: before))
+        #expect(solar.altitude(at: noon) > solar.altitude(at: after))
+    }
 }

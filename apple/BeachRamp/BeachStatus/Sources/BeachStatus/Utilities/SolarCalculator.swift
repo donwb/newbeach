@@ -87,10 +87,10 @@ public struct SolarCalculator: Sendable {
             let alt = altitude(at: time)
 
             if sunrise == nil, prevAltitude < horizon, alt >= horizon {
-                sunrise = refineCrossing(from: prevTime, to: time, rising: true)
+                sunrise = refineCrossing(from: prevTime, to: time, target: horizon, rising: true)
             }
             if sunset == nil, prevAltitude >= horizon, alt < horizon {
-                sunset = refineCrossing(from: prevTime, to: time, rising: false)
+                sunset = refineCrossing(from: prevTime, to: time, target: horizon, rising: false)
             }
 
             prevTime = time
@@ -100,13 +100,88 @@ public struct SolarCalculator: Sendable {
         return (sunrise, sunset)
     }
 
-    /// Bisects a horizon crossing bracketed by `[from, to]` to sub-second precision.
-    private func refineCrossing(from: Date, to: Date, rising: Bool) -> Date {
+    /// The first time on the calendar day containing `date` that the sun crosses
+    /// `targetAltitude` (degrees) in the given direction — `rising: true` for an
+    /// ascending crossing (dawn side), `false` for a descending one (dusk side).
+    ///
+    /// Generalizes `events` to any altitude, so callers can locate civil twilight
+    /// (-6°), the golden-hour boundary (~6°), or any other threshold. Returns `nil`
+    /// when no such crossing occurs that day (e.g. the sun never climbs that high).
+    public func crossing(
+        altitude targetAltitude: Double,
+        rising: Bool,
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Date? {
+        let startOfDay = calendar.startOfDay(for: date)
+        let step: TimeInterval = 300 // 5-minute coarse scan, refined by bisection
+
+        var prevTime = startOfDay
+        var prevAltitude = altitude(at: startOfDay)
+
+        var offset = step
+        while offset <= 86_400 {
+            let time = startOfDay.addingTimeInterval(offset)
+            let alt = altitude(at: time)
+
+            if rising, prevAltitude < targetAltitude, alt >= targetAltitude {
+                return refineCrossing(from: prevTime, to: time, target: targetAltitude, rising: true)
+            }
+            if !rising, prevAltitude >= targetAltitude, alt < targetAltitude {
+                return refineCrossing(from: prevTime, to: time, target: targetAltitude, rising: false)
+            }
+
+            prevTime = time
+            prevAltitude = alt
+            offset += step
+        }
+        return nil
+    }
+
+    /// Solar noon — the instant of the sun's highest altitude — for the calendar
+    /// day containing `date`. Found by a coarse scan for the peak followed by a
+    /// golden-section refinement of the bracketing window.
+    public func solarNoon(on date: Date = Date(), calendar: Calendar = .current) -> Date {
+        let startOfDay = calendar.startOfDay(for: date)
+        let step: TimeInterval = 300
+
+        var peakTime = startOfDay
+        var peakAltitude = -100.0
+        var offset: TimeInterval = 0
+        while offset <= 86_400 {
+            let time = startOfDay.addingTimeInterval(offset)
+            let alt = altitude(at: time)
+            if alt > peakAltitude {
+                peakAltitude = alt
+                peakTime = time
+            }
+            offset += step
+        }
+
+        // Refine within ±one coarse step around the peak by golden-section search.
+        var low = peakTime.addingTimeInterval(-step)
+        var high = peakTime.addingTimeInterval(step)
+        for _ in 0..<32 {
+            let span = high.timeIntervalSince(low)
+            let m1 = low.addingTimeInterval(span / 3)
+            let m2 = low.addingTimeInterval(2 * span / 3)
+            if altitude(at: m1) < altitude(at: m2) {
+                low = m1
+            } else {
+                high = m2
+            }
+        }
+        return low.addingTimeInterval(high.timeIntervalSince(low) / 2)
+    }
+
+    /// Bisects a crossing of `target` altitude bracketed by `[from, to]` to
+    /// sub-second precision. `rising` states which side is above the target.
+    private func refineCrossing(from: Date, to: Date, target: Double, rising: Bool) -> Date {
         var low = from
         var high = to
         for _ in 0..<24 {
             let mid = low.addingTimeInterval(high.timeIntervalSince(low) / 2)
-            let above = altitude(at: mid) >= Self.horizonAltitude
+            let above = altitude(at: mid) >= target
             if above == rising {
                 high = mid
             } else {

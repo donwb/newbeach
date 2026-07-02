@@ -28,22 +28,6 @@ struct TVVideoPlayerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "video.fill")
-                    .font(.system(size: 16))
-                Text("Beach Cam")
-                    .font(.system(size: 18, weight: .semibold))
-                Spacer()
-                Button {
-                    isPlaying.toggle()
-                } label: {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16))
-                }
-                .buttonStyle(.plain)
-            }
-            .foregroundStyle(.white)
-
             if let player {
                 VideoPlayer(player: player)
                     .aspectRatio(1280.0/270.0, contentMode: .fill)
