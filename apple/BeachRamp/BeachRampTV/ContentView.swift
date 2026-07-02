@@ -745,7 +745,7 @@ struct CoastlineRail: View {
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
-            let rowCenterY: CGFloat = 41
+            let rowCenterY: CGFloat = 44
             ZStack(alignment: .topLeading) {
                 // North / south anchors
                 Text("N")
@@ -781,7 +781,7 @@ struct CoastlineRail: View {
                 }
             }
         }
-        .frame(height: 82)
+        .frame(height: 96)
         .focusSection()
         .animation(.easeOut(duration: 0.15), value: focusedCamera)
     }
@@ -820,33 +820,33 @@ private struct CoastPin: View {
         ZStack {
             if isFocused {
                 Text(name)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 27, weight: .semibold))
                     .foregroundStyle(Self.pillText)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
                     .background(Capsule().fill(.white))
                     .fixedSize()
-                    .offset(y: -30)
+                    .offset(y: -34)
             }
 
             dot
 
             if !isFocused {
                 Text(name)
-                    .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 25, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(.white.opacity(isOffline ? 0.4 : (isSelected ? 1.0 : 0.7)))
                     .fixedSize()
-                    .offset(y: 26)
+                    .offset(y: 30)
             }
 
             if isSelected && !isOffline {
                 Text("Live")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Self.live)
-                    .offset(y: isFocused ? 24 : 44)
+                    .offset(y: isFocused ? 30 : 54)
             }
         }
-        .frame(width: 160, height: 82)
+        .frame(width: 200, height: 96)
     }
 
     @ViewBuilder private var dot: some View {
@@ -874,7 +874,7 @@ private struct CoastPin: View {
 private extension Text {
     /// Styling for the small N / S coastline anchors.
     func coastAnchor() -> some View {
-        self.font(.system(size: 13, weight: .semibold))
+        self.font(.system(size: 17, weight: .semibold))
             .foregroundStyle(.white.opacity(0.5))
     }
 }
