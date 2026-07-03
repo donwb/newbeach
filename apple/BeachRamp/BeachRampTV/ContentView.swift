@@ -84,23 +84,42 @@ struct ContentView: View {
                 .padding(.horizontal, 60)
                 .padding(.top, 28)
 
-            // Info row: Ramps (2/3) | Tide+Weather combined (1/3)
-            GeometryReader { geo in
-                let railWidth = geo.size.width * 0.33
-                HStack(alignment: .top, spacing: 24) {
-                    rampGrid
-                        .frame(maxWidth: .infinity)
+            // Info row: Ramps (2/3) | Tide+Weather combined (1/3). Sized to the
+            // row's natural height (no greedy GeometryReader) so the taller
+            // tide/weather card can't overflow onto the day-timeline bar below.
+            HStack(alignment: .top, spacing: 24) {
+                rampGrid
+                    .frame(maxWidth: .infinity)
 
-                    tideWeatherCard
-                        .frame(width: railWidth)
-                }
+                tideWeatherCard
+                    .containerRelativeFrame(.horizontal) { width, _ in width * 0.33 }
             }
             .padding(.horizontal, 60)
             .padding(.top, 14)
 
             Spacer(minLength: 12)
 
-            // Coastline camera switcher — pins placed geographically along the coast
+            // Day-timeline bar — sun rhythm across the full width, above the cam
+            DayTimelineBar(
+                timeline: sunTimeline,
+                nowFraction: nowFraction,
+                errorMessage: viewModel.errorMessage
+            )
+            .padding(.horizontal, 60)
+            .padding(.bottom, 12)
+
+            // Panoramic beach cam banner (the hero)
+            TVVideoPlayerView(
+                url: viewModel.videoStreamURL,
+                rebuildToken: viewModel.videoStreamGeneration,
+                isPlaying: $viewModel.isVideoPlaying,
+                onPlaybackFailure: { viewModel.refreshVideoStream() }
+            )
+            .padding(.horizontal, 60)
+            .padding(.bottom, 6)
+
+            // Coastline camera switcher across the bottom — pins placed
+            // geographically along the coast
             if !viewModel.cameras.isEmpty {
                 CoastlineRail(
                     cameras: viewModel.cameras,
@@ -109,27 +128,8 @@ struct ContentView: View {
                     onSelect: { viewModel.selectCamera($0) }
                 )
                 .padding(.horizontal, 60)
-                .padding(.bottom, 6)
+                .padding(.bottom, 22)
             }
-
-            // Panoramic beach cam banner across the bottom (the hero)
-            TVVideoPlayerView(
-                url: viewModel.videoStreamURL,
-                rebuildToken: viewModel.videoStreamGeneration,
-                isPlaying: $viewModel.isVideoPlaying,
-                onPlaybackFailure: { viewModel.refreshVideoStream() }
-            )
-            .padding(.horizontal, 60)
-            .padding(.bottom, 10)
-
-            // Day-timeline bar — sun rhythm across the full width
-            DayTimelineBar(
-                timeline: sunTimeline,
-                nowFraction: nowFraction,
-                errorMessage: viewModel.errorMessage
-            )
-            .padding(.horizontal, 60)
-            .padding(.bottom, 22)
         }
     }
 
