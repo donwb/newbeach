@@ -31,7 +31,7 @@ const (
 	// calls. Keep it well below the client-side throttle (30s) so a legitimate
 	// recovery retry actually re-resolves instead of getting a cached URL back.
 	defaultCooldown  = 5 * time.Second
-	defaultYouTubeURL = "https://www.youtube.com/watch?v=kB2PZC-ow68"
+	defaultYouTubeURL = "https://www.youtube.com/watch?v=550p9smwjPM"
 	ytDLPTimeout     = 30 * time.Second
 )
 
