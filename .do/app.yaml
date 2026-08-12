@@ -1,5 +1,11 @@
 name: beach-ramp-status
 region: nyc
+# DNS is managed in Cloudflare (no zone field): CNAME beach -> the app's
+# default ondigitalocean.app hostname. Start the record DNS-only (grey cloud)
+# until DO finishes TLS validation, then proxying can be enabled.
+domains:
+  - domain: beach.donwb.com
+    type: PRIMARY
 services:
   - name: beach-api
     github:

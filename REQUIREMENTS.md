@@ -780,7 +780,7 @@ Migrations run automatically at application startup, before the HTTP server begi
 
 ### 14.5 Hosting — DigitalOcean App Platform
 
-**Current:** App Platform (API service) + Managed PostgreSQL. Domain: donwb.com
+**Current:** App Platform (API service) + Managed PostgreSQL. Domain: beach.donwb.com
 
 **Rebuild — same platform, refined configuration:**
 
@@ -843,7 +843,7 @@ Note: `DATABASE_URL` is automatically injected by App Platform when a managed da
 - Health check: `/api/v2/health`
 - Environment variables: set via App Platform's encrypted env var UI or via the app spec
 - Auto-deploy: enabled on push to `main` branch
-- Domain: `donwb.com` (custom domain, same as today)
+- Domain: `beach.donwb.com` (custom domain; declared in the `domains:` block of `.do/app.yaml`)
 - Run command: single binary, no process manager needed
 
 ### 14.6 Deployment Flow — From Local to Production
@@ -853,7 +853,7 @@ Note: `DATABASE_URL` is automatically injected by App Platform when a managed da
 1. Create the App Platform app: `doctl apps create --spec .do/app.yaml`
 2. App Platform provisions the managed PostgreSQL instance and injects `DATABASE_URL`
 3. First deploy builds the Docker image, runs migrations (creating all tables from scratch), and starts the service
-4. Configure custom domain `donwb.com` in App Platform dashboard
+4. Configure custom domain `beach.donwb.com` in App Platform dashboard
 5. Verify v1 endpoints return expected JSON shape before pointing DNS
 
 **Ongoing development cycle:**
@@ -883,8 +883,8 @@ Local machine                    GitHub                    DigitalOcean
 
 **What lives outside App Platform:**
 - Apple apps → Apple App Store
-- TRMNL template → hosted by TRMNL platform (polls `donwb.com/api/v2/ramps` + `/api/v2/tides`)
-- Tidbyt script → runs on the local Tidbyt device (calls back to `donwb.com/rampstatus`)
+- TRMNL templates → hosted by TRMNL platform (polling URLs currently point at the app's default ondigitalocean.app hostname)
+- Tidbyt → retired August 2026 (device powered off; the Pixlet script called `donwb.com/rampstatus`)
 
 ---
 

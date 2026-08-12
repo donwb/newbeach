@@ -2,7 +2,7 @@
 
 Real-time beach access ramp status, tide data, and weather for Volusia County, Florida — across six platforms from a single codebase.
 
-**Live:** [https://donwb.com](https://donwb.com)
+**Live:** [https://beach.donwb.com](https://beach.donwb.com)
 
 ## What It Does
 
@@ -17,7 +17,7 @@ Volusia County operates ~30 vehicle beach access ramps that open and close throu
 | **Apple Watch** | SwiftUI | Glance-first ramp status — check your wrist before heading out |
 | **Apple TV** | SwiftUI | Ambient dashboard for the beach house — leave it on all day |
 | **TRMNL** | Liquid template | Monochrome e-ink display (4 NSB ramps + tide + temp) |
-| **Tidbyt** | Pixlet (frozen) | Legacy IoT pixel display — still works, never touched |
+| **Tidbyt** | Pixlet | Legacy IoT pixel display — retired August 2026 |
 
 ## Architecture
 
@@ -31,11 +31,9 @@ Volusia County GIS ──poll 60s──▶ Go Service ◀── NOAA Tides
                           REST API (v1 + v2)
                      ╱    │    │     │      ╲
                    Web   iOS  Watch  TV    TRMNL
-                                            ▲
-                   Tidbyt ──── v1 ──────────┘
 ```
 
-One Go binary does everything: HTTP API, data ingestion, and static file serving. The Apple apps share a Swift package (`BeachStatus`) for models, networking, and utilities — no duplicated code across iOS, watchOS, and tvOS. The TRMNL e-ink display polls the v2 API directly; the legacy Tidbyt device still consumes v1.
+One Go binary does everything: HTTP API, data ingestion, and static file serving. The Apple apps share a Swift package (`BeachStatus`) for models, networking, and utilities — no duplicated code across iOS, watchOS, and tvOS. The TRMNL e-ink display polls the v2 API directly. The v1 endpoints served the Tidbyt device until its retirement in August 2026 and remain live.
 
 ## Repository Structure
 
@@ -44,7 +42,6 @@ api/          Go API + data ingester (Echo v4, pgx, NOAA/NWS clients)
 web/          Website (vanilla HTML/JS + Tailwind CSS, served by the API)
 apple/        Xcode workspace — iOS, watchOS, tvOS targets + shared Swift package
 trmnl/        TRMNL e-ink display template
-tidbyt/       Frozen — legacy Tidbyt Pixlet script
 ```
 
 ## Local Development
@@ -71,12 +68,12 @@ Hosted on DigitalOcean App Platform. Push to `main` triggers CI (lint, test, bui
 
 ## API
 
-v1 endpoints maintain backward compatibility for the Tidbyt device:
+v1 endpoints are legacy (they served the Tidbyt device, retired August 2026) but remain live:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /rampstatus` | All ramps (Tidbyt format) |
-| `GET /tides` | Tide + water temp (Tidbyt format) |
+| `GET /rampstatus` | All ramps (legacy format) |
+| `GET /tides` | Tide + water temp (legacy format) |
 
 v2 endpoints power the website, Apple apps, and TRMNL display:
 

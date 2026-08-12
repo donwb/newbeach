@@ -11,8 +11,9 @@ api/          → Go API service + data ingester (the backend)
 web/          → Vanilla HTML/JS + Tailwind website (served by the API)
 apple/        → Xcode workspace: iOS, watchOS, tvOS targets + shared Swift package
 trmnl/        → TRMNL e-ink display Liquid template
-tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 ```
+
+The site is served at `https://beach.donwb.com` (custom domain declared in `.do/app.yaml`); the DigitalOcean default hostname `beach-ramp-status-kff7g.ondigitalocean.app` also works and is what the Apple apps, TRMNL plugins, CI, and the camera-refresh cron are pinned to.
 
 ## Go (API + Ingester)
 
@@ -27,7 +28,7 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 - Naming: use standard Go conventions (camelCase unexported, PascalCase exported)
 - Database queries: use `pgx` directly or `sqlc` for type-safe queries — no heavy ORMs
 - Run `go vet` and `staticcheck` before committing
-- API versioning: v1 endpoints (`/rampstatus`, `/tides`, `/ramps`) must maintain exact backward compatibility for Tidbyt. New work goes on `/api/v2/*` endpoints.
+- API versioning: v1 endpoints (`/rampstatus`, `/tides`, `/ramps`) are legacy (the Tidbyt that required them is retired) — keep them stable unless there's a reason not to. New work goes on `/api/v2/*` endpoints.
 
 ## Website (Vanilla + Tailwind)
 
@@ -72,11 +73,10 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 - No color — design for e-ink (high contrast; grays are fine on the X for secondary text and fills, never for small thin type)
 - This is an active platform — expect frequent iteration
 
-## Tidbyt (Legacy)
+## Tidbyt (Retired)
 
-- **DO NOT MODIFY** any files in `tidbyt/`
-- The Pixlet script depends on the v1 API response shape
-- If you change v1 endpoints, verify the response JSON is identical
+- The Tidbyt device was powered off in August 2026 and its Pixlet script was never checked into this repo
+- The v1 endpoints (`/rampstatus`, `/tides`, `/ramps`) remain live but no longer have a hard compatibility constraint — prefer not to change their shape without checking for remaining consumers
 
 ## Local Development Credentials
 
@@ -123,7 +123,6 @@ tidbyt/       → FROZEN — legacy Tidbyt Pixlet script, do not modify
 When working as part of an agent team on this project:
 
 - **Always read `REQUIREMENTS.md` first** — it's the single source of truth for what to build
-- **v1 API compatibility is sacred** — the Tidbyt device cannot be updated, so `/rampstatus` and `/tides` must return the exact same JSON shape as today
+- **v1 endpoints are legacy** — the Tidbyt device that required exact JSON compatibility was retired in August 2026; keep v1 stable by default but it is no longer frozen
 - **Coordinate on shared types** — if you're defining Go structs or Swift models that others will use, message the team before finalizing the shape
-- **Don't touch `tidbyt/`** — it's frozen
 - **Test your work** — write tests as you go, don't leave them for later
