@@ -1,11 +1,38 @@
+# Reference copy of the App Platform spec. The live spec is the source of
+# truth — fetch it with:  doctl apps spec get <app-id>
+#
+# NEVER apply this file blindly with `doctl apps update --spec`: secret
+# values here are placeholders, and dropping the egress block would rotate
+# the dedicated IP that the RDS security group is locked to. Pull the live
+# spec, edit it, and apply that instead.
 name: beach-ramp-status
 region: nyc
 # DNS is managed in Cloudflare (no zone field): CNAME beach -> the app's
-# default ondigitalocean.app hostname. Start the record DNS-only (grey cloud)
-# until DO finishes TLS validation, then proxying can be enabled.
+# default ondigitalocean.app hostname. donwb.com remains an ALIAS during the
+# transition off the apex and can be removed once the apex is repointed.
 domains:
   - domain: beach.donwb.com
     type: PRIMARY
+  - domain: donwb.com
+    type: ALIAS
+# Dedicated egress IP — the AWS RDS security group allows this IP. Removing
+# the block would break database connectivity.
+egress:
+  type: DEDICATED_IP
+envs:
+  # Set to the real value in the platform (app-level env). Placeholder here.
+  - key: ADMIN_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: "CHANGE_ME_IN_PLATFORM_UI"
+features:
+  - buildpack-stack=ubuntu-22
+ingress:
+  rules:
+    - component:
+        name: beach-api
+      match:
+        path:
+          prefix: /
 services:
   - name: beach-api
     github:
@@ -21,19 +48,23 @@ services:
       http_path: /api/v2/health
     envs:
       - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
         type: SECRET
       - key: GIS_HOST
+        scope: RUN_AND_BUILD_TIME
         value: maps5.vcgov.org
       - key: POLL_INTERVAL
+        scope: RUN_AND_BUILD_TIME
         value: "60"
       - key: LOG_LEVEL
+        scope: RUN_AND_BUILD_TIME
         value: info
       - key: WEBCAM_URL
+        scope: RUN_AND_BUILD_TIME
         value: "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/dynamic/wesh/CAM13.jpg"
       - key: NOAA_TIDE_STATION
-        value: "8721147"
+        scope: RUN_AND_BUILD_TIME
+        value: "8721164"
       - key: NOAA_TEMP_STATIONS
+        scope: RUN_AND_BUILD_TIME
         value: "8721604,8720218"
-      - key: ADMIN_API_KEY
-        type: SECRET
-        value: "CHANGE_ME_IN_PLATFORM_UI"
