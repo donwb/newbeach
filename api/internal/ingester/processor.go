@@ -10,9 +10,9 @@ import (
 
 // processFeatures upserts each GIS feature into the database and records
 // status changes in the history table. A failure on one feature must not
-// block the rest of the batch, so errors are logged per feature and only
-// summarized in the return value.
-func (ing *Ingester) processFeatures(ctx context.Context, features []gisFeature) error {
+// block the rest of the batch, so errors are logged per feature; the count
+// of failed features is returned so poll can track ingestion health.
+func (ing *Ingester) processFeatures(ctx context.Context, features []gisFeature) int {
 	failed := 0
 
 	for _, f := range features {
@@ -36,11 +36,7 @@ func (ing *Ingester) processFeatures(ctx context.Context, features []gisFeature)
 		}
 	}
 
-	if failed > 0 {
-		return fmt.Errorf("processing %d of %d features failed", failed, len(features))
-	}
-
-	return nil
+	return failed
 }
 
 // processFeature upserts a single ramp and records a history entry when its

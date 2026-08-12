@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/donwb/beach/api/internal/database"
+	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/noaa"
 	"github.com/donwb/beach/api/internal/videostream"
@@ -162,9 +163,16 @@ func HandleV2TideChart(noaaClient *noaa.Client) echo.HandlerFunc {
 	}
 }
 
-// HandleV2Health returns the service health status including database connectivity.
+// HandleV2Health returns the service health status including database
+// connectivity and ingestion health.
 // GET /api/v2/health
-func HandleV2Health(pool *pgxpool.Pool) echo.HandlerFunc {
+//
+// Ingestion problems mark the overall status "degraded" but keep HTTP 200:
+// this endpoint is the DigitalOcean container health check, and restarting
+// the container cannot fix a GIS-side ingestion failure — a 503 here would
+// only cause restart loops and block deploys while the API itself is fine.
+// Only a database outage returns 503.
+func HandleV2Health(pool *pgxpool.Pool, ing *ingester.Ingester) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
@@ -174,16 +182,29 @@ func HandleV2Health(pool *pgxpool.Pool) echo.HandlerFunc {
 			dbStatus = "disconnected"
 		}
 
+		ingHealth := ing.Health()
+		ingStatus := ingHealth.Status(time.Now())
+
 		status := "ok"
 		httpStatus := http.StatusOK
+		if ingStatus == "degraded" {
+			status = "degraded"
+		}
 		if dbStatus != "connected" {
 			status = "degraded"
 			httpStatus = http.StatusServiceUnavailable
 		}
 
-		return c.JSON(httpStatus, map[string]string{
+		return c.JSON(httpStatus, map[string]interface{}{
 			"status":   status,
 			"database": dbStatus,
+			"ingester": map[string]interface{}{
+				"status":             ingStatus,
+				"last_poll_at":       ingHealth.LastPollAt,
+				"last_clean_poll_at": ingHealth.LastCleanPollAt,
+				"queries_failed":     ingHealth.QueriesFailed,
+				"features_failed":    ingHealth.FeaturesFailed,
+			},
 		})
 	}
 }

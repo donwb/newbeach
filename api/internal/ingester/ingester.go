@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,7 +18,38 @@ type Ingester struct {
 	pollInterval time.Duration
 	httpClient   *http.Client
 	logger       *slog.Logger
-	healthy      atomic.Bool
+
+	mu     sync.Mutex
+	health Health
+}
+
+// Health is a snapshot of the ingester's recent poll outcomes. A poll is
+// "clean" when every GIS status query succeeded and every returned feature
+// was persisted.
+type Health struct {
+	LastPollAt      time.Time     `json:"last_poll_at"`
+	LastCleanPollAt time.Time     `json:"last_clean_poll_at"`
+	QueriesFailed   int           `json:"queries_failed"`
+	FeaturesFailed  int           `json:"features_failed"`
+	PollInterval    time.Duration `json:"-"`
+}
+
+// Status classifies the snapshot at time now: "starting" before the first
+// poll completes, "degraded" when the last cycle had failures or no clean
+// poll has happened within 5 poll intervals, otherwise "ok". The staleness
+// check also catches a stalled poll loop, since LastCleanPollAt stops
+// advancing either way.
+func (h Health) Status(now time.Time) string {
+	switch {
+	case h.LastPollAt.IsZero():
+		return "starting"
+	case h.QueriesFailed > 0 || h.FeaturesFailed > 0:
+		return "degraded"
+	case now.Sub(h.LastCleanPollAt) > 5*h.PollInterval:
+		return "degraded"
+	default:
+		return "ok"
+	}
 }
 
 // New creates a new Ingester instance.
@@ -35,9 +66,13 @@ func New(pool *pgxpool.Pool, gisHost string, pollInterval time.Duration) *Ingest
 	return ing
 }
 
-// IsHealthy returns true if the last poll cycle completed successfully.
-func (ing *Ingester) IsHealthy() bool {
-	return ing.healthy.Load()
+// Health returns a snapshot of the ingester's recent poll outcomes.
+func (ing *Ingester) Health() Health {
+	ing.mu.Lock()
+	defer ing.mu.Unlock()
+	h := ing.health
+	h.PollInterval = ing.pollInterval
+	return h
 }
 
 // Start begins the polling loop. It runs the first poll immediately, then
@@ -70,11 +105,13 @@ func (ing *Ingester) Start(ctx context.Context) {
 func (ing *Ingester) poll(ctx context.Context) {
 	start := time.Now()
 	totalFeatures := 0
-	successCount := 0
+	queriesFailed := 0
+	featuresFailed := 0
 
 	for _, status := range gisStatuses {
 		features, err := ing.queryGIS(ctx, status)
 		if err != nil {
+			queriesFailed++
 			ing.logger.Error("GIS query failed",
 				"status", status,
 				"err", err,
@@ -82,29 +119,38 @@ func (ing *Ingester) poll(ctx context.Context) {
 			continue
 		}
 
-		successCount++
 		totalFeatures += len(features)
 
 		if len(features) > 0 {
-			if err := ing.processFeatures(ctx, features); err != nil {
+			failed := ing.processFeatures(ctx, features)
+			featuresFailed += failed
+			if failed > 0 {
 				ing.logger.Error("processing features failed",
 					"status", status,
-					"err", err,
+					"failed", failed,
+					"total", len(features),
 				)
-				continue
 			}
 		}
 	}
 
 	duration := time.Since(start)
+	now := time.Now()
 
-	// Healthy if at least one status query succeeded.
-	ing.healthy.Store(successCount > 0)
+	ing.mu.Lock()
+	ing.health.LastPollAt = now
+	ing.health.QueriesFailed = queriesFailed
+	ing.health.FeaturesFailed = featuresFailed
+	if queriesFailed == 0 && featuresFailed == 0 {
+		ing.health.LastCleanPollAt = now
+	}
+	ing.mu.Unlock()
 
 	ing.logger.Info("poll cycle complete",
 		"duration", duration,
 		"statuses_queried", len(gisStatuses),
-		"statuses_succeeded", successCount,
+		"queries_failed", queriesFailed,
+		"features_failed", featuresFailed,
 		"total_features", totalFeatures,
 	)
 }

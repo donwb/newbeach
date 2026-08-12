@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
 	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
@@ -16,7 +17,7 @@ import (
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -65,7 +66,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))
 	v2.GET("/weather", HandleV2Weather(weatherClient))
 	v2.GET("/trmnl", HandleV2Trmnl(pool, noaaClient, weatherClient))
-	v2.GET("/health", HandleV2Health(pool))
+	v2.GET("/health", HandleV2Health(pool, ing))
 	v2.GET("/config", HandleV2Config(pool))
 	v2.GET("/cameras", HandleV2Cameras(pool))
 	v2.POST("/video/refresh", HandleV2VideoRefresh(videoRefresher))

@@ -140,7 +140,8 @@ func main() {
 	)
 
 	// Register API routes.
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher)
+	ing := ingester.New(pool, gisHost, pollInterval)
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing)
 
 	// Start the data ingester in a background goroutine.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -148,7 +149,6 @@ func main() {
 
 	videoRefresher.PrimeFromDB(ctx)
 
-	ing := ingester.New(pool, gisHost, pollInterval)
 	go ing.Start(ctx)
 
 	// Start the HTTP server in a goroutine.
