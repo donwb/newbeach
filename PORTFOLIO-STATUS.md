@@ -14,7 +14,7 @@ app_review_state: |
   tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-14 (evening: cam-relay droplet built, awaiting cutover)
+last_verified: 2026-08-14 (cam relay cutover complete; all live cams verified through relay)
 ---
 
 ## Top open items
@@ -32,12 +32,11 @@ last_verified: 2026-08-14 (evening: cam-relay droplet built, awaiting cutover)
    "six screens" is now seven. INTAKE §5 (V3, V8).
 
 ## Blockers & risks
-- Beach cams broke in Aug 2026: YouTube IP-locked its HLS URLs, so the resolve-at-home
-  URL-push model shows black video on every platform. Fix is built (2026-08-14): a
-  MediaMTX relay droplet + home restreamer (scripts/cam-restreamer.sh); NOT yet live —
-  Don must install the launchd job on the Mac Studio and flip roster URLs (admin key).
-- Beach cams still depend on a home machine (residential IP) — now as the stream
-  publisher rather than URL resolver; still a single point of failure.
+- Beach cams still depend on a home machine (residential IP): YouTube IP-locked its
+  HLS URLs in Aug 2026, killing the old URL-push cron; since 2026-08-14 the Mac Studio
+  restreams all cams (scripts/cam-restreamer.sh, launchd) to a MediaMTX relay droplet
+  (beach-cam-relay, 68.183.149.152, $6/mo) serving stable HLS — live and verified on
+  all 4 online cams, but the Studio remains a single point of failure for video.
 - Ormond Beach cam offline upstream — its YouTube video ID no longer exists; roster
   youtube_url needs updating when the county restarts the broadcast.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
@@ -46,7 +45,11 @@ last_verified: 2026-08-14 (evening: cam-relay droplet built, awaiting cutover)
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
-(all 2026-08-12)
+- 2026-08-14: Beach-cam relay architecture — diagnosed YouTube's new IP-locked HLS
+  enforcement (black players everywhere), built a MediaMTX relay droplet + home
+  restreamer, cut all camera URLs over to stable relay HLS. Verified on all platforms'
+  fetch path; old update-stream-url.sh cron retired.
+(below: 2026-08-12)
 - Fixed stale ramp statuses caused by the county GIS OBJECTID renumbering (migration 006).
 - Ingestion health now surfaced at /api/v2/health (starting/ok/degraded after 5 missed polls).
 - Domain move prepped: beach.donwb.com is primary, donwb.com aliased; Tidbyt retirement
