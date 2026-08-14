@@ -35,8 +35,8 @@ last_verified: 2026-08-14 (cam relay cutover complete; all live cams verified th
 - Beach cams still depend on a home machine (residential IP): YouTube IP-locked its
   HLS URLs in Aug 2026, killing the old URL-push cron; since 2026-08-14 the Mac Studio
   restreams all cams (scripts/cam-restreamer.sh, launchd) to a MediaMTX relay droplet
-  (beach-cam-relay, 68.183.149.152, $6/mo) serving stable HLS — live and verified on
-  all 4 online cams, but the Studio remains a single point of failure for video.
+  (beach-cam-relay, 68.183.149.152, $6/mo) serving stable HLS at cams.donwb.com —
+  live and verified on all 4 online cams; the Studio remains a single point of failure.
 - Ormond Beach cam offline upstream — its YouTube video ID no longer exists; roster
   youtube_url needs updating when the county restarts the broadcast.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
