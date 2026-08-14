@@ -3,9 +3,12 @@ package models
 import "time"
 
 // TidePrediction represents a single high or low tide prediction from NOAA.
+// Height is the predicted water level in feet (MLLW); nil when NOAA omits it
+// or the value fails to parse.
 type TidePrediction struct {
-	Time time.Time `json:"time"`
-	Type string    `json:"type"` // "H" for high, "L" for low
+	Time   time.Time `json:"time"`
+	Type   string    `json:"type"` // "H" for high, "L" for low
+	Height *float64  `json:"height,omitempty"`
 }
 
 // TidePredictionPoint represents a single point on the tide curve with a

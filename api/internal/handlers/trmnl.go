@@ -119,7 +119,7 @@ func HandleV2Trmnl(pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *w
 
 		now := time.Now().In(eastern)
 
-		ramps, err := database.GetRampsWithStatusSince(ctx, pool, city)
+		ramps, err := database.GetRampsWithStatusSince(ctx, pool, city, "")
 		if err != nil {
 			slog.Error("querying ramps for trmnl", "city", city, "err", err)
 			return c.JSON(http.StatusInternalServerError, map[string]string{

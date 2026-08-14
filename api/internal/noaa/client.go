@@ -8,6 +8,8 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/donwb/beach/api/internal/models"
@@ -52,7 +54,7 @@ func NewClient(tideStation string, tempStations []string) *Client {
 type noaaPredictionResponse struct {
 	Predictions []struct {
 		T    string `json:"t"`    // "2026-03-09 11:24"
-		V    string `json:"v"`    // tide height value (unused here)
+		V    string `json:"v"`    // tide height in feet, e.g. "-0.123"
 		Type string `json:"type"` // "H" or "L"
 	} `json:"predictions"`
 }
@@ -108,6 +110,12 @@ func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePredict
 		return nil, fmt.Errorf("decoding tide predictions: %w", err)
 	}
 
+	return predictionsFromResponse(noaaResp), nil
+}
+
+// predictionsFromResponse maps the raw NOAA payload to domain predictions,
+// skipping entries with unparseable times and carrying heights when present.
+func predictionsFromResponse(noaaResp noaaPredictionResponse) []models.TidePrediction {
 	predictions := make([]models.TidePrediction, 0, len(noaaResp.Predictions))
 	for _, p := range noaaResp.Predictions {
 		t, err := time.ParseInLocation("2006-01-02 15:04", p.T, eastern)
@@ -115,13 +123,17 @@ func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePredict
 			slog.Warn("skipping unparseable tide prediction time", "raw", p.T, "err", err)
 			continue
 		}
-		predictions = append(predictions, models.TidePrediction{
+		pred := models.TidePrediction{
 			Time: t,
 			Type: p.Type,
-		})
+		}
+		if h, err := strconv.ParseFloat(strings.TrimSpace(p.V), 64); err == nil {
+			pred.Height = &h
+		}
+		predictions = append(predictions, pred)
 	}
 
-	return predictions, nil
+	return predictions
 }
 
 // FetchHourlyPredictions retrieves today's hourly tide height predictions from

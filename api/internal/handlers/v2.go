@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
@@ -22,6 +21,7 @@ import (
 )
 
 // HandleV2Ramps returns ramp statuses with optional city and status query filters.
+// Each ramp carries status_since, the time its current status took effect.
 // GET /api/v2/ramps?city=New+Smyrna+Beach&status=open
 func HandleV2Ramps(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -30,51 +30,15 @@ func HandleV2Ramps(pool *pgxpool.Pool) echo.HandlerFunc {
 		city := c.QueryParam("city")
 		status := c.QueryParam("status")
 
-		query := `SELECT id, ramp_name, access_status, status_category, object_id, city, access_id, location, updated_at
-		          FROM ramp_status WHERE 1=1`
-		args := make([]interface{}, 0)
-		argIdx := 1
-
-		if city != "" {
-			query += fmt.Sprintf(" AND city = $%d", argIdx)
-			args = append(args, city)
-			argIdx++
-		}
-		if status != "" {
-			query += fmt.Sprintf(" AND status_category = $%d", argIdx)
-			args = append(args, status)
-			argIdx++
-		}
-
-		query += " ORDER BY city, ramp_name"
-
-		rows, err := pool.Query(ctx, query, args...)
+		ramps, err := database.GetRampsWithStatusSince(ctx, pool, city, status)
 		if err != nil {
 			slog.Error("querying v2 ramps", "err", err)
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "failed to query ramps",
 			})
 		}
-		defer rows.Close()
-
-		ramps := make([]models.RampStatus, 0)
-		for rows.Next() {
-			var r models.RampStatus
-			if err := rows.Scan(
-				&r.ID, &r.RampName, &r.AccessStatus, &r.StatusCategory,
-				&r.ObjectID, &r.City, &r.AccessID, &r.Location, &r.UpdatedAt,
-			); err != nil {
-				slog.Error("scanning v2 ramp row", "err", err)
-				continue
-			}
-			ramps = append(ramps, r)
-		}
-
-		if err := rows.Err(); err != nil {
-			slog.Error("iterating v2 ramp rows", "err", err)
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "failed to read ramp rows",
-			})
+		if ramps == nil {
+			ramps = make([]models.RampStatusWithSince, 0)
 		}
 
 		return c.JSON(http.StatusOK, ramps)

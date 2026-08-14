@@ -93,10 +93,11 @@ func GetRampsByCity(ctx context.Context, pool *pgxpool.Pool, city string) ([]mod
 	return scanRamps(rows)
 }
 
-// GetRampsWithStatusSince returns every ramp for a city along with the time
-// its current status took effect (the most recent history entry, if any).
-func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city string) ([]models.RampStatusWithSince, error) {
-	const query = `
+// GetRampsWithStatusSince returns ramps along with the time each ramp's
+// current status took effect (the most recent history entry, if any).
+// Empty city or status skips that filter.
+func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city, status string) ([]models.RampStatusWithSince, error) {
+	query := `
 		SELECT r.id, r.ramp_name, r.access_status, r.status_category, r.object_id, r.city, r.access_id, r.location, r.updated_at,
 		       h.recorded_at
 		FROM ramp_status r
@@ -107,13 +108,22 @@ func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city strin
 			ORDER BY recorded_at DESC
 			LIMIT 1
 		) h ON true
-		WHERE r.city = $1
-		ORDER BY r.ramp_name
+		WHERE 1=1
 	`
+	args := make([]interface{}, 0, 2)
+	if city != "" {
+		args = append(args, city)
+		query += fmt.Sprintf(" AND r.city = $%d", len(args))
+	}
+	if status != "" {
+		args = append(args, status)
+		query += fmt.Sprintf(" AND r.status_category = $%d", len(args))
+	}
+	query += " ORDER BY r.city, r.ramp_name"
 
-	rows, err := pool.Query(ctx, query, city)
+	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("querying ramps with status since for city %s: %w", city, err)
+		return nil, fmt.Errorf("querying ramps with status since (city=%q status=%q): %w", city, status, err)
 	}
 	defer rows.Close()
 
