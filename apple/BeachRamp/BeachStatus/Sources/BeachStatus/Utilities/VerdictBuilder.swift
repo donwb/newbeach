@@ -207,7 +207,8 @@ public enum VerdictBuilder {
 
     // MARK: - Fact helpers
 
-    static func nextExtreme(in tide: TideInfo, after now: Date) -> TidePrediction? {
+    /// The first tide extreme after `now`, if predictions cover it.
+    public static func nextExtreme(in tide: TideInfo, after now: Date) -> TidePrediction? {
         tide.predictions?.filter { $0.time > now }.min { $0.time < $1.time }
     }
 

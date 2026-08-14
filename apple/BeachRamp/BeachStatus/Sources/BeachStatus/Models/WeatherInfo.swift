@@ -4,6 +4,11 @@ import Foundation
 public struct WeatherInfo: Codable, Sendable {
     public let current: CurrentConditions
     public let forecast: [ForecastPeriod]
+
+    public init(current: CurrentConditions, forecast: [ForecastPeriod]) {
+        self.current = current
+        self.forecast = forecast
+    }
 }
 
 public struct CurrentConditions: Codable, Sendable {
@@ -14,6 +19,18 @@ public struct CurrentConditions: Codable, Sendable {
     public let description: String?
     public let humidity: Double?
     public let icon: String?
+
+    public init(temperatureF: Double? = nil, windSpeed: String? = nil,
+                windDirection: String? = nil, windGust: String? = nil,
+                description: String? = nil, humidity: Double? = nil, icon: String? = nil) {
+        self.temperatureF = temperatureF
+        self.windSpeed = windSpeed
+        self.windDirection = windDirection
+        self.windGust = windGust
+        self.description = description
+        self.humidity = humidity
+        self.icon = icon
+    }
 
     enum CodingKeys: String, CodingKey {
         case temperatureF = "temperature_f"
@@ -57,6 +74,22 @@ public struct ForecastPeriod: Codable, Identifiable, Sendable {
     public let detailedDescription: String
     public let isDaytime: Bool
     public let icon: String?
+
+    public init(name: String, temperature: Int, tempUnit: String = "F",
+                windSpeed: String = "", windDirection: String = "", windGust: String? = nil,
+                shortDescription: String = "", detailedDescription: String = "",
+                isDaytime: Bool = true, icon: String? = nil) {
+        self.name = name
+        self.temperature = temperature
+        self.tempUnit = tempUnit
+        self.windSpeed = windSpeed
+        self.windDirection = windDirection
+        self.windGust = windGust
+        self.shortDescription = shortDescription
+        self.detailedDescription = detailedDescription
+        self.isDaytime = isDaytime
+        self.icon = icon
+    }
 
     public var id: String { name }
 

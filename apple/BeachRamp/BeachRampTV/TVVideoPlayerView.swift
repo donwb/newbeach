@@ -7,9 +7,11 @@
 
 import SwiftUI
 import AVKit
+import BeachStatus
 
-/// HLS video player panel for the tvOS dashboard.
-/// Designed as a panoramic banner (1280x270 source, ~4.7:1 aspect ratio).
+/// HLS video player banner for the tvOS dashboard — full-bleed, zero radius.
+/// Panoramic source (1280×270, ~4.7:1); the offline state is an opaque field
+/// with real copy, not a glyph, because it must read from a couch.
 struct TVVideoPlayerView: View {
     let url: URL
     /// Increments on every refresh attempt, even when `url` is unchanged.
@@ -18,6 +20,15 @@ struct TVVideoPlayerView: View {
     /// player is wedged.
     let rebuildToken: Int
     @Binding var isPlaying: Bool
+    /// Display name of the active camera, for the status chip and offline copy.
+    var cameraName: String = "Beach"
+    /// The owner's offline signal — true when the selected camera has no
+    /// resolved stream URL. Playback failures on a live URL recover through
+    /// `onPlaybackFailure`; this flag is for cameras with nothing to play.
+    var isOffline: Bool = false
+    /// How many other cameras currently have live streams — offline copy
+    /// points the viewer at them.
+    var otherLiveCount: Int = 0
     /// Called when AVPlayer reports a playback failure. The owner should ask
     /// the API to re-resolve the rotating YouTube HLS URL and update `url`.
     var onPlaybackFailure: (() -> Void)? = nil
@@ -25,35 +36,26 @@ struct TVVideoPlayerView: View {
     @State private var player: AVPlayer?
     @State private var failureObserver: PlayerFailureObserver?
     @State private var stallWatcher: PlayerStallWatcher?
+    /// When the banner last entered the offline state — "last frame" copy.
+    @State private var offlineSince: Date?
+
+    private var showOffline: Bool { isOffline || player == nil }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let player {
+        ZStack(alignment: .bottomLeading) {
+            if !showOffline, let player {
                 VideoPlayer(player: player)
                     .aspectRatio(1280.0/270.0, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
             } else {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.white.opacity(0.05))
-                    .aspectRatio(1280.0/270.0, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .clipped()
-                    .overlay {
-                        Image(systemName: "video.slash")
-                            .font(.title2)
-                            .foregroundStyle(.white.opacity(0.3))
-                    }
+                offlineField
             }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.white.opacity(0.1))
+
+            statusChip
         }
         .onAppear {
+            if isOffline { offlineSince = offlineSince ?? Date() }
             setupPlayer()
         }
         .onDisappear {
@@ -79,6 +81,67 @@ struct TVVideoPlayerView: View {
             // a wedged AVPlayerItem.
             setupPlayer()
         }
+        .onChange(of: isOffline) { _, offline in
+            offlineSince = offline ? (offlineSince ?? Date()) : nil
+            if !offline { setupPlayer() }
+        }
+    }
+
+    // MARK: - Offline state
+
+    /// Opaque flat field naming the cam, when the last frame was, and what to
+    /// do — replaces the old 22pt glyph that was invisible from a couch.
+    private var offlineField: some View {
+        ZStack(alignment: .leading) {
+            BoardColor.overlayField
+
+            VStack(alignment: .leading, spacing: 14) {
+                Text("\(cameraName) cam offline")
+                    .font(.system(size: 44, weight: .bold))
+                    .tracking(44 * -0.01)
+                    .foregroundStyle(.white)
+                Text(offlineBody)
+                    .font(.system(size: 28))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 56)
+        }
+    }
+
+    private var offlineBody: String {
+        var parts: [String] = []
+        if let offlineSince {
+            parts.append("Reconnecting — last frame \(SinceFormatter.string(from: offlineSince)).")
+        } else {
+            parts.append("Reconnecting.")
+        }
+        if otherLiveCount > 0 {
+            let others = otherLiveCount == 1 ? "One other cam is" : "\(spelledCount(otherLiveCount).capitalized) other cams are"
+            parts.append("\(others) live; press right.")
+        }
+        return parts.joined(separator: " ")
+    }
+
+    private func spelledCount(_ n: Int) -> String {
+        let words = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+        return n < words.count ? words[n] : String(n)
+    }
+
+    // MARK: - Status chip
+
+    private var statusChip: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(showOffline ? Color(boardHex: 0xF5A214) : Color(boardHex: 0xE63A2B))
+                .frame(width: 12, height: 12)
+            Text(showOffline ? "Offline" : "Live · \(cameraName)")
+                .font(.system(size: 22, weight: .semibold))
+                .tracking(22 * 0.04)
+                .foregroundStyle(.white)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .background(Rectangle().fill(BoardColor.camChipFill))
     }
 
     private func setupPlayer(url override: URL? = nil) {

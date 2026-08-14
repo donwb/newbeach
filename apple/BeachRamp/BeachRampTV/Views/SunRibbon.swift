@@ -3,22 +3,36 @@ import BeachStatus
 
 // MARK: - Day Timeline Model
 
-/// The sun's rhythm for a single day, precomputed for the timeline bar: the key
-/// solar events as fractions (0…1) of the local day, plus formatted times. Built
-/// once per day from `SolarCalculator`; the bar reads it every tick.
+/// The sun's rhythm for a single day, precomputed for the ribbon: the key
+/// solar events as fractions (0…1) of the local day, plus formatted times.
+/// Built once per day from `SolarCalculator`; the ribbon reads it every tick.
+///
+/// Crossings at −18/−9/−6° cover the three twilights; +6/+20/+34 mark the
+/// golden-hour end and the mid-morning color steps that the sky palette also
+/// uses, so the ribbon's gradient tracks the board's background exactly.
 struct SunTimeline {
     struct Event {
         let fraction: Double   // 0…1 position along the 24-hour day
         let timeText: String   // e.g. "6:28 AM"
     }
 
-    let civilDawn: Event?          // sun at -6° (ascending) — first light
-    let sunrise: Event?            // sun at the horizon (ascending)
-    let goldenMorningEnd: Event?   // sun at +6° (ascending) — golden hour ends
-    let solarNoon: Event?          // sun's daily peak
-    let goldenEveningStart: Event? // sun at +6° (descending) — golden hour begins
-    let sunset: Event?             // sun at the horizon (descending)
-    let civilDusk: Event?          // sun at -6° (descending) — last light
+    // Rising
+    let astronomicalDawn: Event?   // −18° ↑
+    let nauticalDawn: Event?       // −9° ↑
+    let civilDawn: Event?          // −6° ↑ — first light
+    let sunrise: Event?
+    let goldenMorningEnd: Event?   // +6° ↑
+    let morningFull: Event?        // +20° ↑
+    let lateMorning: Event?        // +34° ↑
+    let solarNoon: Event?
+    // Falling
+    let earlyAfternoonEnd: Event?  // +34° ↓
+    let afternoonStart: Event?     // +20° ↓
+    let goldenEveningStart: Event? // +6° ↓
+    let sunset: Event?
+    let civilDusk: Event?          // −6° ↓ — last light
+    let nauticalDusk: Event?       // −9° ↓
+    let astronomicalDusk: Event?   // −18° ↓
 
     init(day: Date, solar: SolarCalculator, calendar: Calendar, zone: TimeZone) {
         let formatter = DateFormatter()
@@ -32,15 +46,26 @@ struct SunTimeline {
                 timeText: formatter.string(from: date)
             )
         }
+        func crossing(_ altitude: Double, rising: Bool) -> Event? {
+            event(solar.crossing(altitude: altitude, rising: rising, on: day, calendar: calendar))
+        }
 
         let events = solar.events(on: day, calendar: calendar)
-        civilDawn = event(solar.crossing(altitude: -6, rising: true, on: day, calendar: calendar))
+        astronomicalDawn = crossing(-18, rising: true)
+        nauticalDawn = crossing(-9, rising: true)
+        civilDawn = crossing(-6, rising: true)
         sunrise = event(events.sunrise)
-        goldenMorningEnd = event(solar.crossing(altitude: 6, rising: true, on: day, calendar: calendar))
+        goldenMorningEnd = crossing(6, rising: true)
+        morningFull = crossing(20, rising: true)
+        lateMorning = crossing(34, rising: true)
         solarNoon = event(solar.solarNoon(on: day, calendar: calendar))
-        goldenEveningStart = event(solar.crossing(altitude: 6, rising: false, on: day, calendar: calendar))
+        earlyAfternoonEnd = crossing(34, rising: false)
+        afternoonStart = crossing(20, rising: false)
+        goldenEveningStart = crossing(6, rising: false)
         sunset = event(events.sunset)
-        civilDusk = event(solar.crossing(altitude: -6, rising: false, on: day, calendar: calendar))
+        civilDusk = crossing(-6, rising: false)
+        nauticalDusk = crossing(-9, rising: false)
+        astronomicalDusk = crossing(-18, rising: false)
     }
 
     /// Fraction (0…1) of the local calendar day represented by `date`.
@@ -50,155 +75,114 @@ struct SunTimeline {
     }
 }
 
-// MARK: - Day Timeline Bar
+// MARK: - Sun Ribbon
 
-/// Full-width day-rhythm bar: a 24-hour gradient from night through twilight,
-/// golden hour, and daylight and back, with a marker for "now" beneath it, the
-/// sunrise / solar-noon / sunset times labeled, and a live caption for the next
-/// meaningful sun event.
-struct DayTimelineBar: View {
+/// Flat 18pt day ribbon: a 24-hour gradient through the sky phases with a now
+/// marker, sunrise/sunset times at the ends, and a live caption in the middle.
+struct SunRibbon: View {
     let timeline: SunTimeline?
     let nowFraction: Double
-    let errorMessage: String?
-
-    // Bar palette — independent of the sky background so the bar reads clearly
-    // over any time-of-day gradient.
-    private static let night = Color(red: 0.043, green: 0.098, blue: 0.176)
-    private static let twilight = Color(red: 0.180, green: 0.200, blue: 0.420)
-    private static let goldenLow = Color(red: 0.770, green: 0.440, blue: 0.120)
-    private static let goldenHigh = Color(red: 0.950, green: 0.700, blue: 0.290)
-    private static let day = Color(red: 0.750, green: 0.880, blue: 0.970)
-    private static let noon = Color(red: 0.850, green: 0.930, blue: 0.990)
-    private static let marker = Color(red: 1.0, green: 0.271, blue: 0.227)
+    /// Stale board: sun facts are computed locally and stay trustworthy —
+    /// the caption says so.
+    let isStale: Bool
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             GeometryReader { geo in
                 let w = geo.size.width
                 ZStack(alignment: .topLeading) {
-                    Capsule()
+                    Rectangle()
                         .fill(LinearGradient(stops: gradientStops, startPoint: .leading, endPoint: .trailing))
-                        .frame(height: 22)
-                        .position(x: w / 2, y: 11)
+                        .frame(width: w, height: 18)
 
-                    ForEach(labeledEvents, id: \.name) { ev in
-                        labelView(ev)
-                            .position(x: clamp(CGFloat(ev.fraction) * w, 60, w - 60), y: 72)
-                    }
+                    // Now marker: a white rule through the bar…
+                    Rectangle()
+                        .fill(.white)
+                        .frame(width: 4, height: 32)
+                        .position(x: markerX(w), y: 2)
+                        .animation(.easeInOut(duration: 1.0), value: nowFraction)
 
-                    markerView
-                        .position(x: min(w, max(0, CGFloat(nowFraction) * w)), y: 11)
+                    // …and a red dot hanging below it.
+                    Circle()
+                        .fill(BoardColor.nowMarker)
+                        .frame(width: 14, height: 14)
+                        .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
+                        .position(x: markerX(w), y: 35)
                         .animation(.easeInOut(duration: 1.0), value: nowFraction)
                 }
             }
-            .frame(height: 102)
+            .frame(height: 44)
 
-            captionView
+            HStack {
+                Text(sunriseLabel)
+                Spacer()
+                Text(caption)
+                    .fontWeight(.semibold)
+                Spacer()
+                Text(sunsetLabel)
+            }
+            .font(.system(size: 22))
+            .foregroundStyle(.white.opacity(0.8))
+            .padding(.top, 6)
         }
     }
 
-    // MARK: Bar gradient
+    private func markerX(_ width: CGFloat) -> CGFloat {
+        min(width - 2, max(2, CGFloat(nowFraction) * width))
+    }
 
+    // MARK: Gradient
+
+    // Phase top-colors from the sky palette, placed at the day's real solar
+    // event fractions — never hard-coded positions.
     private var gradientStops: [Gradient.Stop] {
-        guard let t = timeline,
-              let dawn = t.civilDawn?.fraction,
-              let rise = t.sunrise?.fraction,
-              let gAM = t.goldenMorningEnd?.fraction,
-              let noon = t.solarNoon?.fraction,
-              let gPM = t.goldenEveningStart?.fraction,
-              let set = t.sunset?.fraction,
-              let dusk = t.civilDusk?.fraction
-        else {
+        guard let t = timeline else {
             return [
-                .init(color: Self.night, location: 0),
-                .init(color: Self.day, location: 0.5),
-                .init(color: Self.night, location: 1),
+                .init(color: Color(boardHex: 0x070A14), location: 0),
+                .init(color: Color(boardHex: 0x0E7FA8), location: 0.5),
+                .init(color: Color(boardHex: 0x070A14), location: 1),
             ]
         }
 
-        var stops: [Gradient.Stop] = []
-        func add(_ color: Color, _ location: Double) {
-            stops.append(.init(color: color, location: min(1, max(0, location))))
+        var stops: [Gradient.Stop] = [.init(color: Color(boardHex: 0x070A14), location: 0)]
+        func add(_ hex: UInt32, _ event: SunTimeline.Event?) {
+            guard let event else { return }
+            let location = min(1, max(0, event.fraction))
+            if let last = stops.last, location <= last.location { return }
+            stops.append(.init(color: Color(boardHex: hex), location: location))
         }
-        add(Self.night, 0)
-        add(Self.night, dawn)
-        add(Self.twilight, dawn)
-        add(Self.goldenLow, rise)
-        add(Self.goldenHigh, (rise + gAM) / 2)
-        add(Self.day, gAM)
-        add(Self.noon, noon)
-        add(Self.day, gPM)
-        add(Self.goldenHigh, (gPM + set) / 2)
-        add(Self.goldenLow, set)
-        add(Self.twilight, set)
-        add(Self.twilight, dusk)
-        add(Self.night, dusk)
-        add(Self.night, 1)
+        add(0x080C1A, t.astronomicalDawn)
+        add(0x0C1230, t.nauticalDawn)
+        add(0x142046, t.civilDawn)
+        add(0x1B2A52, t.sunrise)
+        add(0x17456B, t.goldenMorningEnd)
+        add(0x0E6E8C, t.morningFull)
+        add(0x0E779A, t.lateMorning)
+        add(0x0E7FA8, t.solarNoon)
+        add(0x0F7294, t.earlyAfternoonEnd)
+        add(0x10657F, t.afternoonStart)
+        add(0x145066, t.goldenEveningStart)
+        add(0x123A52, t.sunset)
+        add(0x0E2840, t.civilDusk)
+        add(0x0A1228, t.nauticalDusk)
+        add(0x080D1C, t.astronomicalDusk)
+        stops.append(.init(color: Color(boardHex: 0x070A14), location: 1))
         return stops
-    }
-
-    // MARK: Marker
-
-    private var markerView: some View {
-        ZStack {
-            Capsule()
-                .fill(.white)
-                .frame(width: 4, height: 34)
-            Circle()
-                .fill(Self.marker)
-                .frame(width: 16, height: 16)
-                .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
-                .offset(y: 25)
-        }
     }
 
     // MARK: Labels
 
-    private struct Labeled { let name: String; let icon: String; let timeText: String; let fraction: Double }
-
-    private var labeledEvents: [Labeled] {
-        guard let t = timeline else { return [] }
-        var out: [Labeled] = []
-        if let e = t.sunrise { out.append(.init(name: "Sunrise", icon: "sunrise.fill", timeText: e.timeText, fraction: e.fraction)) }
-        if let e = t.solarNoon { out.append(.init(name: "Solar noon", icon: "sun.max.fill", timeText: e.timeText, fraction: e.fraction)) }
-        if let e = t.sunset { out.append(.init(name: "Sunset", icon: "sunset.fill", timeText: e.timeText, fraction: e.fraction)) }
-        return out
+    private var sunriseLabel: String {
+        guard let e = timeline?.sunrise else { return "" }
+        return "Sunrise \(e.timeText)"
     }
 
-    private func labelView(_ ev: Labeled) -> some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 6) {
-                Image(systemName: ev.icon)
-                    .font(.system(size: 22))
-                Text(ev.timeText)
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
-            }
-            Text(ev.name)
-                .font(.system(size: 20, weight: .medium))
-                .opacity(0.75)
-        }
-        .foregroundStyle(.white)
-        .fixedSize()
+    private var sunsetLabel: String {
+        guard let e = timeline?.sunset else { return "" }
+        return "Sunset \(e.timeText)"
     }
 
     // MARK: Caption
-
-    private var captionView: some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 10) {
-                Image(systemName: captionIcon)
-                Text(captionText)
-            }
-            .font(.system(size: 32, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white.opacity(0.95))
-
-            if let error = errorMessage {
-                Text(error)
-                    .font(.system(size: 18))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-        }
-    }
 
     private enum Phase { case preDawn, dawn, morningGolden, day, eveningGolden, dusk, night }
 
@@ -214,18 +198,8 @@ struct DayTimelineBar: View {
         return .night
     }
 
-    private var captionIcon: String {
-        switch phase {
-        case .preDawn, .dawn: return "sunrise.fill"
-        case .morningGolden: return "sun.max"
-        case .day: return "sun.max.fill"
-        case .eveningGolden: return "sunset.fill"
-        case .dusk: return "moon.stars"
-        case .night: return "moon.stars.fill"
-        }
-    }
-
-    private var captionText: String {
+    private var caption: String {
+        if isStale { return "Sun data local — unaffected" }
         guard let t = timeline, let rise = t.sunrise, let set = t.sunset else { return "" }
         let f = nowFraction
         switch phase {
@@ -258,8 +232,20 @@ struct DayTimelineBar: View {
         if h > 0 { return "\(h)h" }
         return "\(m)m"
     }
+}
 
-    private func clamp(_ value: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
-        min(max(lo, value), max(lo, hi))
+#Preview {
+    ZStack {
+        Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
+        SunRibbon(timeline: PreviewFixtures.sunTimeline, nowFraction: 0.56, isStale: false)
+            .padding(.horizontal, 60)
+    }
+}
+
+#Preview("Stale") {
+    ZStack {
+        Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
+        SunRibbon(timeline: PreviewFixtures.sunTimeline, nowFraction: 0.56, isStale: true)
+            .padding(.horizontal, 60)
     }
 }

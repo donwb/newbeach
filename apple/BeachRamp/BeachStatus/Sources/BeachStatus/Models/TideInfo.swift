@@ -37,6 +37,12 @@ public struct WaterTempReading: Codable, Identifiable, Sendable {
     public let stationName: String
     public let tempF: Double
 
+    public init(stationID: String, stationName: String, tempF: Double) {
+        self.stationID = stationID
+        self.stationName = stationName
+        self.tempF = tempF
+    }
+
     public var id: String { stationID }
 
     enum CodingKeys: String, CodingKey {

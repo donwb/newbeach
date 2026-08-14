@@ -1,33 +1,42 @@
 import SwiftUI
+import BeachStatus
 
-/// Lean header: the city selector on the left, the clock on the right. The
-/// day's sun rhythm and the ramp tallies live in the timeline bar and the
-/// color-coded tiles, so the header stays out of the way.
+/// Data freshness as the header chip presents it.
+enum Freshness: Equatable {
+    case live
+    case stale(minutes: Int)
+}
+
+/// Header: city selector (left), freshness chip + clock (right).
 struct TopBar: View {
     let city: String
     let time: String
+    let freshness: Freshness
     let onNextCity: () -> Void
 
     @FocusState private var cityFocused: Bool
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .center) {
             Button {
                 onNextCity()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 14) {
                     Text(city)
-                        .font(.system(size: 40, weight: .bold))
+                        .font(.system(size: 38, weight: .bold))
+                        .tracking(38 * -0.01)
                     Image(systemName: "chevron.left.chevron.right")
-                        .font(.title3)
+                        .font(.system(size: 22))
                         .opacity(0.6)
                 }
             }
             .buttonStyle(FlatFocusButtonStyle(
                 isFocused: cityFocused,
-                cornerRadius: 12,
+                cornerRadius: 0,
                 horizontalPadding: 16,
-                verticalPadding: 8
+                verticalPadding: 8,
+                idleFill: 0.10,
+                idleBorder: 0.28
             ))
             .focused($cityFocused)
             // Pull the chip back so its padding doesn't shift the title's left edge.
@@ -35,20 +44,69 @@ struct TopBar: View {
 
             Spacer()
 
-            Text(time)
-                .font(.system(size: 38, weight: .light, design: .rounded))
-                .monospacedDigit()
+            HStack(spacing: 24) {
+                freshnessChip
+                Text(time)
+                    .font(.system(size: 38, weight: .regular))
+                    .monospacedDigit()
+            }
         }
+        .frame(height: 56)
         .foregroundStyle(.white)
+    }
+
+    @ViewBuilder private var freshnessChip: some View {
+        let isStale = freshness != .live
+        HStack(spacing: 12) {
+            Circle()
+                .fill(isStale ? StatusCategory.limited.statusColor : StatusCategory.open.statusColor)
+                .frame(width: 14, height: 14)
+            Text(label)
+                .font(.system(size: 24, weight: .semibold))
+                .tracking(24 * 0.04)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        // Rectangle, not a bare Color: ShapeStyle backgrounds default to
+        // ignoresSafeAreaEdges: .all and smear to the screen edge up here.
+        .background(Rectangle().fill(isStale
+            ? StatusCategory.limited.statusColor.opacity(0.22)
+            : Color.white.opacity(0.10)))
+        .overlay(
+            Rectangle().strokeBorder(
+                isStale ? StatusCategory.limited.statusColor : Color.white.opacity(0.28),
+                lineWidth: 2
+            )
+        )
+    }
+
+    private var label: String {
+        switch freshness {
+        case .live: "Live"
+        case .stale(let minutes): "Stale · \(minutes) min"
+        }
     }
 }
 
-#Preview {
+#Preview("Live") {
     ZStack {
         Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
         VStack {
-            TopBar(city: "New Smyrna Beach", time: "1:30 PM", onNextCity: {})
-                .padding(60)
+            TopBar(city: "New Smyrna Beach", time: "1:30 PM", freshness: .live, onNextCity: {})
+                .padding(.horizontal, 60)
+                .padding(.top, 56)
+            Spacer()
+        }
+    }
+}
+
+#Preview("Stale") {
+    ZStack {
+        Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
+        VStack {
+            TopBar(city: "New Smyrna Beach", time: "1:30 PM", freshness: .stale(minutes: 14), onNextCity: {})
+                .padding(.horizontal, 60)
+                .padding(.top, 56)
             Spacer()
         }
     }
