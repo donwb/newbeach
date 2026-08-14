@@ -10,16 +10,12 @@ extension Color {
     static let tvOcean800 = Color(red: 0.07, green: 0.37, blue: 0.35)
 
     static let tvSand50 = Color(red: 1.0, green: 0.99, blue: 0.95)
-
-    static let tvStatusOpen = Color(red: 0.20, green: 0.90, blue: 0.40)
-    static let tvStatusLimited = Color(red: 0.96, green: 0.62, blue: 0.04)
-    static let tvStatusClosed = Color(red: 0.94, green: 0.27, blue: 0.27)
 }
 
 // MARK: - Time-of-Day Sky
 
 /// One RGB gradient stop, stored as components so palettes can be interpolated
-/// numerically (SwiftUI's `Color.mix` is tvOS 18+, and we target tvOS 17).
+/// numerically without resolving SwiftUI colors.
 private struct SkyStop {
     var r, g, b: Double
     init(_ hex: Int) {
@@ -69,35 +65,61 @@ struct SkyPalette {
 
     // MARK: Named phase palettes
 
-    // The seven moods of the day. Night and noon are shared between the rising
-    // and falling tracks so the rising↔falling flip (which only occurs at the
-    // solar-noon and solar-midnight extremes) is seamless. Dawn and dusk diverge:
-    // mornings run cool and fresh, afternoons warm, sunsets richer than sunrises.
-    private static let night = SkyPalette(      // sun well below the horizon
+    // Sixteen moods of the day: nine on the rising track, seven falling, with
+    // night and noon shared so the rising↔falling flip (which only occurs at
+    // the solar extremes) is seamless. The three twilight steps per side —
+    // astronomical, nautical, civil — are the point: the old model's lowest
+    // anchor was −10°, which collapsed ~90 minutes of twilight into one flat
+    // night. Mornings run cool and fresh, evenings warm and rich.
+    private static let night = SkyPalette(          // sun below −18°
         top: SkyStop(0x070A14), mid: SkyStop(0x101830), bottom: SkyStop(0x1C2A44), dimming: 0.55)
-    private static let sunrise = SkyPalette(    // cool indigo top, warm peach horizon
-        top: SkyStop(0x1B2A52), mid: SkyStop(0x6A5C8E), bottom: SkyStop(0xF2B07A), dimming: 0.85)
-    private static let morning = SkyPalette(    // fresh, clear cool blue
-        top: SkyStop(0x0E6E8C), mid: SkyStop(0x1F9BBF), bottom: SkyStop(0x9CD8E8), dimming: 1.0)
-    private static let noon = SkyPalette(       // brightest, high overhead sun
-        top: SkyStop(0x0E7FA8), mid: SkyStop(0x33B0CC), bottom: SkyStop(0xB2E6F0), dimming: 1.0)
-    private static let afternoon = SkyPalette(  // teal warmed with gold
-        top: SkyStop(0x10657F), mid: SkyStop(0x3F957E), bottom: SkyStop(0xD9BC72), dimming: 0.98)
-    private static let sunset = SkyPalette(     // rich, saturated orange horizon
-        top: SkyStop(0x123A52), mid: SkyStop(0x9A5E50), bottom: SkyStop(0xF08A46), dimming: 0.9)
-    private static let evening = SkyPalette(    // dusky mauve/indigo fading to night
-        top: SkyStop(0x0A1228), mid: SkyStop(0x2E2A52), bottom: SkyStop(0x6E3C58), dimming: 0.72)
 
-    // Anchors keyed by sun altitude (degrees), ordered low → high. The day is
-    // split into a rising track (night → sunrise → morning → noon) and a falling
-    // track (noon → afternoon → sunset → evening → night). We pick the track from
-    // the sun's direction, then linearly interpolate between bracketing anchors so
-    // transitions are continuous rather than snapping between fixed phases.
+    // Rising track
+    private static let astronomicalDawn = SkyPalette(
+        top: SkyStop(0x080C1A), mid: SkyStop(0x141C38), bottom: SkyStop(0x26304E), dimming: 0.58)
+    private static let nauticalDawn = SkyPalette(
+        top: SkyStop(0x0C1230), mid: SkyStop(0x22265A), bottom: SkyStop(0x3E3A6B), dimming: 0.64)
+    private static let civilDawn = SkyPalette(
+        top: SkyStop(0x142046), mid: SkyStop(0x4A4478), bottom: SkyStop(0x8E6A82), dimming: 0.74)
+    private static let sunrise = SkyPalette(        // cool indigo top, warm peach horizon
+        top: SkyStop(0x1B2A52), mid: SkyStop(0x6A5C8E), bottom: SkyStop(0xF2B07A), dimming: 0.85)
+    private static let goldenMorning = SkyPalette(
+        top: SkyStop(0x17456B), mid: SkyStop(0x3E7C9E), bottom: SkyStop(0xF0C48E), dimming: 0.92)
+    private static let morning = SkyPalette(        // fresh, clear cool blue
+        top: SkyStop(0x0E6E8C), mid: SkyStop(0x1F9BBF), bottom: SkyStop(0x9CD8E8), dimming: 1.0)
+    private static let lateMorning = SkyPalette(
+        top: SkyStop(0x0E779A), mid: SkyStop(0x29A6C6), bottom: SkyStop(0xA8DEEC), dimming: 1.0)
+    private static let noon = SkyPalette(           // brightest, high overhead sun
+        top: SkyStop(0x0E7FA8), mid: SkyStop(0x33B0CC), bottom: SkyStop(0xB2E6F0), dimming: 1.0)
+
+    // Falling track
+    private static let astronomicalDusk = SkyPalette(
+        top: SkyStop(0x080D1C), mid: SkyStop(0x1A1C3A), bottom: SkyStop(0x3A2942), dimming: 0.62)
+    private static let nauticalDusk = SkyPalette(
+        top: SkyStop(0x0A1228), mid: SkyStop(0x2E2A52), bottom: SkyStop(0x6E3C58), dimming: 0.72)
+    private static let civilDusk = SkyPalette(
+        top: SkyStop(0x0E2840), mid: SkyStop(0x5E4055), bottom: SkyStop(0xB45C50), dimming: 0.80)
+    private static let sunset = SkyPalette(         // rich, saturated orange horizon
+        top: SkyStop(0x123A52), mid: SkyStop(0x9A5E50), bottom: SkyStop(0xF08A46), dimming: 0.9)
+    private static let goldenEvening = SkyPalette(
+        top: SkyStop(0x145066), mid: SkyStop(0x6F7A66), bottom: SkyStop(0xE8A85E), dimming: 0.94)
+    private static let afternoon = SkyPalette(      // teal warmed with gold
+        top: SkyStop(0x10657F), mid: SkyStop(0x3F957E), bottom: SkyStop(0xD9BC72), dimming: 0.98)
+    private static let earlyAfternoon = SkyPalette(
+        top: SkyStop(0x0F7294), mid: SkyStop(0x39A5A5), bottom: SkyStop(0xC5D6B1), dimming: 0.99)
+
+    // Anchors keyed by sun altitude (degrees), ordered low → high. We pick the
+    // track from the sun's direction, then linearly interpolate between
+    // bracketing anchors so transitions are continuous rather than snapping.
+    // Twilight anchors sit at the standard solar angles: −18° astronomical,
+    // −13/−9/−5 between, −0.8° at the visible sunrise/sunset.
     private static let risingAnchors: [(altitude: Double, palette: SkyPalette)] = [
-        (-10, night), (-2, sunrise), (22, morning), (45, noon),
+        (-18, night), (-13, astronomicalDawn), (-9, nauticalDawn), (-5, civilDawn),
+        (-0.8, sunrise), (6, goldenMorning), (20, morning), (34, lateMorning), (48, noon),
     ]
     private static let fallingAnchors: [(altitude: Double, palette: SkyPalette)] = [
-        (-10, night), (-6, evening), (-1, sunset), (22, afternoon), (45, noon),
+        (-18, night), (-13, astronomicalDusk), (-9, nauticalDusk), (-5, civilDusk),
+        (-0.8, sunset), (6, goldenEvening), (20, afternoon), (34, earlyAfternoon), (48, noon),
     ]
 
     /// Build the palette for a given sun altitude (degrees) and direction.
@@ -129,13 +151,9 @@ struct SkyPalette {
 }
 
 extension StatusCategory {
-    var tvColor: Color {
-        switch self {
-        case .open: return .tvStatusOpen
-        case .limited: return .tvStatusLimited
-        case .closed: return .tvStatusClosed
-        }
-    }
+    /// Canonical status color from the shared package (open #2AE07A,
+    /// limited #F5A214, closed #E63A2B).
+    var tvColor: Color { statusColor }
 
     var tvLabel: String {
         switch self {
