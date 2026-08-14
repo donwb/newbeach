@@ -78,6 +78,26 @@ final class TVViewModel {
     var tideChart: TideChartData?
     var weather: WeatherInfo?
     var config: AppConfig?
+    /// Recent ramp status changes, newest first (unfiltered server feed).
+    var activity: [ActivityEntry] = []
+
+    // MARK: - Freshness
+
+    /// When the safety-critical ramps feed last loaded successfully. Tide,
+    /// weather, and camera failures degrade their own tiles only; this stamp
+    /// is what the freshness chip and stale treatment speak for.
+    var lastSuccessfulRefresh: Date?
+
+    /// Age of the ramp data, or nil before the first successful load.
+    /// Recomputed whenever the board re-renders (the 30-second clock tick).
+    var dataAge: TimeInterval? {
+        lastSuccessfulRefresh.map { Date().timeIntervalSince($0) }
+    }
+
+    /// Stale after two missed 60-second refresh cycles.
+    var isStale: Bool {
+        (dataAge ?? 0) > VerdictBuilder.staleThreshold
+    }
 
     // MARK: - Cameras
     /// Live camera roster (south-to-north), backing the cam switcher strip.
@@ -138,20 +158,20 @@ final class TVViewModel {
     }
 
     // MARK: - Ramp Display Order
-    // Preferred display order for NSB ramps. Ramps not listed sort to the end alphabetically.
-    private static let nsbRampOrder = ["beachway av", "crawford rd", "3rd av", "flagler av", "27th av"]
+    // Explicit per-city display order (design spec: the tiles are numbered, so
+    // ordering must read as deliberate). Cities not listed keep roster order.
+    private static let rampOrder: [String: [String]] = [
+        "New Smyrna Beach": ["beachway av", "crawford rd", "flagler av", "3rd av", "27th av"],
+    ]
 
     var displayedRamps: [Ramp] {
-        ramps
-            .filter { $0.cityDisplay == currentCity }
-            .sorted { a, b in
-                let aName = a.rampName.lowercased()
-                let bName = b.rampName.lowercased()
-                let aIdx = Self.nsbRampOrder.firstIndex(of: aName) ?? Int.max
-                let bIdx = Self.nsbRampOrder.firstIndex(of: bName) ?? Int.max
-                if aIdx != bIdx { return aIdx < bIdx }
-                return aName < bName
-            }
+        let cityRamps = ramps.filter { $0.cityDisplay == currentCity }
+        guard let order = Self.rampOrder[currentCity] else { return cityRamps }
+        return cityRamps.enumerated().sorted { a, b in
+            let aIdx = order.firstIndex(of: a.element.rampName.lowercased()) ?? order.count + a.offset
+            let bIdx = order.firstIndex(of: b.element.rampName.lowercased()) ?? order.count + b.offset
+            return aIdx < bIdx
+        }.map(\.element)
     }
 
     var allRamps: [Ramp] { ramps }
@@ -163,6 +183,33 @@ final class TVViewModel {
     var openCount: Int { displayedRamps.filter { $0.category == .open }.count }
     var limitedCount: Int { displayedRamps.filter { $0.category == .limited }.count }
     var closedCount: Int { displayedRamps.filter { $0.category == .closed }.count }
+
+    /// The board's one-line answer, regenerated on every render from held data.
+    var verdict: Verdict {
+        VerdictBuilder.build(
+            ramps: displayedRamps,
+            tide: tideInfo,
+            sunset: SolarCalculator.newSmyrnaBeach.events(on: Date(), calendar: Self.easternCalendar).sunset,
+            now: Date(),
+            dataAge: dataAge
+        )
+    }
+
+    /// Today's status changes for the current city, newest first — the
+    /// Recent-changes overlay. The server feed is global; filter here exactly
+    /// as the TRMNL handler does in Go.
+    var todaysActivity: [ActivityEntry] {
+        activity.filter { entry in
+            entry.city?.titleCased == currentCity
+                && Self.easternCalendar.isDate(entry.recordedAt, inSameDayAs: Date())
+        }
+    }
+
+    private static let easternCalendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "America/New_York")!
+        return cal
+    }()
 
     var currentTime: String {
         let formatter = DateFormatter()
@@ -185,6 +232,7 @@ final class TVViewModel {
             group.addTask { await self.loadWeather() }
             group.addTask { await self.loadConfig() }
             group.addTask { await self.loadCameras() }
+            group.addTask { await self.loadActivity() }
         }
 
         // Default city on first load
@@ -247,8 +295,20 @@ final class TVViewModel {
 
     @MainActor
     private func loadRamps() async {
-        do { ramps = try await api.fetchRamps() }
-        catch { errorMessage = "Failed to load ramps" }
+        do {
+            ramps = try await api.fetchRamps()
+            lastSuccessfulRefresh = Date()
+        } catch {
+            // Keep last-good data — the board renders it muted with the
+            // freshness chip and "Last known:" verdict once stale.
+            errorMessage = "Failed to load ramps"
+        }
+    }
+
+    @MainActor
+    private func loadActivity() async {
+        do { activity = try await api.fetchActivity(limit: 100) }
+        catch { /* non-critical — the overlay just shows what it has */ }
     }
 
     @MainActor
