@@ -120,6 +120,8 @@ struct TideDetailOverlay: View {
     }
 }
 
+#if DEBUG
 #Preview {
     TideDetailOverlay(tide: PreviewFixtures.tide, stationID: "8721147", onClose: {})
 }
+#endif

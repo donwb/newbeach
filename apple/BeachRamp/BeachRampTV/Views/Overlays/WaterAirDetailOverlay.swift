@@ -110,6 +110,8 @@ struct WaterAirDetailOverlay: View {
     }
 }
 
+#if DEBUG
 #Preview {
     WaterAirDetailOverlay(tide: PreviewFixtures.tide, weather: PreviewFixtures.weather, onClose: {})
 }
+#endif

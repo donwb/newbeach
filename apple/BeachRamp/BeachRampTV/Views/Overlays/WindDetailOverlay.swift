@@ -122,6 +122,8 @@ struct WindDetailOverlay: View {
     }
 }
 
+#if DEBUG
 #Preview {
     WindDetailOverlay(weather: PreviewFixtures.weather, onClose: {})
 }
+#endif

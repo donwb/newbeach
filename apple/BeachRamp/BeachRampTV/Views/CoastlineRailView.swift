@@ -110,6 +110,7 @@ private struct CoastPin: View {
     }
 }
 
+#if DEBUG
 #Preview {
     @Previewable @FocusState var focused: String?
     ZStack {
@@ -127,3 +128,4 @@ private struct CoastPin: View {
         }
     }
 }
+#endif

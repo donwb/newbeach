@@ -234,6 +234,7 @@ struct SunRibbon: View {
     }
 }
 
+#if DEBUG
 #Preview {
     ZStack {
         Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
@@ -249,3 +250,4 @@ struct SunRibbon: View {
             .padding(.horizontal, 60)
     }
 }
+#endif

@@ -58,6 +58,7 @@ struct ActivityOverlay: View {
     }
 }
 
+#if DEBUG
 #Preview {
     ActivityOverlay(city: "New Smyrna Beach", entries: PreviewFixtures.activity, onClose: {})
 }
@@ -65,3 +66,4 @@ struct ActivityOverlay: View {
 #Preview("Empty") {
     ActivityOverlay(city: "New Smyrna Beach", entries: [], onClose: {})
 }
+#endif
