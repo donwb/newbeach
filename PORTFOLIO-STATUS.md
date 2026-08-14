@@ -14,7 +14,7 @@ app_review_state: |
   tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-14
+last_verified: 2026-08-14 (evening: cam-relay droplet built, awaiting cutover)
 ---
 
 ## Top open items
@@ -32,9 +32,14 @@ last_verified: 2026-08-14
    "six screens" is now seven. INTAKE §5 (V3, V8).
 
 ## Blockers & risks
-- Beach cams depend on a cron on Don's home Mac Studio (residential IP) resolving YouTube
-  HLS URLs via yt-dlp + jq — the cloud cannot refresh its own streams; single point of
-  failure. scripts/update-stream-url.sh.
+- Beach cams broke in Aug 2026: YouTube IP-locked its HLS URLs, so the resolve-at-home
+  URL-push model shows black video on every platform. Fix is built (2026-08-14): a
+  MediaMTX relay droplet + home restreamer (scripts/cam-restreamer.sh); NOT yet live —
+  Don must install the launchd job on the Mac Studio and flip roster URLs (admin key).
+- Beach cams still depend on a home machine (residential IP) — now as the stream
+  publisher rather than URL resolver; still a single point of failure.
+- Ormond Beach cam offline upstream — its YouTube video ID no longer exists; roster
+  youtube_url needs updating when the county restarts the broadcast.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
   (fixed in ff3a353 + migration 006); could recur.
 - App Store state unknown from the repo — blocks any "live on iOS" claim (INTAKE §5 V6).

@@ -73,6 +73,14 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - No color — design for e-ink (high contrast; grays are fine on the X for secondary text and fills, never for small thin type)
 - This is an active platform — expect frequent iteration
 
+## Beach Cam Relay
+
+- **Why it exists:** In August 2026 YouTube's googlevideo HLS URLs became IP-locked and client-checked — manifests still load from any IP, but media segment fetches 403 for everyone except the resolving host, so the old model (home cron resolves URLs via yt-dlp, viewers play them directly) shows a black player on every platform.
+- **Architecture:** the home Mac runs `scripts/cam-restreamer.sh` (launchd job `scripts/com.donwb.cam-restreamer.plist`): per roster camera, yt-dlp (mweb player client — its URLs sustain; the default web client's cut off after the ~40s DVR window) downloads the live stream and pipes to ffmpeg, which remuxes (`-c copy`, no transcode) and publishes over authenticated RTMP to the relay droplet.
+- **Relay:** DigitalOcean droplet `beach-cam-relay` (68.183.149.152, nyc3, $6/mo) running MediaMTX — RTMP ingest on :1935 (publisher password), HLS out through Caddy auto-TLS. Config at `/opt/mediamtx/mediamtx.yml`; systemd services `mediamtx` and `caddy`; HLS variant is classic mpegts for maximum hls.js/AVPlayer compatibility.
+- **Stable URLs:** each camera serves at `https://<relay-host>/<camera-id>/index.m3u8` — stream URLs no longer rotate, so the roster's `stream_url` values are effectively permanent.
+- **Retired:** `scripts/update-stream-url.sh` (the URL-push cron). Remove its crontab entry wherever the restreamer gets installed.
+
 ## Tidbyt (Retired)
 
 - The Tidbyt device was powered off in August 2026 and its Pixlet script was never checked into this repo

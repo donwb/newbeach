@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd job for the beach-cam restreamer (scripts/cam-restreamer.sh).
+
+  Install on the home Mac (residential IP required — YouTube blocks datacenter IPs):
+    1. Copy cam-restreamer.sh somewhere stable, e.g. ~/bin/cam-restreamer.sh,
+       and edit ProgramArguments below to match.
+    2. Create ~/.cam-restreamer.env with API_KEY, RELAY_HOST, RELAY_PUB_PASS
+       (and API_BASE if not using the default).
+    3. cp this file ~/Library/LaunchAgents/com.donwb.cam-restreamer.plist
+    4. launchctl load ~/Library/LaunchAgents/com.donwb.cam-restreamer.plist
+
+  Logs: ~/Library/Logs/cam-restreamer/ (per-camera) and supervisor.log.
+  This REPLACES the old update-stream-url.sh cron — remove that crontab entry.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.donwb.cam-restreamer</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/donwb/bin/cam-restreamer.sh</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/cam-restreamer.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/cam-restreamer.launchd.log</string>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+</dict>
+</plist>
