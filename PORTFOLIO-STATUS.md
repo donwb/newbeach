@@ -14,21 +14,28 @@ app_review_state: |
   tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-14 (cam relay cutover complete; all live cams verified through relay)
+last_verified: 2026-08-14 (tvOS board redesign implemented + verified in simulator; cam relay live)
 ---
 
 ## Top open items
-1. Web multi-camera switcher — backend roster (5 cams, /api/v2/cameras) and iOS/tvOS
+1. Carry the 2026-08 design language to iPadOS → iPhone → web (agreed sequence; tvOS
+   shipped first and named the tokens). Includes migrating iOS AppTheme + WatchTheme to
+   the BeachStatus StatusColors (#2AE07A/#F5A214/#E63A2B) and retiring the old
+   statusOpen/#10B981 family. Handoff spec: "August design_handoff_tvos_board/README.md".
+2. Verify tvOS Menu-button flow on the physical Apple TV — overlays verified by simulator
+   screenshot; the Menu open/close cycle (board → Recent changes, overlay → close) uses
+   onExitCommand and needs one manual pass with the real remote.
+3. Web multi-camera switcher — backend roster (5 cams, /api/v2/cameras) and iOS/tvOS
    switchers shipped; website still plays the single default stream. INTAKE §6.
-2. Finish domain move to beach.donwb.com — Apple apps, TRMNL plugins, CI, and the
+4. Finish domain move to beach.donwb.com — Apple apps, TRMNL plugins, CI, and the
    camera-refresh cron are still pinned to the DigitalOcean hostname. CLAUDE.md; commit 4e4cc13.
-3. Establish/verify App Store presence — bundle IDs exist but nothing proves a listing;
+5. Establish/verify App Store presence — bundle IDs exist but nothing proves a listing;
    all Apple distribution state is unverified. INTAKE frontmatter.
-4. Historical analytics dashboard — ramp_status_history has been collecting since March,
+6. Historical analytics dashboard — ramp_status_history has been collecting since March,
    but the trends UI (web + iOS) was in-scope and never built. REQUIREMENTS.md §16.1.
-5. Refresh marketing screenshots — slides/screenshots/ are from March 2026, predating the
-   multi-camera switcher. INTAKE §8.
-6. Site-copy fixes from the claim audit — "Beville" ramp doesn't exist in the live feed;
+7. Refresh marketing screenshots — slides/screenshots/ are from March 2026, predating the
+   multi-camera switcher and the tvOS redesign. INTAKE §8.
+8. Site-copy fixes from the claim audit — "Beville" ramp doesn't exist in the live feed;
    "six screens" is now seven. INTAKE §5 (V3, V8).
 
 ## Blockers & risks
@@ -45,6 +52,14 @@ last_verified: 2026-08-14 (cam relay cutover complete; all live cams verified th
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-14: tvOS ambient-board redesign (from "August design_handoff_tvos_board/"):
+  verdict band answering "can I get on?" in one line, status carried by solid tile
+  fields instead of tinted text, 16 sun phases (three twilights each side), designed
+  stale/cam-offline states, three focusable stat tiles opening tide/water-air/wind
+  detail overlays, Recent Activity behind Menu. Server: /api/v2/ramps now carries
+  status_since; tide extremes carry heights. Shared: VerdictBuilder/SinceFormatter/
+  TideCurve/StatusColors in BeachStatus with 36 tests. All 12 board states verified
+  against the design contact sheets in the tvOS simulator.
 - 2026-08-14: Beach-cam relay architecture — diagnosed YouTube's new IP-locked HLS
   enforcement (black players everywhere), built a MediaMTX relay droplet + home
   restreamer, cut all camera URLs over to stable relay HLS. Verified on all platforms'

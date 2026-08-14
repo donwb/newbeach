@@ -45,11 +45,21 @@ struct ContentView: View {
 
     private var palette: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
 
+    #if DEBUG
+    /// QA hooks (simulator screenshot verification, DEBUG only):
+    /// --overlay-* opens an overlay directly; --sky-minutes N renders the
+    /// board at that wall-clock minute (0–1439), mirroring the design mock's
+    /// timeMinutes scrub; --simulate-stale backdates the last refresh.
+    private static let launchArgs = ProcessInfo.processInfo.arguments
+    private static let skyMinutesOverride: Int? = launchArgs
+        .firstIndex(of: "--sky-minutes")
+        .flatMap { idx in launchArgs.indices.contains(idx + 1) ? Int(launchArgs[idx + 1]) : nil }
+    private static let simulateStale = launchArgs.contains("--simulate-stale")
+    #endif
+
     init() {
         #if DEBUG
-        // QA hooks: launch with --overlay-tide/-temp/-wind/-activity to open
-        // an overlay directly (simulator screenshot verification).
-        let args = ProcessInfo.processInfo.arguments
+        let args = Self.launchArgs
         if args.contains("--overlay-tide") { _detailPanel = State(initialValue: .tide) }
         if args.contains("--overlay-temp") { _detailPanel = State(initialValue: .temp) }
         if args.contains("--overlay-wind") { _detailPanel = State(initialValue: .wind) }
@@ -92,6 +102,12 @@ struct ContentView: View {
             await viewModel.loadAll()
             viewModel.startAutoRefresh()
             startClock()
+            #if DEBUG
+            if Self.simulateStale {
+                viewModel.stopAutoRefresh()
+                viewModel.lastSuccessfulRefresh = Date().addingTimeInterval(-14 * 60)
+            }
+            #endif
         }
         .onChange(of: focusedCamera) { _, id in
             // Channel-flip feel: moving focus across the rail switches the
@@ -277,8 +293,13 @@ struct ContentView: View {
     /// advances the ribbon's "now" marker, and rebuilds the day's sun timeline
     /// when the calendar day rolls over.
     private func tick() {
-        let now = Date()
+        var now = Date()
         let calendar = Self.easternCalendar
+        #if DEBUG
+        if let minutes = Self.skyMinutesOverride {
+            now = calendar.startOfDay(for: now).addingTimeInterval(TimeInterval(minutes * 60))
+        }
+        #endif
 
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
