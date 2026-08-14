@@ -126,3 +126,10 @@ When working as part of an agent team on this project:
 - **v1 endpoints are legacy** — the Tidbyt device that required exact JSON compatibility was retired in August 2026; keep v1 stable by default but it is no longer frozen
 - **Coordinate on shared types** — if you're defining Go structs or Swift models that others will use, message the team before finalizing the shape
 - **Test your work** — write tests as you go, don't leave them for later
+
+## Portfolio Status
+
+**Portfolio status:** At the end of any session that changes status-relevant facts —
+version/build, App Review state, punch-list items, target dates, blockers — update
+`PORTFOLIO-STATUS.md` to match and bump its `last_verified` date. The portfolio control
+tower in `~/atc` reads this file; a stale one is worse than none.
