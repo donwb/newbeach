@@ -227,7 +227,7 @@ public enum VerdictBuilder {
     }
 
     /// "5h 41m" / "5h" / "41m"
-    static func durationText(_ interval: TimeInterval) -> String {
+    public static func durationText(_ interval: TimeInterval) -> String {
         let totalMinutes = Int(interval / 60)
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60

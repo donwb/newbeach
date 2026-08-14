@@ -26,6 +26,10 @@ struct ContentView: View {
     @State private var nowFraction: Double = 0
     @State private var solarDay: Date?
     @State private var timeTimer: Timer?
+    /// Which stat detail overlay is open.
+    @State private var detailPanel: DetailPanel = .none
+    /// The Recent-changes overlay (Menu from the board).
+    @State private var showActivity = false
 
     private let solar = SolarCalculator.newSmyrnaBeach
 
@@ -41,6 +45,18 @@ struct ContentView: View {
 
     private var palette: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
 
+    init() {
+        #if DEBUG
+        // QA hooks: launch with --overlay-tide/-temp/-wind/-activity to open
+        // an overlay directly (simulator screenshot verification).
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--overlay-tide") { _detailPanel = State(initialValue: .tide) }
+        if args.contains("--overlay-temp") { _detailPanel = State(initialValue: .temp) }
+        if args.contains("--overlay-wind") { _detailPanel = State(initialValue: .wind) }
+        if args.contains("--overlay-activity") { _showActivity = State(initialValue: true) }
+        #endif
+    }
+
     var body: some View {
         ZStack {
             palette.gradient
@@ -55,12 +71,23 @@ struct ContentView: View {
             }
 
             // Night dimming scrim — darkens the whole board after sunset.
+            // Overlays render above it: they are opaque designed fields, not
+            // part of the sky.
             Color.black
                 .opacity(palette.dimOverlayOpacity)
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
+
+            overlayLayer
         }
         .animation(.easeInOut(duration: 2.0), value: sunAltitude)
+        .onExitCommand {
+            // Menu on the board opens Recent changes (an open overlay's own
+            // handler wins while it has focus). Home still exits the app.
+            if detailPanel == .none && !showActivity {
+                showActivity = true
+            }
+        }
         .task {
             await viewModel.loadAll()
             viewModel.startAutoRefresh()
@@ -71,6 +98,40 @@ struct ContentView: View {
             // active stream live. selectCamera is a no-op when the id is
             // unchanged or the camera's URL isn't resolved yet.
             if let id { viewModel.selectCamera(id) }
+        }
+    }
+
+    // MARK: - Overlays
+
+    @ViewBuilder private var overlayLayer: some View {
+        if showActivity {
+            ActivityOverlay(
+                city: viewModel.currentCity,
+                entries: viewModel.todaysActivity,
+                onClose: { showActivity = false }
+            )
+        } else {
+            switch detailPanel {
+            case .none:
+                EmptyView()
+            case .tide:
+                TideDetailOverlay(
+                    tide: viewModel.tideInfo,
+                    stationID: viewModel.config?.tideStation ?? "8721147",
+                    onClose: { detailPanel = .none }
+                )
+            case .temp:
+                WaterAirDetailOverlay(
+                    tide: viewModel.tideInfo,
+                    weather: viewModel.weather,
+                    onClose: { detailPanel = .none }
+                )
+            case .wind:
+                WindDetailOverlay(
+                    weather: viewModel.weather,
+                    onClose: { detailPanel = .none }
+                )
+            }
         }
     }
 
@@ -88,7 +149,7 @@ struct ContentView: View {
             VerdictBand(
                 verdict: viewModel.verdict,
                 stats: statTiles,
-                onSelect: { _ in /* detail overlays arrive with the overlay stage */ }
+                onSelect: { detailPanel = $0 }
             )
             .padding(.top, 22)
 
