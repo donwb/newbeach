@@ -91,6 +91,12 @@ public actor APIClient {
         try await get("/api/v2/cameras")
     }
 
+    /// Fetch recent ramp status changes, newest first. The server caps
+    /// `limit` at 200 and does not filter by city or date — callers filter.
+    public func fetchActivity(limit: Int = 50) async throws -> [ActivityEntry] {
+        try await get("/api/v2/activity", query: [URLQueryItem(name: "limit", value: String(limit))])
+    }
+
     /// Ask the server to re-resolve the YouTube live HLS URL. Called by the
     /// tvOS player when playback fails (the cached URL has rotated). The
     /// server coalesces concurrent calls and applies a cooldown.
@@ -108,16 +114,21 @@ public actor APIClient {
 
     // MARK: - Private
 
-    private func get<T: Decodable>(_ path: String) async throws -> T {
-        try await send(path: path, method: "GET")
+    private func get<T: Decodable>(_ path: String, query: [URLQueryItem]? = nil) async throws -> T {
+        try await send(path: path, method: "GET", query: query)
     }
 
     private func post<T: Decodable>(_ path: String) async throws -> T {
         try await send(path: path, method: "POST")
     }
 
-    private func send<T: Decodable>(path: String, method: String) async throws -> T {
-        let url = baseURL.appendingPathComponent(path)
+    private func send<T: Decodable>(path: String, method: String, query: [URLQueryItem]? = nil) async throws -> T {
+        var url = baseURL.appendingPathComponent(path)
+        if let query, !query.isEmpty,
+           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.queryItems = query
+            url = components.url ?? url
+        }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")

@@ -8,6 +8,16 @@ public struct TideInfo: Codable, Sendable {
     public let waterTemps: [WaterTempReading]?
     public let predictions: [TidePrediction]?
 
+    public init(tideDirection: String, tidePercentage: Int,
+                waterTempAvg: Double? = nil, waterTemps: [WaterTempReading]? = nil,
+                predictions: [TidePrediction]? = nil) {
+        self.tideDirection = tideDirection
+        self.tidePercentage = tidePercentage
+        self.waterTempAvg = waterTempAvg
+        self.waterTemps = waterTemps
+        self.predictions = predictions
+    }
+
     enum CodingKeys: String, CodingKey {
         case tideDirection = "tide_direction"
         case tidePercentage = "tide_percentage"
@@ -39,6 +49,14 @@ public struct WaterTempReading: Codable, Identifiable, Sendable {
 public struct TidePrediction: Codable, Identifiable, Sendable {
     public let time: Date
     public let type: String
+    /// Predicted water level in feet (MLLW). Nil on older server responses.
+    public let height: Double?
+
+    public init(time: Date, type: String, height: Double? = nil) {
+        self.time = time
+        self.type = type
+        self.height = height
+    }
 
     public var id: Date { time }
 
@@ -50,6 +68,14 @@ public struct TidePrediction: Codable, Identifiable, Sendable {
     /// Formatted time string.
     public var timeDisplay: String {
         time.formatted(date: .omitted, time: .shortened)
+    }
+
+    /// Height formatted for display, e.g. "−0.1 ft" / "2.8 ft".
+    public var heightDisplay: String? {
+        guard let height else { return nil }
+        let rounded = (height * 10).rounded() / 10
+        let text = String(format: "%.1f ft", abs(rounded))
+        return rounded < 0 ? "−\(text)" : text
     }
 }
 
