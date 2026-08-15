@@ -7,7 +7,7 @@ lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
   Web+API: live at https://beach.donwb.com (verified 2026-08-12, INTAKE dossier).
-  Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads to TestFlight. Two App Store Connect records existed ("Beach Ramp Status" tvOS, "Beach Ramp iOS App" iOS), both in Prepare for Submission; consolidating onto the tvOS record (Apple ID 6761724123) at bundle ID com.donwb.BeachRampTV — its ID is frozen by a prior build, so the project moved to it. ASC-side surgery pending (Don).
+  Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (16) uploaded 2026-08-15. The stale "Beach Ramp iOS App" record still needs deleting.
   TRMNL: two private plugin templates in trmnl/, active devices.
 app_review_state: |
   iOS: Prepare for Submission, never submitted. Build 1.0 (16) uploaded to TestFlight 2026-08-15 — first iOS build ever to reach the record. Old "Beach Ramp iOS App" record still to be deleted.
@@ -15,7 +15,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight: iOS and tvOS both uploaded as 1.0 (16) to the one com.donwb.BeachRampTV record. Deployment floors iOS 18/tvOS 18/watchOS 11, Version.xcconfig, shared schemes, flight automation all verified. Remaining ASC work: delete the old "Beach Ramp iOS App" record.)
+last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight as 1.0 (16) to the one com.donwb.BeachRampTV record; repo repointed to beach.donwb.com and verified against live endpoints with both apps rebuilt and run in simulator; design handoff boards committed. Remaining: delete the stale "Beach Ramp iOS App" ASC record, update TRMNL plugin polling URLs, restart the cam restreamer.)
 ---
 
 ## Top open items
@@ -44,14 +44,19 @@ last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight: iO
    is still wanted before calling it done.
 3. Web multi-camera switcher — backend roster (5 cams, /api/v2/cameras) and iOS/tvOS
    switchers shipped; website still plays the single default stream. INTAKE §6.
-4. Finish domain move to beach.donwb.com — Apple apps, TRMNL plugins, CI, and the
-   camera-refresh cron are still pinned to the DigitalOcean hostname. CLAUDE.md; commit 4e4cc13.
-5. Consolidate the App Store Connect records — repo side is done (one bundle ID
-   com.donwb.BeachRampTV for iOS + tvOS, flight automation, shared schemes). Remaining is
-   Don's ASC/portal work: delete "Beach Ramp iOS App", add the iOS platform to
-   "Beach Ramp Status", delete the orphaned App IDs (BeachRampiOS, BeachRamp,
-   BeachRampWatch*). No bundle-ID edit is needed — the project moved to the record.
-   Then the first real `make flight`.
+4. Finish domain move to beach.donwb.com — repo side done 2026-08-15 (commit c5eb5b9):
+   Apple apps, CI health check, cam restreamer, and TRMNL template docs all repointed,
+   verified against live endpoints. Two things remain OUTSIDE the repo: (a) the TRMNL
+   polling URLs live in the TRMNL plugin settings, not trmnl/*.html, so both devices still
+   fetch the old hostname until Don edits the plugin config; (b) scripts/cam-restreamer.sh
+   reads API_BASE from ~/.cam-restreamer.env first, so the running launchd job needs an env
+   check + restart. Also: TestFlight build 16 predates the change and still ships the old
+   hostname — needs a re-flight.
+5. Consolidate the App Store Connect records — repo side done and both platforms flighted
+   as 1.0 (16) to the one com.donwb.BeachRampTV record (Apple ID 6761724123). Remaining:
+   delete the stale "Beach Ramp iOS App" record in ASC, then the three orphaned App IDs
+   (com.donwb.BeachRamp, .BeachRampiOS, and its watchkitapp) will finally delete — they
+   refuse while that record still holds them. Cleanup only; nothing is blocked on it.
 6. Historical analytics dashboard — ramp_status_history has been collecting since March,
    but the trends UI (web + iOS) was in-scope and never built. REQUIREMENTS.md §16.1.
 7. Refresh marketing screenshots — slides/screenshots/ are from March 2026, predating the
@@ -75,13 +80,23 @@ last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight: iO
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
   (fixed in ff3a353 + migration 006); could recur.
 - Neither Apple app has ever been submitted — no "live on iOS/tvOS" claim is available yet.
-- The tvOS record's bundle ID is frozen (a build reached it), so com.donwb.BeachRampTV is
-  permanent for every platform including iOS and watch. Accepted deliberately on 2026-08-15:
-  the alternative was deleting and recreating both records, which would have risked the
-  reserved name "Beach Ramp Status" to fix a purely cosmetic identifier.
+- The tvOS record's bundle ID is frozen at com.donwb.BeachRampTV, so that identifier is
+  permanent for every platform including iOS and watch. Confirmed 2026-08-15 by the upload
+  itself: ASC rejected build 2 with "bundle version must be higher than the previously
+  uploaded version: 15", proving real history behind the freeze. Accepted deliberately —
+  the alternative was deleting and recreating both records, risking the reserved name
+  "Beach Ramp Status" to fix a purely cosmetic identifier that users never see.
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-15 (latest): Apple release plumbing — unified iOS+tvOS on one App Store Connect
+  record and one bundle ID (com.donwb.BeachRampTV), Config/Version.xcconfig as the single
+  source of truth for version/build/display name/export-compliance, deployment floors
+  corrected from Xcode's 26.2/26.5 defaults to iOS 18/tvOS 18/watchOS 11, committed shared
+  schemes, watchOS excluded from the 1.0 archive, and `make flight` (apple/scripts/flight.sh,
+  ported from bkmks) archiving + uploading both platforms. First dual flight: 1.0 (16).
+  Also repointed everything at beach.donwb.com and committed the previously untracked design
+  handoff boards. Commits b4b0a06, b213c0c, 0f1d248, c5eb5b9, 91cb27a.
 - 2026-08-15 (later): Height-based reopen prediction — a rising-tide closure's reopen
   estimate is now the falling curve's return to the closure-time tide height
   (bisected on the cosine curve; next-low+90m stays as the falling-side fallback),
