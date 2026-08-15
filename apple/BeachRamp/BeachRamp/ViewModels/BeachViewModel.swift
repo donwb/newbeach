@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import WidgetKit
 import BeachStatus
 
 /// Main view model that drives all data for the Beach Ramp Status app.
@@ -12,15 +13,29 @@ final class BeachViewModel {
     var tideChart: TideChartData?
     var weather: WeatherInfo?
     var config: AppConfig?
+    var health: HealthStatus?
 
     var isLoading = false
-    var errorMessage: String?
 
-    /// Current city filter — nil means "All".
+    /// Current city filter — defaults to the config default after first load.
     var selectedCity: String?
 
     /// Current status filter — nil means "All".
     var selectedStatus: StatusCategory?
+
+    /// Favorited ramp access ids, shared with the widgets via the App Group.
+    var favorites: Set<String> = BeachViewModel.loadFavorites()
+
+    /// Whether the landscape live-cam view is presented (iPhone).
+    var camPresented = false
+
+    /// When ramps last loaded successfully. Feeds the stale state alongside
+    /// the server's own feed timestamp.
+    private(set) var lastSuccessfulRefresh: Date?
+
+    /// QA hook (`--simulate-stale`): backdates the data so the stale board
+    /// state can be reviewed without unplugging the ingester.
+    private static let simulateStale = ProcessInfo.processInfo.arguments.contains("--simulate-stale")
 
     // MARK: - Computed
 
@@ -29,13 +44,13 @@ final class BeachViewModel {
         Array(Set(ramps.map(\.cityDisplay))).sorted()
     }
 
-    /// Ramps in the selected city, ignoring the status filter. This is the basis
-    /// for the status counts so the summary reflects the chosen city, not every city.
+    /// Ramps in the selected city in board order, ignoring the status filter.
+    /// Basis for the filter counts so they reflect the chosen city.
     var cityRamps: [Ramp] {
-        ramps.filter { selectedCity == nil || $0.cityDisplay == selectedCity }
+        ramps.filter { selectedCity == nil || $0.cityDisplay == selectedCity }.boardOrdered()
     }
 
-    /// Ramps filtered by current city and status selection.
+    /// Ramps filtered by current city and status selection, in board order.
     var filteredRamps: [Ramp] {
         cityRamps.filter { selectedStatus == nil || $0.category == selectedStatus }
     }
@@ -45,13 +60,66 @@ final class BeachViewModel {
     var limitedCount: Int { cityRamps.filter { $0.category == .limited }.count }
     var closedCount: Int { cityRamps.filter { $0.category == .closed }.count }
 
-    /// Water temperature display.
-    var waterTempDisplay: String? {
-        guard let avg = tideInfo?.waterTempAvg else { return nil }
-        return "\(Int(avg))°F"
+    /// Age of the board data: the older of "since we last fetched" and the
+    /// server's own GIS-poll timestamp, so a dead ingester behind a healthy
+    /// API still reads stale.
+    func dataAge(now: Date = Date()) -> TimeInterval? {
+        if Self.simulateStale { return 45 * 60 }
+        var ages: [TimeInterval] = []
+        if let lastSuccessfulRefresh {
+            ages.append(now.timeIntervalSince(lastSuccessfulRefresh))
+        }
+        if let poll = health?.ingester?.lastPollAt {
+            ages.append(now.timeIntervalSince(poll))
+        }
+        return ages.max()
     }
 
-    // MARK: - Beach Cam Video (iPad only)
+    /// Whether the board should render the stale state.
+    var isStale: Bool {
+        (dataAge() ?? 0) > VerdictBuilder.staleThreshold
+    }
+
+    /// The board's one-line answer, built from the selected city's ramps.
+    func verdict(now: Date = Date()) -> Verdict {
+        let sunset = SolarCalculator.newSmyrnaBeach.events(on: now).sunset
+        return VerdictBuilder.build(
+            ramps: cityRamps,
+            tide: tideInfo,
+            sunset: sunset,
+            now: now,
+            dataAge: dataAge(now: now)
+        )
+    }
+
+    // MARK: - Favorites
+
+    func isFavorite(_ ramp: Ramp) -> Bool {
+        favorites.contains(ramp.accessID)
+    }
+
+    @MainActor
+    func toggleFavorite(_ ramp: Ramp) {
+        if !favorites.insert(ramp.accessID).inserted {
+            favorites.remove(ramp.accessID)
+        }
+        Self.favoritesDefaults?.set(Array(favorites), forKey: Self.favoritesKey)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private static let favoritesKey = "favoriteRampIDs"
+
+    /// App Group defaults once the entitlement exists; standard until then so
+    /// favorites survive either way.
+    private static var favoritesDefaults: UserDefaults? {
+        SnapshotStore.sharedDefaults ?? .standard
+    }
+
+    private static func loadFavorites() -> Set<String> {
+        Set(favoritesDefaults?.stringArray(forKey: favoritesKey) ?? [])
+    }
+
+    // MARK: - Beach Cam Video
 
     /// Fallback HLS URL used before the API config provides the real one.
     static let fallbackVideoStreamURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/adv_dv_atmos/main.m3u8")!
@@ -63,7 +131,7 @@ final class BeachViewModel {
     /// re-resolved YouTube URL string comes back unchanged but the player is wedged.
     var videoStreamGeneration: Int = 0
 
-    /// Live camera roster (south-to-north) backing the iPad cam switcher.
+    /// Live camera roster (south-to-north).
     var cameras: [Camera] = []
     /// Selected camera id; nil until the roster loads, then the roster default.
     var selectedCameraID: String?
@@ -139,7 +207,6 @@ final class BeachViewModel {
     @MainActor
     func loadAll() async {
         isLoading = true
-        errorMessage = nil
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadRamps() }
@@ -148,6 +215,7 @@ final class BeachViewModel {
             group.addTask { await self.loadWeather() }
             group.addTask { await self.loadConfig() }
             group.addTask { await self.loadCameras() }
+            group.addTask { await self.loadHealth() }
         }
 
         // Default to New Smyrna Beach on first load
@@ -158,6 +226,8 @@ final class BeachViewModel {
             }
         }
 
+        publishSnapshot()
+
         isLoading = false
     }
 
@@ -167,42 +237,54 @@ final class BeachViewModel {
         await loadAll()
     }
 
+    /// Persist the board for the widgets and wake their timelines. No-op
+    /// until the last load produced ramps.
+    @MainActor
+    private func publishSnapshot() {
+        guard !ramps.isEmpty, let fetchedAt = lastSuccessfulRefresh else { return }
+        SnapshotStore.save(BoardSnapshot(
+            ramps: ramps,
+            tide: tideInfo,
+            tideChart: tideChart,
+            weather: weather,
+            fetchedAt: fetchedAt
+        ))
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     // MARK: - Individual Loaders
+    //
+    // Loader failures are deliberately silent: the board's stale state (built
+    // from dataAge) is the user-facing error surface, not inline messages.
 
     @MainActor
     private func loadRamps() async {
         do {
             ramps = try await api.fetchRamps()
+            lastSuccessfulRefresh = Date()
         } catch {
-            errorMessage = "Failed to load ramps: \(error.localizedDescription)"
+            // Stale state takes over via dataAge().
         }
     }
 
     @MainActor
     private func loadTides() async {
-        do {
-            tideInfo = try await api.fetchTides()
-        } catch {
-            errorMessage = "Failed to load tides: \(error.localizedDescription)"
-        }
+        tideInfo = (try? await api.fetchTides()) ?? tideInfo
     }
 
     @MainActor
     private func loadTideChart() async {
-        do {
-            tideChart = try await api.fetchTideChart()
-        } catch {
-            errorMessage = "Failed to load tide chart: \(error.localizedDescription)"
-        }
+        tideChart = (try? await api.fetchTideChart()) ?? tideChart
     }
 
     @MainActor
     private func loadWeather() async {
-        do {
-            weather = try await api.fetchWeather()
-        } catch {
-            errorMessage = "Failed to load weather: \(error.localizedDescription)"
-        }
+        weather = (try? await api.fetchWeather()) ?? weather
+    }
+
+    @MainActor
+    private func loadHealth() async {
+        health = (try? await api.fetchHealth()) ?? health
     }
 
     @MainActor
@@ -211,7 +293,7 @@ final class BeachViewModel {
             config = try await api.fetchConfig()
             // Legacy single-stream fallback — only until the camera roster selects
             // something (older server, or /cameras failed). Once a camera is
-            // selected, the roster is the source of truth for the iPad cam.
+            // selected, the roster is the source of truth for the cam.
             if selectedCameraID == nil,
                let urlString = config?.videoStreamURL,
                !urlString.isEmpty,

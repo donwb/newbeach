@@ -8,27 +8,39 @@
 import SwiftUI
 import BeachStatus
 
-/// Main content view — shows the beach ramp dashboard.
+/// Root of the app: the sun-following ground and the board.
 ///
-/// On iPhone this is a single scrollable column.
-/// On iPad in landscape it uses a two-column layout
-/// with ramp list on the left and details on the right.
+/// The sky is the app — the ground engine drives one gradient + token set for
+/// every screen, ticking with the real sun. iPhone gets the single-scroll
+/// board; iPad reuses it until the wide board lands.
 struct ContentView: View {
     @State private var viewModel = BeachViewModel()
-    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var ground: GroundModel
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// QA hook mirroring tvOS: `--sky-minutes N` freezes the ground at N
+    /// minutes past midnight so any phase can be reviewed on demand.
+    init() {
+        let args = ProcessInfo.processInfo.arguments
+        let minutes = args.firstIndex(of: "--sky-minutes")
+            .flatMap { idx in args.indices.contains(idx + 1) ? Int(args[idx + 1]) : nil }
+        let override = minutes.map {
+            Calendar.current.startOfDay(for: Date()).addingTimeInterval(TimeInterval($0 * 60))
+        }
+        _ground = State(initialValue: GroundModel(overrideDate: override))
+    }
 
     var body: some View {
-        Group {
-            if sizeClass == .regular {
-                // iPad / wide layout — two columns
-                iPadLayout
-            } else {
-                // iPhone / compact layout — single scroll
-                iPhoneLayout
-            }
+        NavigationStack {
+            BoardiPhoneView(viewModel: viewModel)
+                .toolbar(.hidden, for: .navigationBar)
         }
+        .environment(\.ground, ground.state)
+        .environment(\.skyPalette, ground.state.palette)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 2), value: ground.state.altitude)
         .task {
+            ground.start()
             await viewModel.loadAll()
         }
         .refreshable {
@@ -36,176 +48,12 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                ground.refresh()
                 Task {
                     await viewModel.refresh()
                 }
             }
         }
-    }
-
-    // MARK: - iPhone Layout
-
-    private var iPhoneLayout: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                HeaderView(viewModel: viewModel)
-
-                FilterBarView(viewModel: viewModel)
-                    .padding(.top, 4)
-
-                // Status summary
-                statusSummary
-
-                // Ramp list
-                rampList
-
-                // Tide chart
-                TideChartView(chartData: viewModel.tideChart, tideInfo: viewModel.tideInfo)
-                    .padding(.horizontal)
-
-                // Weather forecast
-                WeatherSectionView(weather: viewModel.weather)
-                    .padding(.horizontal)
-
-                // Water temperature
-                WaterTempView(tideInfo: viewModel.tideInfo)
-                    .padding(.horizontal)
-
-                // Footer spacer
-                Color.clear.frame(height: 20)
-            }
-        }
-        .background(backgroundGradient)
-    }
-
-    // MARK: - iPad Layout
-
-    private var iPadLayout: some View {
-        VStack(spacing: 0) {
-            // Two columns take the available height above the cam banner.
-            HStack(spacing: 0) {
-                // Left column — ramps
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        HeaderView(viewModel: viewModel)
-                        FilterBarView(viewModel: viewModel)
-                        statusSummary
-                        rampList
-                        Color.clear.frame(height: 20)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-
-                Divider()
-
-                // Right column — details
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        TideChartView(chartData: viewModel.tideChart, tideInfo: viewModel.tideInfo)
-                            .padding(.horizontal)
-                            .padding(.top)
-
-                        WeatherSectionView(weather: viewModel.weather)
-                            .padding(.horizontal)
-
-                        WaterTempView(tideInfo: viewModel.tideInfo)
-                            .padding(.horizontal)
-
-                        Color.clear.frame(height: 20)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            // Camera switcher above the panoramic beach cam, both full width
-            // under the two columns. Switcher hidden until the roster loads.
-            if !viewModel.cameras.isEmpty {
-                CameraSwitcherView(
-                    cameras: viewModel.cameras,
-                    selectedID: viewModel.selectedCameraID,
-                    onSelect: { viewModel.selectCamera($0) }
-                )
-                .padding(.horizontal)
-                .padding(.bottom, 4)
-            }
-
-            // Panoramic beach cam spanning the full width under both columns.
-            BeachCamView(
-                url: viewModel.videoStreamURL,
-                rebuildToken: viewModel.videoStreamGeneration,
-                onPlaybackFailure: { viewModel.refreshVideoStream() }
-            )
-            .padding(.horizontal)
-            .padding(.bottom)
-        }
-        .background(backgroundGradient)
-    }
-
-    // MARK: - Shared Components
-
-    private var statusSummary: some View {
-        HStack(spacing: 16) {
-            StatusCount(count: viewModel.openCount, label: "Open", color: .statusOpen)
-            StatusCount(count: viewModel.limitedCount, label: "Limited", color: .statusLimited)
-            StatusCount(count: viewModel.closedCount, label: "Closed", color: .statusClosed)
-        }
-        .padding(.horizontal)
-    }
-
-    private var rampList: some View {
-        Group {
-            if viewModel.isLoading && viewModel.ramps.isEmpty {
-                ProgressView("Loading ramps…")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-            } else if viewModel.filteredRamps.isEmpty {
-                ContentUnavailableView {
-                    Label("No Ramps", systemImage: "beach.umbrella")
-                } description: {
-                    Text("No ramps match your current filters.")
-                }
-                .padding(.vertical, 20)
-            } else {
-                ForEach(viewModel.filteredRamps) { ramp in
-                    RampCardView(ramp: ramp)
-                        .padding(.horizontal)
-                }
-            }
-
-            // Error message
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-        }
-    }
-
-    private var backgroundGradient: some View {
-        Color(.systemBackground)
-            .ignoresSafeArea()
-    }
-}
-
-/// Small circle count indicator for status summary.
-struct StatusCount: View {
-    let count: Int
-    let label: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text("\(count)")
-                .font(.system(.title, design: .rounded).weight(.bold))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(AppColors.secondaryText)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .cardSurface(cornerRadius: 14)
     }
 }
 

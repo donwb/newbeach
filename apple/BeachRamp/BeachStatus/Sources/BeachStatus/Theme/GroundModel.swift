@@ -72,6 +72,19 @@ public struct GroundState: Sendable {
     }
 }
 
+/// The current ground, injected at the app root. Defaults to a computed
+/// mid-morning state so previews render sensibly without a model.
+private struct GroundStateKey: EnvironmentKey {
+    static let defaultValue = GroundState.compute(at: Date())
+}
+
+public extension EnvironmentValues {
+    var ground: GroundState {
+        get { self[GroundStateKey.self] }
+        set { self[GroundStateKey.self] = newValue }
+    }
+}
+
 /// The app's live ground: recomputes `state` on a 30-second tick (the same
 /// cadence tvOS uses). Views animate the change over 2s unless Reduce Motion
 /// is on — callers own that via `withAnimation`; the model just publishes.

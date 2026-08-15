@@ -1,9 +1,10 @@
 import SwiftUI
 import AVKit
 
-/// Panoramic HLS beach-cam banner for the iPad layout — full width, ~4.7:1.
-/// Adapted from the tvOS `TVVideoPlayerView`; reuses the same failure/stall
-/// recovery so a rotated YouTube manifest re-resolves automatically.
+/// Bare panoramic HLS beach-cam player surface. Owners provide all chrome
+/// (the landscape view's scrims, the iPad rail's frame). Adapted from the
+/// tvOS `TVVideoPlayerView`; reuses the same failure/stall recovery so a
+/// rotated YouTube manifest re-resolves automatically.
 struct BeachCamView: View {
     let url: URL
     /// Increments on every refresh attempt, even when `url` is unchanged, so the
@@ -11,6 +12,9 @@ struct BeachCamView: View {
     let rebuildToken: Int
     /// Called when AVPlayer reports a playback failure; owner re-resolves the URL.
     var onPlaybackFailure: (() -> Void)? = nil
+    /// `.fit` shows the whole 1280×270 panorama; `.fill` crops to the frame
+    /// (the landscape cam view).
+    var contentMode: ContentMode = .fit
 
     @State private var player: AVPlayer?
     @State private var isPlaying = true
@@ -19,49 +23,27 @@ struct BeachCamView: View {
     @State private var stallWatcher: BeachCamStallWatcher?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 16) {
-                Label("Beach Cam", systemImage: "video.fill")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    isMuted.toggle()
-                } label: {
-                    Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(AppColors.oceanAccent)
-                Button {
-                    isPlaying.toggle()
-                } label: {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(AppColors.oceanAccent)
-            }
-
+        Group {
             if let player {
-                // Fit (not fill) so the whole panorama shows at full width;
-                // height follows the aspect ratio — shorter in portrait, taller
-                // in landscape — with no center-cropping.
-                VideoPlayer(player: player)
-                    .aspectRatio(1280.0 / 270.0, contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                if contentMode == .fit {
+                    VideoPlayer(player: player)
+                        .aspectRatio(1280.0 / 270.0, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    VideoPlayer(player: player)
+                        .aspectRatio(1280.0 / 270.0, contentMode: .fill)
+                }
             } else {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(AppColors.nestedCardBackground)
-                    .aspectRatio(1280.0 / 270.0, contentMode: .fit)
-                    .frame(maxWidth: .infinity)
+                // Offline / not-yet-loaded frame: flat deep water.
+                Rectangle()
+                    .fill(Color(red: 0x0A / 255, green: 0x14 / 255, blue: 0x20 / 255))
                     .overlay {
                         Image(systemName: "video.slash")
                             .font(.title)
-                            .foregroundStyle(AppColors.secondaryText)
+                            .foregroundStyle(.white.opacity(0.4))
                     }
             }
         }
-        .padding()
-        .cardSurface()
         .onAppear { setupPlayer() }
         .onDisappear {
             stallWatcher = nil

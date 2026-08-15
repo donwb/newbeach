@@ -1,102 +1,59 @@
 import SwiftUI
 import BeachStatus
 
-/// Horizontal scrolling filter bar with city picker and status pills.
+/// Four count buttons — All / Open / Limited / Closed. This is where the old
+/// summary cards' counts live. Active is a solid accent field with white
+/// type; the rest are 2px-bordered. 34pt tall with a 44pt touch area.
 struct FilterBarView: View {
     @Bindable var viewModel: BeachViewModel
+    @Environment(\.ground) private var ground
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // City picker
-                Menu {
-                    Button("All Cities") {
-                        viewModel.selectedCity = nil
-                    }
-                    ForEach(viewModel.cities, id: \.self) { city in
-                        Button(city) {
-                            viewModel.selectedCity = city
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.circle.fill")
-                        Text(viewModel.selectedCity ?? "All Cities")
-                            .lineLimit(1)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .foregroundStyle(.white)
-                    .background(Capsule().fill(Color.ocean600))
-                }
-
-                // Status filter pills
-                StatusPill(
-                    label: "All",
-                    count: viewModel.cityRamps.count,
-                    isSelected: viewModel.selectedStatus == nil,
-                    color: .ocean600
-                ) {
-                    viewModel.selectedStatus = nil
-                }
-
-                ForEach(StatusCategory.allCases, id: \.self) { status in
-                    StatusPill(
-                        label: status.label,
-                        count: countFor(status),
-                        isSelected: viewModel.selectedStatus == status,
-                        color: status.color
-                    ) {
-                        viewModel.selectedStatus = status
-                    }
-                }
-            }
-            .padding(.horizontal)
+        HStack(spacing: 8) {
+            filterButton("All", count: viewModel.cityRamps.count, matches: nil)
+            filterButton("Open", count: viewModel.openCount, matches: .open)
+            filterButton("Limited", count: viewModel.limitedCount, matches: .limited)
+            filterButton("Closed", count: viewModel.closedCount, matches: .closed)
+            Spacer(minLength: 0)
         }
     }
 
-    private func countFor(_ status: StatusCategory) -> Int {
-        switch status {
-        case .open: return viewModel.openCount
-        case .limited: return viewModel.limitedCount
-        case .closed: return viewModel.closedCount
+    private func filterButton(_ label: String, count: Int, matches status: StatusCategory?) -> some View {
+        let t = ground.tokens
+        let isActive = viewModel.selectedStatus == status
+        let isEmpty = count == 0 && status != nil
+        return Button {
+            viewModel.selectedStatus = status
+        } label: {
+            Text("\(label) \(count)")
+                .font(.archivo(14, weight: .extraBold))
+                .monospacedDigit()
+                .foregroundStyle(isActive ? .white : t.ink.opacity(isEmpty ? 0.4 : 1))
+                .padding(.horizontal, 12)
+                .frame(height: 34)
+                .background(isActive ? t.accent : .clear)
+                .overlay {
+                    if !isActive {
+                        Rectangle().strokeBorder(
+                            isEmpty ? t.rule2 : t.rule, lineWidth: 2)
+                    }
+                }
+                .padding(.vertical, 5)   // 34pt control, 44pt touch area
+                .contentShape(Rectangle())
         }
+        .buttonStyle(PressTintButtonStyle())
+        .disabled(isEmpty && !isActive)
+        .accessibilityLabel("\(label), \(count) ramps")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
 
-/// Individual filter pill with count badge.
-struct StatusPill: View {
-    let label: String
-    let count: Int
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
+/// Pressed tint per the handoff: accent at 8% opacity.
+struct PressTintButtonStyle: ButtonStyle {
+    @Environment(\.ground) private var ground
 
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Text(label)
-                Text("\(count)")
-                    .font(.caption2.weight(.bold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background {
-                        Capsule()
-                            .fill(isSelected ? .white.opacity(0.3) : color.opacity(0.2))
-                    }
-            }
-            .font(.subheadline.weight(.medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .foregroundStyle(isSelected ? .white : color)
-            .background {
-                Capsule()
-                    .fill(isSelected ? color : color.opacity(0.1))
-            }
-        }
-        .buttonStyle(.plain)
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? ground.tokens.accent.opacity(0.08) : .clear)
     }
 }
