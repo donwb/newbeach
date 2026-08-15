@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd job for the bgutil PO-token provider (https://github.com/Brainicism/bgutil-ytdlp-pot-provider).
+
+  Why: since Aug 2026 YouTube bot-checks anonymous yt-dlp resolves ("Sign in to
+  confirm you're not a bot") even from the home IP. This server mints BotGuard
+  proof-of-origin tokens locally — no Google account, no cookies — and the
+  companion yt-dlp plugin picks it up automatically at 127.0.0.1:4416, so
+  cam-restreamer.sh needs no changes.
+
+  Install on the home Mac (alongside com.donwb.cam-restreamer):
+    1. brew install node   (if not present)
+    2. git clone https://github.com/Brainicism/bgutil-ytdlp-pot-provider ~/bgutil-ytdlp-pot-provider
+       cd ~/bgutil-ytdlp-pot-provider/server && npm install && npx tsc
+    3. Install the matching yt-dlp plugin into brew's yt-dlp:
+       /opt/homebrew/opt/yt-dlp/libexec/bin/python -m pip install bgutil-ytdlp-pot-provider
+    4. cp this file ~/Library/LaunchAgents/com.donwb.bgutil-pot.plist
+    5. launchctl load ~/Library/LaunchAgents/com.donwb.bgutil-pot.plist
+    6. Verify: curl -s http://127.0.0.1:4416/ping
+       then kickstart the restreamer.
+
+  Keep the git clone's plugin and server versions in step when updating
+  (git pull + npm install + npx tsc, and pip install -U the plugin together).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.donwb.bgutil-pot</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/donwb/bgutil-ytdlp-pot-provider/server/build/main.js</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/bgutil-pot.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/bgutil-pot.launchd.log</string>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+</dict>
+</plist>

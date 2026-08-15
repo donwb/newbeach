@@ -83,13 +83,17 @@ Key properties:
 `launchctl kickstart -k gui/$(id -u)/com.donwb.cam-restreamer`
 
 **"Sign in to confirm you're not a bot" in a camera's log** (seen Aug 2026):
-YouTube bot-checks anonymous yt-dlp resolves from the home IP. Running pipelines
-keep working, but any camera that drops can't re-resolve and stays down until
-cookies are supplied. Fix: export YouTube cookies from a signed-in browser to a
-Netscape `cookies.txt` (e.g. the "Get cookies.txt LOCALLY" extension, or
-`yt-dlp --cookies-from-browser chrome --cookies /path/cookies.txt` once), set
-`YTDLP_COOKIES=/path/to/cookies.txt` in `~/.cam-restreamer.env`, and kickstart.
-Prefer a throwaway Google account — heavy automated use can flag the account.
+YouTube bot-checks anonymous yt-dlp resolves from the home IP — it's IP-level
+(every player client is walled). Running pipelines keep working, but any camera
+that drops can't re-resolve and stays down. Fix: run the bgutil PO-token
+provider on the Studio — it mints BotGuard proof-of-origin tokens locally, no
+Google account or cookies involved, and the yt-dlp plugin auto-detects it at
+127.0.0.1:4416 (zero restreamer changes). Install steps are in the header of
+`scripts/com.donwb.bgutil-pot.plist`. Verified 2026-08-14 from the home IP:
+resolves that failed the bot-check anonymously succeed with the provider up.
+Fallback if the provider path ever breaks: `YTDLP_COOKIES=/path/to/cookies.txt`
+in `~/.cam-restreamer.env` (Netscape cookies.txt from a signed-in browser;
+prefer a throwaway account — heavy automated use can flag it).
 
 **A camera's YouTube video ID changed** (stream restarted under a new ID — this is
 what "Ormond Beach offline" looks like): update the roster row's `youtube_url`
