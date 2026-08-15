@@ -95,7 +95,14 @@ async function poll() {
   if (data.health) {
     patch.health = data.health;
     const stamp = data.health.ingester?.last_poll_at;
-    if (stamp) lastPollStamp = new Date(stamp).getTime();
+    const ms = stamp ? new Date(stamp).getTime() : NaN;
+    // Right after a server boot the ingester hasn't polled yet and health
+    // reports Go's zero time (0001-01-01) — an insane stamp must not count.
+    if (Number.isFinite(ms) && ms > Date.UTC(2020, 0, 1)) {
+      lastPollStamp = ms;
+    } else if (data.ok) {
+      lastPollStamp = Date.now();
+    }
   } else if (data.ok) {
     // Ramps came through but health didn't — treat the fetch itself as proof of life.
     lastPollStamp = Date.now();

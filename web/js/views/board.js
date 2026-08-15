@@ -237,7 +237,10 @@ export function createBoardView(store) {
     const station = s.config?.tide_station;
     $('#foot-sources').textContent = `NOAA ${station || ''} · NWS api.weather.gov · Volusia County feed`.replace('  ', ' ');
     const lastPoll = s.health?.ingester?.last_poll_at;
-    $('#foot-updated').textContent = lastPoll ? `Updated ${clock(new Date(lastPoll))}` : '';
+    const lastPollMs = lastPoll ? new Date(lastPoll).getTime() : NaN;
+    $('#foot-updated').textContent = Number.isFinite(lastPollMs) && lastPollMs > Date.UTC(2020, 0, 1)
+      ? `Updated ${clock(new Date(lastPollMs))}`
+      : '';
   }
 
   function updateCityControls(s) {
