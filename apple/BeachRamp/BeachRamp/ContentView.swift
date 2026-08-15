@@ -16,6 +16,7 @@ import BeachStatus
 struct ContentView: View {
     @State private var viewModel = BeachViewModel()
     @State private var ground: GroundModel
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -33,11 +34,17 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            BoardiPhoneView(viewModel: viewModel)
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationDestination(for: Ramp.self) { ramp in
-                    RampDetailView(viewModel: viewModel, ramp: ramp)
+            Group {
+                if sizeClass == .regular {
+                    BoardiPadView(viewModel: viewModel)
+                } else {
+                    BoardiPhoneView(viewModel: viewModel)
                 }
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: Ramp.self) { ramp in
+                RampDetailView(viewModel: viewModel, ramp: ramp)
+            }
         }
         .fullScreenCover(isPresented: $viewModel.camPresented) {
             LiveCamFullscreenView(viewModel: viewModel)
@@ -48,6 +55,16 @@ struct ContentView: View {
         .animation(reduceMotion ? nil : .easeInOut(duration: 2), value: ground.state.altitude)
         .task {
             ground.start()
+            // QA hook: --force-landscape rotates at launch (simulator panels
+            // have no rotate control).
+            if ProcessInfo.processInfo.arguments.contains("--force-landscape") {
+                try? await Task.sleep(for: .seconds(1))
+                if let scene = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first(where: { $0.activationState == .foregroundActive }) {
+                    scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
+                }
+            }
             await viewModel.loadAll()
             // Foreground poll on the ingester's own cadence. Without it the
             // stale state would trip simply from leaving the board open.

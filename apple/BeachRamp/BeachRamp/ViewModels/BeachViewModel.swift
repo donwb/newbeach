@@ -23,6 +23,13 @@ final class BeachViewModel {
     /// Current status filter — nil means "All".
     var selectedStatus: StatusCategory?
 
+    /// iPad: show only favorited ramps.
+    var favoritesOnly = false
+
+    /// Recent city-wide status changes for the iPad board's Recent Changes
+    /// section.
+    var recentActivity: [ActivityEntry] = []
+
     /// Favorited ramp access ids, shared with the widgets via the App Group.
     var favorites: Set<String> = BeachViewModel.loadFavorites()
 
@@ -50,9 +57,13 @@ final class BeachViewModel {
         ramps.filter { selectedCity == nil || $0.cityDisplay == selectedCity }.boardOrdered()
     }
 
-    /// Ramps filtered by current city and status selection, in board order.
+    /// Ramps filtered by current city, status, and favorites selection, in
+    /// board order.
     var filteredRamps: [Ramp] {
-        cityRamps.filter { selectedStatus == nil || $0.category == selectedStatus }
+        cityRamps.filter {
+            (selectedStatus == nil || $0.category == selectedStatus)
+                && (!favoritesOnly || favorites.contains($0.accessID))
+        }
     }
 
     /// Counts per status category, scoped to the selected city.
@@ -262,6 +273,9 @@ final class BeachViewModel {
             }
         }
 
+        // After the city default settles — the feed is city-scoped.
+        await loadRecentActivity()
+
         publishSnapshot()
 
         isLoading = false
@@ -321,6 +335,13 @@ final class BeachViewModel {
     @MainActor
     private func loadHealth() async {
         health = (try? await api.fetchHealth()) ?? health
+    }
+
+    @MainActor
+    private func loadRecentActivity() async {
+        // The DB stores cities uppercase; the display name is title-cased.
+        let city = selectedCity?.uppercased()
+        recentActivity = (try? await api.fetchActivity(limit: 12, city: city)) ?? recentActivity
     }
 
     @MainActor

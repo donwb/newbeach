@@ -7,6 +7,8 @@ import BeachStatus
 struct DetailStatusBand: View {
     let ramp: Ramp
     let projection: ClosureProjection?
+    /// 20 on iPhone, 28 in the iPad sheet.
+    var statusSize: CGFloat = 20
     @Environment(\.ground) private var ground
 
     private var field: StatusField {
@@ -29,7 +31,7 @@ struct DetailStatusBand: View {
                     .frame(width: 12, height: 34)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(statusWord)
-                        .font(.archivo(20, weight: .extraBold))
+                        .font(.archivo(statusSize, weight: .extraBold))
                         .foregroundStyle(field.text)
                     if let since = ramp.statusSince {
                         Text("since \(SinceFormatter.string(from: since))")
@@ -158,17 +160,28 @@ struct TodayStatusBandView: View {
 struct FactsGrid: View {
     let ramp: Ramp
     let nearestCam: String?
+    /// 2×2 on iPhone; 4 across in the iPad sheet.
+    var columns: Int = 2
     @Environment(\.ground) private var ground
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 18) {
-            GridRow {
-                fact("Address", ramp.address)
-                fact("Driving hours", ramp.drivingHours)
-            }
-            GridRow {
-                fact("Closes above", ramp.closureHeightFt.map { String(format: "%.1f ft tide", $0) })
-                fact("Nearest cam", nearestCam)
+            if columns == 4 {
+                GridRow {
+                    fact("Address", ramp.address)
+                    fact("Driving hours", ramp.drivingHours)
+                    fact("Closes above", ramp.closureHeightFt.map { String(format: "%.1f ft tide", $0) })
+                    fact("Nearest cam", nearestCam)
+                }
+            } else {
+                GridRow {
+                    fact("Address", ramp.address)
+                    fact("Driving hours", ramp.drivingHours)
+                }
+                GridRow {
+                    fact("Closes above", ramp.closureHeightFt.map { String(format: "%.1f ft tide", $0) })
+                    fact("Nearest cam", nearestCam)
+                }
             }
         }
     }
