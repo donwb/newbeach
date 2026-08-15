@@ -9,6 +9,7 @@
  */
 
 import { clock, sinceString, prettyRampName, categoryFromStatus } from './format.js';
+import { curveAnchors, heightAt } from './tide.js';
 
 /** Data older than this is stale: two missed 60s refresh cycles plus jitter. */
 export const STALE_THRESHOLD_MS = 150_000;
@@ -82,14 +83,68 @@ export function nextExtreme(tide, now) {
 }
 
 /**
- * Estimated reopen time for a high-tide closure: the next low tide after
- * the closure, plus the reopen offset. Null when it doesn't apply or the
- * estimate is already in the past.
+ * When a ramp closes on the rising tide, the water that forced the closure
+ * recedes to the same level on the way down — so the reopen estimate is
+ * the falling curve's return to the tide height at closure time.
+ * Returns null when the closure wasn't on the rising side (or the curve
+ * can't be built), letting the caller fall back to the low-tide heuristic.
+ */
+function reopenFromClosureHeight(predictions, closedAt) {
+  const closedMs = closedAt.getTime();
+  const anchors = curveAnchors(predictions, closedMs - 6 * 3_600_000, closedMs + 30 * 3_600_000);
+  if (anchors.length < 2) return null;
+  const closureHeight = heightAt(closedMs, anchors);
+  if (closureHeight == null) return null;
+
+  // Only meaningful when the closure precedes a high — i.e. the tide was
+  // still coming up. A closure logged on the falling side is feed lag.
+  const nextExt = predictions
+    .map((p) => ({ ...p, time: new Date(p.time) }))
+    .filter((p) => p.time.getTime() > closedMs)
+    .sort((a, b) => a.time - b.time)[0];
+  if (!nextExt || nextExt.type !== 'H') return null;
+
+  // Walk forward from the crest until the curve falls back through the
+  // closure height, then bisect the bracketing step.
+  const step = 5 * 60_000;
+  let prev = nextExt.time.getTime();
+  for (let t = prev + step; t <= closedMs + 30 * 3_600_000; t += step) {
+    const h = heightAt(t, anchors);
+    if (h != null && h <= closureHeight) {
+      let lo = prev;
+      let hi = t;
+      for (let i = 0; i < 20; i++) {
+        const mid = lo + (hi - lo) / 2;
+        if (heightAt(mid, anchors) <= closureHeight) {
+          hi = mid;
+        } else {
+          lo = mid;
+        }
+      }
+      return new Date(hi);
+    }
+    prev = t;
+  }
+  return null;
+}
+
+/**
+ * Estimated reopen time for a high-tide closure. Preferred estimate: the
+ * falling tide's return to the height at which the ramp closed. Fallback
+ * (closure on the falling side, or the crossing already passed): the next
+ * low tide plus the county-practice offset. Null when nothing applies or
+ * every estimate is already in the past.
  */
 export function reopenEstimate(ramp, tide, now) {
   if (normalized(ramp.access_status) !== 'CLOSED FOR HIGH TIDE') return null;
+  const predictions = tide?.predictions;
+  if (!predictions?.length) return null;
   const reference = statusSince(ramp) || now;
-  const nextLow = (tide?.predictions || [])
+
+  const byHeight = reopenFromClosureHeight(predictions, reference);
+  if (byHeight && byHeight > now) return byHeight;
+
+  const nextLow = predictions
     .map((p) => ({ ...p, time: new Date(p.time) }))
     .filter((p) => p.type === 'L' && p.time > reference)
     .sort((a, b) => a.time - b.time)[0];

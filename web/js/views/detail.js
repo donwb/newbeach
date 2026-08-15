@@ -245,14 +245,23 @@ export function createDetailView(store) {
       <div class="day-band-seg is-${iv.category}" style="flex: ${(iv.endMs - iv.startMs) / span}"></div>
     `).join('') + `<div class="day-band-now" style="left: ${(((s.now.getTime() - dayStart) / span) * 100).toFixed(2)}%"></div>`;
 
+    // Skip labels that would collide with the previous one — short segments
+    // (a turtle sweep before the morning opening) otherwise overprint.
+    const MIN_LABEL_GAP_PCT = 10;
+    let lastLabelPct = -Infinity;
     labels.innerHTML = clipped
       .filter((iv) => iv.category !== 'gap')
-      .map((iv) => `
-        <div class="day-band-label" style="left: ${(((iv.startMs - dayStart) / span) * 100).toFixed(2)}%">
+      .map((iv) => {
+        const pct = ((iv.startMs - dayStart) / span) * 100;
+        if (pct - lastLabelPct < MIN_LABEL_GAP_PCT) return '';
+        lastLabelPct = pct;
+        return `
+        <div class="day-band-label" style="left: ${pct.toFixed(2)}%">
           <div class="seg-time">${escapeHTML(iv.startMs === dayStart ? '12:00 AM' : clock(new Date(iv.startMs)))}</div>
           <div class="seg-name">${escapeHTML(capFirst(statusPhrase(iv.status)))}</div>
         </div>
-      `).join('');
+      `;
+      }).join('');
   }
 
   function updateTide(s) {

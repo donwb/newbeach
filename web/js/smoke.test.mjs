@@ -135,8 +135,18 @@ check('spelled 14 falls back to digits', spelled(14), '14');
 check('durationText 5h41m', durationText((5 * 60 + 41) * 60_000), '5h 41m');
 const ne = nextExtreme(tide, now);
 check('next extreme is the 4:57 PM low', ne.type + ' ' + clock(ne.time), 'L 4:57 PM');
+// Falling-side closure (feed lag case): falls back to next low + 90m.
 const reopen = reopenEstimate(ramp('CRAWFORD RD', 'CLOSED FOR HIGH TIDE', easternToUtc(2026, 8, 14, 12, 48)), tide, now);
-check('reopen = next low + 90m', clock(reopen), '6:27 PM');
+check('reopen fallback = next low + 90m', clock(reopen), '6:27 PM');
+
+// Rising-side closure: reopen when the falling curve returns to the
+// closure height. Closed 10:00 AM at ~2.70 ft on the way up to the
+// 10:44 AM 2.8 ft high; the curve falls back through 2.70 ft ~11:29 AM.
+const reopenRising = reopenEstimate(
+  ramp('CRAWFORD RD', 'CLOSED FOR HIGH TIDE', easternToUtc(2026, 8, 14, 10, 0)),
+  tide, easternToUtc(2026, 8, 14, 10, 30),
+);
+check('reopen by closure height', clock(reopenRising), '11:29 AM');
 
 // --- tide curve ---
 const dayStart = easternMidnight(now).getTime();
