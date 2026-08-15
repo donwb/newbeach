@@ -1,40 +1,1239 @@
-/* Beach Ramp Status — Custom styles
-   Note: Tailwind @apply is not supported with the CDN. All Tailwind classes
-   are applied directly in the HTML/JS. This file handles only custom CSS
-   that can't be expressed as utility classes. */
+/*
+ * Beach Ramp Status — Modernist token sheet + page rules.
+ * Structure comes from 2px rules; radius is 0 everywhere. Status is carried
+ * by the card field, never by tinted text. The ground follows the sun: the
+ * tvOS sky gradient under an off-white veil whose alpha is `dayness`,
+ * written as CSS custom properties by js/sky.js on a 30-second tick.
+ */
 
-/* Fade-in animation for ramp cards */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ---------- Fonts (self-hosted, OFL) ---------- */
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/archivo-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/archivo-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/archivo-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/archivo-800.woff2') format('woff2');
+}
+
+/* ---------- Tokens ---------- */
+
+:root {
+  --font: 'Archivo', system-ui, sans-serif;
+  --pad: 40px;       /* page padding; 18px on mobile */
+}
+
+/* Foreground tokens flip at dayness 0.5 rather than interpolating, so text
+   never sits at an in-between contrast. Status trio: shipped coastal set at
+   night (StatusColors.swift), darker day variants for the off-white ground. */
+html[data-ground='day'] {
+  --ink: #201e1d;
+  --ink2: rgba(32, 30, 29, 0.62);
+  --rule: rgba(32, 30, 29, 0.85);
+  --rule2: rgba(32, 30, 29, 0.22);
+  --accent: #ec3013;
+  --tidefill: rgba(32, 30, 29, 0.1);
+  --c-open: #0a7a42;
+  --c-limited: #f5a214;
+  --c-closed: #d22b18;
+  --limited-ink: #241500;
+  --open-card-bg: #ffffff;
+  --open-card-border: rgba(32, 30, 29, 0.85);
+  --field: rgba(32, 30, 29, 0.04);
+}
+html[data-ground='night'] {
+  --ink: #ffffff;
+  --ink2: rgba(255, 255, 255, 0.72);
+  --rule: rgba(255, 255, 255, 0.4);
+  --rule2: rgba(255, 255, 255, 0.22);
+  --accent: #ff6a4d;
+  --tidefill: rgba(255, 255, 255, 0.14);
+  --c-open: #29c97a;
+  --c-limited: #e8a23c;
+  --c-closed: #c64b38;
+  --limited-ink: #241500;
+  --open-card-bg: rgba(4, 24, 34, 0.55);
+  --open-card-border: rgba(255, 255, 255, 0.3);
+  --field: rgba(255, 255, 255, 0.06);
+}
+
+/* Sky custom properties are registered so the 30s tick's changes transition
+   smoothly — `transition: background-image` is a no-op in real browsers. */
+@property --sky-top {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0e7fa8;
+}
+@property --sky-mid {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #33b0cc;
+}
+@property --sky-bot {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #b2e6f0;
+}
+@property --veil {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(211, 224, 227, 1);
+}
+
+/* ---------- Ground ---------- */
+
+/* A fixed layer instead of background-attachment: fixed (janky on iOS). */
+#ground {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: #0a1420;
+  background-image:
+    linear-gradient(var(--veil), var(--veil)),
+    linear-gradient(160deg, var(--sky-top) 0%, var(--sky-mid) 52%, var(--sky-bot) 100%);
+  transition:
+    --sky-top 2s ease-in-out,
+    --sky-mid 2s ease-in-out,
+    --sky-bot 2s ease-in-out,
+    --veil 2s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ground {
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+svg {
+  display: block;
+}
+
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+#view {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--pad) 40px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kickers: section labels. */
+.kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.kicker--ink {
+  color: var(--ink);
+  opacity: 0.65;
+}
+
+/* Section header: 2px rule with the kicker above content. */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 2px solid var(--rule);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.section-note {
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.hover-accent {
+  transition: background-color 0.12s ease;
+}
+.hover-accent:hover {
+  background-color: color-mix(in oklch, var(--accent) 8%, transparent);
+}
+.hover-accent:active {
+  background-color: color-mix(in oklch, var(--accent) 14%, transparent);
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  border-bottom: 2px solid var(--rule);
+}
+
+.brand {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.brand-sub {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 2px solid var(--rule);
+  padding: 6px 12px;
+}
+
+.freshness .dot {
+  width: 8px;
+  height: 8px;
+  background: var(--c-open);
+}
+
+html[data-stale='true'] .freshness {
+  border-color: var(--c-limited);
+  color: var(--limited-ink);
+  background: var(--c-limited);
+}
+html[data-stale='true'] .freshness .dot {
+  background: var(--limited-ink);
+}
+
+.phase-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.clock {
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  min-height: 44px;
+}
+.back-link .arrow {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+/* ---------- City tabs ---------- */
+
+.citytabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--rule2);
+}
+
+.citytab {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  padding: 14px 0 12px;
+  border-bottom: 4px solid transparent;
+  margin-bottom: -1px;
+}
+
+.citytab[aria-current='true'] {
+  font-weight: 800;
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.city-select {
+  display: none;
+}
+
+/* ---------- Verdict band ---------- */
+
+.verdict {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 40px;
+  align-items: start;
+  padding: 34px 0 28px;
+}
+
+.verdict-main {
+  display: flex;
+  gap: 18px;
+}
+
+.verdict-bar {
+  flex: none;
+  width: 18px;
+  height: 70px;
+  margin-top: 6px;
+  background: var(--c-open);
+}
+.verdict[data-category='limited'] .verdict-bar {
+  background: var(--c-limited);
+}
+.verdict[data-category='closed'] .verdict-bar {
+  background: var(--c-closed);
+}
+
+.verdict-text h1 {
+  font-size: 62px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 0.94;
+}
+
+.verdict-sub {
+  margin: 12px 0 0;
+  font-size: 21px;
+  line-height: 1.3;
+  color: var(--ink2);
+}
+
+.verdict-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.stat-cell {
+  display: block;
+  border-top: 2px solid var(--rule);
+  padding: 10px 4px 12px 0;
+}
+
+.stat-cell .stat-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.stat-cell .stat-label .chev {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.stat-cell .stat-value {
+  margin-top: 6px;
+  font-size: 29px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-cell .stat-detail {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+/* ---------- Filter row ---------- */
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 2px solid var(--rule);
+  border-bottom: 1px solid var(--rule2);
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 5px 14px;
+  border: 2px solid var(--rule);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  position: relative;
+}
+/* 44px touch area without growing the visual box. */
+.filter-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.filter-btn .count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+}
+
+.filter-btn[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+html[data-ground='night'] .filter-btn[aria-pressed='true'] {
+  color: #0a1420;
+}
+.filter-btn[aria-pressed='true'] .count {
+  opacity: 0.85;
+}
+
+.fav-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.fav-toggle[aria-pressed='true'] {
+  color: var(--accent);
+}
+.fav-toggle .star {
+  font-size: 15px;
+}
+
+/* ---------- Ramp grid ---------- */
+
+.ramp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 18px 0 24px;
+}
+
+@media (min-width: 1120px) {
+  .ramp-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 .ramp-card {
-    animation: fadeInUp 0.3s ease-out forwards;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 172px;
+  padding: 14px 16px 16px;
+  background: var(--open-card-bg);
+  border: 2px solid var(--open-card-border);
+  color: var(--ink);
+  transition: background-color 0.12s ease;
 }
 
-/* Scrollbar styling for activity feed */
-#activity-feed::-webkit-scrollbar {
-    width: 4px;
-}
-#activity-feed::-webkit-scrollbar-thumb {
-    background-color: #d1d5db;
-    border-radius: 9999px;
-}
-.dark #activity-feed::-webkit-scrollbar-thumb {
-    background-color: #4b5563;
-}
-#activity-feed::-webkit-scrollbar-track {
-    background: transparent;
+.ramp-card:hover {
+  background-color: color-mix(in oklch, var(--accent) 8%, var(--open-card-bg));
 }
 
-/* Tide chart -- crisp rendering */
-#tide-chart {
-    image-rendering: auto;
+.ramp-card .card-index {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+
+.ramp-card .card-star {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  opacity: 0.55;
+}
+.ramp-card .card-star[aria-pressed='true'] {
+  opacity: 1;
+}
+
+.ramp-card .card-name {
+  margin-top: 8px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+.ramp-card .card-bottom {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.ramp-card .card-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ramp-card .card-mark {
+  flex: none;
+  width: 12px;
+  height: 22px;
+  background: var(--c-open);
+}
+
+.ramp-card .card-since {
+  margin-top: 4px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* The under-name since line only exists on the mobile row layout. */
+.ramp-card .card-since-inline {
+  display: none;
+}
+
+/* Limited and closed: status carried by the whole card field. */
+.ramp-card.is-limited {
+  background: var(--c-limited);
+  border-color: var(--c-limited);
+  color: var(--limited-ink);
+}
+.ramp-card.is-limited:hover {
+  background-color: color-mix(in oklch, #000 6%, var(--c-limited));
+}
+.ramp-card.is-limited .card-mark {
+  background: var(--limited-ink);
+}
+
+.ramp-card.is-closed {
+  background: var(--c-closed);
+  border-color: var(--c-closed);
+  color: #fff;
+}
+.ramp-card.is-closed:hover {
+  background-color: color-mix(in oklch, #000 8%, var(--c-closed));
+}
+.ramp-card.is-closed .card-mark {
+  background: #fff;
+}
+
+/* Transform-only on purpose: an environment that suspends CSS animations
+   pins elements at the from-keyframe, and a pinned opacity would hide the
+   card entirely. A pinned 6px offset is invisible by comparison. */
+@keyframes cardIn {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: none;
+  }
+}
+.ramp-card.is-new {
+  animation: cardIn 0.3s ease backwards;
+}
+
+/* Stale: the grid stops asserting. */
+html[data-stale='true'] .ramp-card {
+  opacity: 0.45;
+}
+
+.grid-empty {
+  grid-column: 1 / -1;
+  padding: 24px 0;
+  font-size: 15px;
+  color: var(--ink2);
+}
+
+/* ---------- Cam ---------- */
+
+.cam {
+  padding: 10px 0 24px;
+}
+
+.cam-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1280 / 270;
+  background: #0a1420;
+  overflow: hidden;
+}
+
+.cam-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cam-offline {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #0a1420;
+  color: #fff;
+  text-align: center;
+  padding: 0 18px;
+}
+.cam-offline h3 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.cam-offline p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* ---------- Tide + forecast ---------- */
+
+.tide-weather {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 40px;
+  padding-bottom: 24px;
+}
+
+.tide-chart-wrap {
+  width: 100%;
+}
+
+.tide-chart-wrap svg {
+  width: 100%;
+  height: auto;
+}
+
+.tide-extremes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.tide-extreme {
+  border-top: 2px solid var(--rule);
+  padding-top: 8px;
+}
+.tide-extreme .ex-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.tide-extreme .ex-time {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.tide-extreme .ex-height {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px 24px;
+}
+
+.forecast-cell .fc-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.forecast-cell .fc-temp {
+  margin-top: 4px;
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.forecast-cell .fc-desc {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink2);
+}
+
+/* ---------- Recent changes ---------- */
+
+.changes {
+  padding-bottom: 24px;
+}
+
+.changes-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.changes-table td {
+  padding: 12px 8px 12px 0;
+  border-bottom: 1px solid var(--rule2);
+  font-size: 16px;
+  vertical-align: baseline;
+}
+
+.changes-table .col-time {
+  width: 130px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.changes-table .col-name {
+  font-weight: 700;
+}
+
+/* ---------- Footer ---------- */
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 2px solid var(--rule);
+  padding-top: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+/* ---------- Detail screen ---------- */
+
+.detail-hero {
+  padding: 28px 0 0;
+}
+
+.detail-hero .hero-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.detail-hero h1 {
+  margin-top: 6px;
+  font-size: 62px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 0.94;
+}
+
+.status-band {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+  padding: 20px 22px;
+  background: var(--open-card-bg);
+  border: 2px solid var(--open-card-border);
+}
+.status-band.is-limited {
+  background: var(--c-limited);
+  border-color: var(--c-limited);
+  color: var(--limited-ink);
+}
+.status-band.is-closed {
+  background: var(--c-closed);
+  border-color: var(--c-closed);
+  color: #fff;
+}
+
+.status-band .band-mark {
+  flex: none;
+  width: 16px;
+  height: 40px;
+  background: var(--c-open);
+}
+.status-band.is-limited .band-mark {
+  background: var(--limited-ink);
+}
+.status-band.is-closed .band-mark {
+  background: #fff;
+}
+
+.status-band .band-status {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+.status-band .band-since {
+  margin-top: 4px;
+  font-size: 15px;
+  opacity: 0.75;
+}
+
+.status-band .band-outlook {
+  margin-left: auto;
+  max-width: 40%;
+  font-size: 17px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+/* Today's midnight-to-midnight band. */
+.day-band {
+  padding: 24px 0;
+}
+
+.day-band-track {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  margin-top: 18px;
+}
+
+.day-band-seg {
+  height: 100%;
+}
+.day-band-seg.is-open {
+  background: var(--c-open);
+}
+.day-band-seg.is-limited {
+  background: var(--c-limited);
+}
+.day-band-seg.is-closed {
+  background: var(--c-closed);
+}
+.day-band-seg.is-gap {
+  background: var(--tidefill);
+}
+
+.day-band-now {
+  position: absolute;
+  top: -9px;
+  bottom: -9px;
+  width: 3px;
+  background: var(--ink);
+}
+
+.day-band-labels {
+  position: relative;
+  height: 44px;
+  margin-top: 8px;
+}
+
+.day-band-label {
+  position: absolute;
+  top: 0;
+}
+.day-band-label .seg-time {
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.day-band-label .seg-name {
+  font-size: 13px;
+  color: var(--ink2);
+  white-space: nowrap;
+}
+
+/* Detail two-up: tide + 48h feed. */
+.detail-two {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 40px;
+  padding-bottom: 24px;
+}
+
+/* Other ramps switcher. */
+.other-ramps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 24px;
+  padding: 8px 0 24px;
+}
+
+.other-ramp {
+  display: block;
+  border-top: 4px solid var(--rule2);
+  padding: 10px 0 12px;
+  font-size: 16px;
+  color: var(--ink2);
+}
+.other-ramp[aria-current='true'] {
+  border-top-color: var(--accent);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* ---------- Stat screens (/tide /water /wind) ---------- */
+
+.stat-screen {
+  padding: 28px 0;
+}
+.stat-screen h1 {
+  margin-top: 6px;
+  font-size: 62px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 0.94;
+  border-bottom: 2px solid var(--rule);
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+.stat-screen .stat-body {
+  max-width: 900px;
+}
+.stat-rows {
+  display: grid;
+  gap: 0;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule2);
+  font-size: 17px;
+}
+.stat-row .row-value {
+  font-weight: 800;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Loading ---------- */
+
+.boot-loading {
+  padding: 80px 0;
+  font-size: 15px;
+  color: var(--ink2);
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 1119px) {
+  .verdict {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 719px) {
+  :root {
+    --pad: 18px;
+  }
+
+  .topbar {
+    min-height: 58px;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  .brand-sub,
+  .phase-name {
+    display: none;
+  }
+  .clock {
+    font-size: 15px;
+  }
+  .topbar-right {
+    gap: 12px;
+  }
+  .freshness {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .citytabs {
+    display: none;
+  }
+  .city-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 46px;
+    border-bottom: 1px solid var(--rule2);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .city-select .count-note {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    color: var(--ink2);
+  }
+  .city-select .caret {
+    color: var(--accent);
+    margin-left: 8px;
+  }
+
+  .verdict {
+    padding: 24px 0 20px;
+  }
+  .verdict-main {
+    gap: 12px;
+  }
+  .verdict-bar {
+    width: 12px;
+    height: 46px;
+    margin-top: 2px;
+  }
+  .verdict-text h1 {
+    font-size: 34px;
+  }
+  .verdict-sub {
+    font-size: 15px;
+    margin-top: 8px;
+  }
+  .verdict-stats {
+    gap: 14px;
+  }
+  .stat-cell .stat-value {
+    font-size: 18px;
+  }
+  .stat-cell .stat-detail {
+    font-size: 12px;
+  }
+
+  .filters {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .ramp-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px 0 18px;
+  }
+  .ramp-card {
+    flex-direction: row;
+    align-items: center;
+    min-height: 62px;
+    padding: 12px 14px;
+  }
+  .ramp-card .card-index {
+    display: none;
+  }
+  .ramp-card .card-star {
+    position: static;
+    order: 3;
+    margin-left: 4px;
+  }
+  .ramp-card .card-name {
+    margin-top: 0;
+    font-size: 22px;
+  }
+  .ramp-card .card-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .ramp-card .card-bottom {
+    margin-top: 0;
+    padding-top: 0;
+    order: 2;
+    text-align: right;
+  }
+  .ramp-card .card-status {
+    justify-content: flex-end;
+    font-size: 15px;
+  }
+  .ramp-card .card-since-inline {
+    display: block;
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  .ramp-card .card-bottom .card-since {
+    display: none;
+  }
+
+  .tide-weather,
+  .detail-two {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .tide-extremes {
+    gap: 10px;
+  }
+  .tide-extreme .ex-time {
+    font-size: 14px;
+  }
+  .forecast-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .forecast-cell .fc-temp {
+    font-size: 20px;
+  }
+
+  .cam-offline h3 {
+    font-size: 16px;
+  }
+  .cam-offline p {
+    font-size: 11px;
+  }
+
+  .changes-table .col-time {
+    width: 88px;
+  }
+  .changes-table td {
+    font-size: 13px;
+    padding: 10px 6px 10px 0;
+  }
+
+  .foot {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .detail-hero h1,
+  .stat-screen h1 {
+    font-size: 34px;
+  }
+  .status-band {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+  .status-band .band-status {
+    font-size: 20px;
+  }
+  .status-band .band-outlook {
+    margin-left: 0;
+    max-width: none;
+    text-align: left;
+    font-size: 14px;
+    flex-basis: 100%;
+  }
+  .other-ramps {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 719px) {
+  /* Desktop-only since line under the name on mobile is shown inline. */
+  .ramp-card .card-name {
+    overflow-wrap: anywhere;
+  }
 }

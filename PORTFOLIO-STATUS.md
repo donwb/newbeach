@@ -14,15 +14,19 @@ app_review_state: |
   tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-14 (tvOS focus-order fix + coastal status colors shipped, remote nav covered by UI tests; cam relay live)
+last_verified: 2026-08-15 (web redesign shipped: board + /ramp/:id detail, sun-following ground, Tailwind CDN dropped; API intervals endpoint + SPA fallback live)
 ---
 
 ## Top open items
-1. Carry the 2026-08 design language to iPadOS → iPhone → web (agreed sequence; tvOS
-   shipped first and named the tokens). Includes migrating iOS AppTheme + WatchTheme to
-   the BeachStatus StatusColors (coastal retune 2026-08-14: #29C97A/#E8A23C/#C64B38) and
-   retiring the old statusOpen/#10B981 family. Handoff spec:
-   "August design_handoff_tvos_board/README.md".
+1. Carry the 2026-08 design language to iPadOS → iPhone (web shipped 2026-08-15; tvOS
+   named the tokens). Includes migrating iOS AppTheme + WatchTheme to the BeachStatus
+   StatusColors (coastal retune 2026-08-14: #29C97A/#E8A23C/#C64B38) and retiring the
+   old statusOpen/#10B981 family. Handoff specs:
+   "August design_handoff_tvos_board/README.md", design-review/design_handoff_web/.
+1b. Web detail-screen facts row deferred: per-ramp metadata (closure heights, address,
+   driving hours, nearest-cam distance) doesn't exist anywhere yet — needs a
+   ramp_metadata table + admin endpoints; the dashed closure line on the detail tide
+   chart is built (renderTideChartSVG closureFt) and dormant until then.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
@@ -59,6 +63,14 @@ last_verified: 2026-08-14 (tvOS focus-order fix + coastal status colors shipped,
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-15: Web redesign shipped (from design-review/design_handoff_web/): verdict
+  band, status carried by card fields, sun-following ground (16 tvOS sky phases, JS
+  ports of SolarCalculator/SkyPalette/VerdictBuilder/TideCurve with 46 Node smoke
+  checks), new /ramp/:id detail screen (status band, midnight-to-midnight intervals
+  band, per-ramp 48h feed), /tide /water /wind stat routes, SVG tide chart, ES-module
+  rewrite of app.js, Tailwind Play CDN + dark-mode toggle removed, self-hosted Archivo,
+  sw v3 with navigation fallback. API: /api/v2/ramps/:id/intervals + Echo HTML5 SPA
+  fallback (migration 007 index). Facts row + closure line deferred (no metadata yet).
 - 2026-08-14 (evening): tvOS remote-navigation fix — cam banner swapped from AVKit
   VideoPlayer to a bare AVPlayerLayer (it was a giant focusable that swallowed
   directional + Menu presses), row focus sections (top bar / verdict band / rail),
