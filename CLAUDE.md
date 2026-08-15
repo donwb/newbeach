@@ -117,6 +117,13 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 - **Architecture:** the home Mac runs `scripts/cam-restreamer.sh` (launchd job `scripts/com.donwb.cam-restreamer.plist`): per roster camera, yt-dlp (mweb player client — its URLs sustain; the default web client's cut off after the ~40s DVR window) downloads the live stream and pipes to ffmpeg, which remuxes (`-c copy`, no transcode) and publishes over authenticated RTMP to the relay droplet.
 - **Relay:** DigitalOcean droplet `beach-cam-relay` (68.183.149.152, nyc3, $6/mo) running MediaMTX — RTMP ingest on :1935 (publisher password), HLS out through Caddy auto-TLS at `https://cams.donwb.com` (sslip.io fallback hostname also configured). Config at `/opt/mediamtx/mediamtx.yml`; systemd services `mediamtx` and `caddy`; HLS variant is classic mpegts for maximum hls.js/AVPlayer compatibility.
 - **Stable URLs:** each camera serves at `https://cams.donwb.com/<camera-id>/index.m3u8` — stream URLs no longer rotate, so the roster's `stream_url` values are effectively permanent.
+- **Deploying restreamer changes: `make deploy-restreamer` (on the Studio).** launchd runs a
+  *copy* at `~/bin/cam-restreamer.sh`, not the repo file — editing `scripts/cam-restreamer.sh`
+  alone changes nothing on the running system. The target copies, warns if
+  `~/.cam-restreamer.env` sets `API_BASE` (an env value silently overrides the script's
+  default), kickstarts the job, and tails the log. `make restreamer-status` shows launchd
+  state plus cam endpoint health; `make restreamer-diff` shows whether the deployed copy has
+  drifted. The targets refuse to run on any machine where the launchd job isn't loaded.
 - **Retired:** `scripts/update-stream-url.sh` (the URL-push cron). Remove its crontab entry wherever the restreamer gets installed.
 
 ## Tidbyt (Retired)
