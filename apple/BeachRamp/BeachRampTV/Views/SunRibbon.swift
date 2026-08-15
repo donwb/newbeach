@@ -33,6 +33,10 @@ struct SunTimeline {
     let civilDusk: Event?          // −6° ↓ — last light
     let nauticalDusk: Event?       // −9° ↓
     let astronomicalDusk: Event?   // −18° ↓
+    /// Tomorrow's sunrise — the night caption points forward to it instead of
+    /// repeating today's (already shown in the ribbon's left label). Its
+    /// fraction is relative to tomorrow and never placed on today's gradient.
+    let tomorrowSunrise: Event?
 
     init(day: Date, solar: SolarCalculator, calendar: Calendar, zone: TimeZone) {
         let formatter = DateFormatter()
@@ -66,6 +70,12 @@ struct SunTimeline {
         civilDusk = crossing(-6, rising: false)
         nauticalDusk = crossing(-9, rising: false)
         astronomicalDusk = crossing(-18, rising: false)
+
+        if let nextDay = calendar.date(byAdding: .day, value: 1, to: day) {
+            tomorrowSunrise = event(solar.events(on: nextDay, calendar: calendar).sunrise)
+        } else {
+            tomorrowSunrise = nil
+        }
     }
 
     /// Fraction (0…1) of the local calendar day represented by `date`.
@@ -220,7 +230,13 @@ struct SunRibbon: View {
             if let d = t.civilDusk { return "Sunset \(set.timeText) · dusk until \(d.timeText)" }
             return "Sunset was \(set.timeText)"
         case .night:
-            return "Sunrise \(rise.timeText)"
+            // Post-dusk evening: today's sunrise is hours in the past (and
+            // already printed in the left label) — point at tomorrow's.
+            // The after-midnight hours fall under .preDawn, not here.
+            if let tomorrow = t.tomorrowSunrise {
+                return "Sunrise tomorrow at \(tomorrow.timeText)"
+            }
+            return "Sunrise at \(rise.timeText)"
         }
     }
 
