@@ -61,6 +61,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/ramps", HandleV2Ramps(pool))
 	v2.GET("/ramps/:id", HandleV2RampByID(pool))
 	v2.GET("/ramps/:id/history", HandleV2RampHistory(pool))
+	v2.GET("/ramps/:id/intervals", HandleV2RampIntervals(pool))
 	v2.GET("/activity", HandleV2RecentActivity(pool))
 	v2.GET("/tides", HandleV2Tides(noaaClient))
 	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))

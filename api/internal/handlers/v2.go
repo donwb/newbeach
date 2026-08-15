@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
@@ -417,6 +418,127 @@ func HandleV2RampHistory(pool *pgxpool.Pool) echo.HandlerFunc {
 			"history": entries,
 		})
 	}
+}
+
+// HandleV2RampIntervals returns a ramp's status history as contiguous
+// intervals over a trailing window, suitable for rendering a timeline band.
+// GET /api/v2/ramps/:id/intervals?hours=48 (hours clamped to 1..168)
+func HandleV2RampIntervals(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		idStr := c.Param("id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "invalid ramp id",
+			})
+		}
+
+		ramp, err := database.GetRampByID(ctx, pool, id)
+		if err != nil {
+			slog.Error("fetching ramp for intervals", "id", id, "err", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "failed to fetch ramp",
+			})
+		}
+		if ramp == nil {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "ramp not found",
+			})
+		}
+
+		hours, err := parseIntervalHours(c.QueryParam("hours"))
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "invalid hours parameter",
+			})
+		}
+
+		windowEnd := time.Now().UTC()
+		windowStart := windowEnd.Add(-time.Duration(hours) * time.Hour)
+
+		events, err := database.GetRampStatusEvents(ctx, pool, ramp.AccessID, windowStart)
+		if err != nil {
+			slog.Error("querying status events", "access_id", ramp.AccessID, "err", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "failed to query ramp status events",
+			})
+		}
+
+		intervals := buildIntervals(events, windowStart, windowEnd, ramp.AccessStatus)
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"ramp":         ramp,
+			"window_start": windowStart,
+			"window_end":   windowEnd,
+			"intervals":    intervals,
+		})
+	}
+}
+
+// parseIntervalHours parses the intervals endpoint's hours parameter.
+// Empty means the default 48; values clamp to 1..168.
+func parseIntervalHours(raw string) (int, error) {
+	if raw == "" {
+		return 48, nil
+	}
+	hours, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("parsing hours %q: %w", raw, err)
+	}
+	if hours < 1 {
+		hours = 1
+	}
+	if hours > 168 {
+		hours = 168
+	}
+	return hours, nil
+}
+
+// buildIntervals pairs ordered status-change events into contiguous intervals
+// covering [windowStart, windowEnd]. A baseline event recorded before
+// windowStart has its start clamped to windowStart. With no events at all the
+// whole window carries currentStatus. With events but no baseline (history
+// younger than the window) the first interval starts at its event time,
+// leaving an honest gap at the head of the window. Consecutive events with
+// the same status merge into one interval.
+func buildIntervals(events []models.StatusEvent, windowStart, windowEnd time.Time, currentStatus string) []models.RampStatusInterval {
+	if len(events) == 0 {
+		return []models.RampStatusInterval{{
+			Status:   currentStatus,
+			Category: models.StatusToCategory(currentStatus),
+			Start:    windowStart,
+			End:      windowEnd,
+		}}
+	}
+
+	intervals := make([]models.RampStatusInterval, 0, len(events))
+	for _, e := range events {
+		start := e.RecordedAt
+		if start.Before(windowStart) {
+			start = windowStart
+		}
+		if !start.Before(windowEnd) {
+			break
+		}
+
+		if n := len(intervals); n > 0 {
+			if intervals[n-1].Status == e.AccessStatus {
+				continue // merge: previous interval already carries this status
+			}
+			intervals[n-1].End = start
+		}
+
+		intervals = append(intervals, models.RampStatusInterval{
+			Status:   e.AccessStatus,
+			Category: models.StatusToCategory(e.AccessStatus),
+			Start:    start,
+			End:      windowEnd,
+		})
+	}
+
+	return intervals
 }
 
 // HandleV2RecentActivity returns recent status changes across all ramps.

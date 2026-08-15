@@ -46,6 +46,22 @@ type RampHistoryEntry struct {
 	City         string    `json:"city,omitempty"`
 }
 
+// StatusEvent is a bare status change: what the status became and when.
+// Used as the input to interval derivation.
+type StatusEvent struct {
+	AccessStatus string    `json:"access_status"`
+	RecordedAt   time.Time `json:"recorded_at"`
+}
+
+// RampStatusInterval is a span of time during which a ramp held one status.
+// Intervals are derived from ramp_status_history change events.
+type RampStatusInterval struct {
+	Status   string    `json:"status"`
+	Category string    `json:"category"`
+	Start    time.Time `json:"start"`
+	End      time.Time `json:"end"`
+}
+
 // StatusToCategory maps a raw access status string to a category:
 // "open", "limited", or "closed".
 func StatusToCategory(status string) string {

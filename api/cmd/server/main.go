@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
 	beachapi "github.com/donwb/beach/api"
 	"github.com/donwb/beach/api/internal/database"
@@ -106,25 +107,6 @@ func main() {
 	e.HideBanner = true
 	e.HidePort = true
 
-	// Serve static website files from the filesystem.
-	// In Docker, web files are at /web; locally, they're at ../web or ./web.
-	webDir := os.Getenv("WEB_DIR")
-	if webDir == "" {
-		// Try common local dev paths.
-		for _, candidate := range []string{"web", "../web", "../../web"} {
-			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-				webDir = candidate
-				break
-			}
-		}
-	}
-	if webDir != "" {
-		slog.Info("serving static files", "dir", webDir)
-		e.Static("/", webDir)
-	} else {
-		slog.Warn("web directory not found, static file serving disabled")
-	}
-
 	// Video stream refresher — resolves the rotating YouTube live HLS URL via
 	// yt-dlp and persists to the `video_stream_url` setting. There is no
 	// server-side polling: YouTube bot-blocks yt-dlp from datacenter IPs, so
@@ -142,6 +124,37 @@ func main() {
 	// Register API routes.
 	ing := ingester.New(pool, gisHost, pollInterval)
 	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing)
+
+	// Serve static website files from the filesystem, after API routes so the
+	// CORS and logging middleware registered there wrap static responses too.
+	// In Docker, web files are at /web; locally, they're at ../web or ./web.
+	// HTML5 mode serves index.html for any path with no matching file and no
+	// registered route (/ramp/:id, /tide, /water, /wind — the SPA routes).
+	// NOTE: the fallback triggers on *echo.HTTPError 404s. API handlers return
+	// JSON errors via c.JSON (never echo.NewHTTPError), which keeps them out of
+	// the fallback — keep it that way, and the /api/ Skipper guards the rest.
+	webDir := os.Getenv("WEB_DIR")
+	if webDir == "" {
+		// Try common local dev paths.
+		for _, candidate := range []string{"web", "../web", "../../web"} {
+			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+				webDir = candidate
+				break
+			}
+		}
+	}
+	if webDir != "" {
+		slog.Info("serving static files", "dir", webDir)
+		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+			Root:  webDir,
+			HTML5: true,
+			Skipper: func(c echo.Context) bool {
+				return strings.HasPrefix(c.Request().URL.Path, "/api/")
+			},
+		}))
+	} else {
+		slog.Warn("web directory not found, static file serving disabled")
+	}
 
 	// Start the data ingester in a background goroutine.
 	ctx, cancel := context.WithCancel(context.Background())

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/donwb/beach/api/internal/models"
 	"github.com/jackc/pgx/v5"
@@ -214,6 +215,48 @@ func GetRampHistory(ctx context.Context, pool *pgxpool.Pool, accessID string, li
 	}
 
 	return entries, nil
+}
+
+// GetRampStatusEvents returns a ramp's status-change events from `since`
+// onward, plus the single most recent event before `since` (the baseline —
+// the status already in effect when the window opens). Results are ordered
+// oldest-first.
+func GetRampStatusEvents(ctx context.Context, pool *pgxpool.Pool, accessID string, since time.Time) ([]models.StatusEvent, error) {
+	const query = `
+		SELECT access_status, recorded_at FROM (
+			(SELECT access_status, recorded_at
+			 FROM ramp_status_history
+			 WHERE access_id = $1 AND recorded_at < $2
+			 ORDER BY recorded_at DESC
+			 LIMIT 1)
+			UNION ALL
+			(SELECT access_status, recorded_at
+			 FROM ramp_status_history
+			 WHERE access_id = $1 AND recorded_at >= $2)
+		) events
+		ORDER BY recorded_at
+	`
+
+	rows, err := pool.Query(ctx, query, accessID, since)
+	if err != nil {
+		return nil, fmt.Errorf("querying status events for access_id %s: %w", accessID, err)
+	}
+	defer rows.Close()
+
+	var events []models.StatusEvent
+	for rows.Next() {
+		var e models.StatusEvent
+		if err := rows.Scan(&e.AccessStatus, &e.RecordedAt); err != nil {
+			return nil, fmt.Errorf("scanning status event row: %w", err)
+		}
+		events = append(events, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating status event rows: %w", err)
+	}
+
+	return events, nil
 }
 
 // GetRecentHistory returns the most recent history entries across all ramps,

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_ramp_status_history_access_recorded;
