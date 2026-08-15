@@ -8,22 +8,24 @@ platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
   Web+API: live at https://beach.donwb.com (verified 2026-08-12, INTAKE dossier).
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (16) uploaded 2026-08-15. The stale "Beach Ramp iOS App" record still needs deleting.
-  TRMNL: two private plugin templates in trmnl/, active devices.
+  TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
   iOS: Prepare for Submission, never submitted. Build 1.0 (16) uploaded to TestFlight 2026-08-15 — first iOS build ever to reach the record. Old "Beach Ramp iOS App" record still to be deleted.
   tvOS: Prepare for Submission, never submitted. Record "Beach Ramp Status" (Apple ID 6761724123) is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV by upload history reaching build 15. Build 1.0 (16) uploaded 2026-08-15 alongside iOS.
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight as 1.0 (16) to the one com.donwb.BeachRampTV record; repo repointed to beach.donwb.com and verified against live endpoints with both apps rebuilt and run in simulator; design handoff boards committed. Remaining: delete the stale "Beach Ramp iOS App" ASC record, update TRMNL plugin polling URLs, restart the cam restreamer.)
+last_verified: 2026-08-15 (ASC consolidation COMPLETE — stale iOS record deleted, both platforms flighted as 1.0 (16) to the one com.donwb.BeachRampTV record. Domain move done in-repo and on TRMNL; cam restreamer still on the old hostname pending `make deploy-restreamer` on the Studio. iOS/iPad redesign starting against design-review/design_handoff_ios/.)
 ---
 
 ## Top open items
 1. Carry the 2026-08 design language to iPadOS → iPhone (web shipped 2026-08-15; tvOS
    named the tokens). Includes migrating iOS AppTheme + WatchTheme to the BeachStatus
    StatusColors (coastal retune 2026-08-14: #29C97A/#E8A23C/#C64B38) and retiring the
-   old statusOpen/#10B981 family. Handoff specs:
-   "August design_handoff_tvos_board/README.md", design-review/design_handoff_web/.
+   old statusOpen/#10B981 family. IN PROGRESS as of 2026-08-15. Handoff specs:
+   design-review/design_handoff_ios/ (11 screens: iPhone board/detail/cam, iPad
+   landscape/portrait/sheet, widgets, Live Activity, watch), plus the precedents in
+   "August design_handoff_tvos_board/README.md" and design-review/design_handoff_web/.
 1b. Web detail-screen facts row deferred: per-ramp metadata (closure heights, address,
    driving hours, nearest-cam distance) doesn't exist anywhere yet — needs a
    ramp_metadata table + admin endpoints; the dashed closure line on the detail tide
@@ -44,19 +46,19 @@ last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight as 
    is still wanted before calling it done.
 3. Web multi-camera switcher — backend roster (5 cams, /api/v2/cameras) and iOS/tvOS
    switchers shipped; website still plays the single default stream. INTAKE §6.
-4. Finish domain move to beach.donwb.com — repo side done 2026-08-15 (commit c5eb5b9):
-   Apple apps, CI health check, cam restreamer, and TRMNL template docs all repointed,
-   verified against live endpoints. Two things remain OUTSIDE the repo: (a) the TRMNL
-   polling URLs live in the TRMNL plugin settings, not trmnl/*.html, so both devices still
-   fetch the old hostname until Don edits the plugin config; (b) scripts/cam-restreamer.sh
-   reads API_BASE from ~/.cam-restreamer.env first, so the running launchd job needs an env
-   check + restart. Also: TestFlight build 16 predates the change and still ships the old
-   hostname — needs a re-flight.
-5. Consolidate the App Store Connect records — repo side done and both platforms flighted
-   as 1.0 (16) to the one com.donwb.BeachRampTV record (Apple ID 6761724123). Remaining:
-   delete the stale "Beach Ramp iOS App" record in ASC, then the three orphaned App IDs
-   (com.donwb.BeachRamp, .BeachRampiOS, and its watchkitapp) will finally delete — they
-   refuse while that record still holds them. Cleanup only; nothing is blocked on it.
+4. Finish domain move to beach.donwb.com — repo repointed 2026-08-15 (c5eb5b9) and verified
+   against live endpoints; TRMNL plugin polling URLs updated by Don the same day. TWO THINGS
+   REMAIN: (a) the cam restreamer on the Studio was still logging fetches from the old
+   hostname as of 12:23 — launchd runs a COPY at ~/bin/cam-restreamer.sh, and an API_BASE in
+   ~/.cam-restreamer.env overrides the script default, so both need checking; `make
+   deploy-restreamer` (a1c1f05) now handles the copy + kickstart and warns about the env
+   override. (b) TestFlight build 16 predates the change and still ships the old hostname —
+   needs a re-flight before any submission.
+5. DONE 2026-08-15 — App Store Connect records consolidated. Both platforms flight as
+   1.0 (16) to the single "Beach Ramp Status" record (Apple ID 6761724123, bundle ID
+   com.donwb.BeachRampTV); the stale "Beach Ramp iOS App" record was deleted by Don. Only
+   cosmetic leftovers: the orphaned App IDs (com.donwb.BeachRamp, .BeachRampiOS and its
+   watchkitapp) may now delete in the portal, having been blocked by that record.
 6. Historical analytics dashboard — ramp_status_history has been collecting since March,
    but the trends UI (web + iOS) was in-scope and never built. REQUIREMENTS.md §16.1.
 7. Refresh marketing screenshots — slides/screenshots/ are from March 2026, predating the
