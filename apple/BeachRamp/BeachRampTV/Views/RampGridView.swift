@@ -34,6 +34,8 @@ struct TVRampTile: View {
     let index: Int
     let staleAsOf: String?
 
+    @Environment(\.skyPalette) private var sky
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
@@ -91,16 +93,14 @@ struct TVRampTile: View {
     private var fieldColor: Color {
         switch ramp.category {
         case .open: BoardColor.tileFieldOpen
-        case .limited: StatusCategory.limited.statusColor
-        case .closed: StatusCategory.closed.statusColor
+        case .limited, .closed: sky.statusColor(for: ramp.category)
         }
     }
 
     private var borderColor: Color {
         switch ramp.category {
         case .open: BoardColor.tileBorderOpen
-        case .limited: StatusCategory.limited.statusColor
-        case .closed: StatusCategory.closed.statusColor
+        case .limited, .closed: sky.statusColor(for: ramp.category)
         }
     }
 
@@ -113,7 +113,7 @@ struct TVRampTile: View {
 
     private var markColor: Color {
         switch ramp.category {
-        case .open: StatusCategory.open.statusColor
+        case .open: sky.statusColor(for: .open)
         case .limited: BoardColor.limitedInk
         case .closed: .white
         }

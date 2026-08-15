@@ -15,6 +15,7 @@ struct TopBar: View {
     let onNextCity: () -> Void
 
     @FocusState private var cityFocused: Bool
+    @Environment(\.skyPalette) private var sky
 
     var body: some View {
         HStack(alignment: .center) {
@@ -59,7 +60,7 @@ struct TopBar: View {
         let isStale = freshness != .live
         HStack(spacing: 12) {
             Circle()
-                .fill(isStale ? StatusCategory.limited.statusColor : StatusCategory.open.statusColor)
+                .fill(sky.statusColor(for: isStale ? .limited : .open))
                 .frame(width: 14, height: 14)
             Text(label)
                 .font(.system(size: 24, weight: .semibold))
@@ -70,11 +71,11 @@ struct TopBar: View {
         // Rectangle, not a bare Color: ShapeStyle backgrounds default to
         // ignoresSafeAreaEdges: .all and smear to the screen edge up here.
         .background(Rectangle().fill(isStale
-            ? StatusCategory.limited.statusColor.opacity(0.22)
+            ? sky.statusColor(for: .limited).opacity(0.22)
             : Color.white.opacity(0.10)))
         .overlay(
             Rectangle().strokeBorder(
-                isStale ? StatusCategory.limited.statusColor : Color.white.opacity(0.28),
+                isStale ? sky.statusColor(for: .limited) : Color.white.opacity(0.28),
                 lineWidth: 2
             )
         )

@@ -2,23 +2,29 @@
 import SwiftUI
 
 /// Canonical status colors, shared by every platform. Retuned in the 2026
-/// tvOS redesign to hold contrast against the sky gradient at both ends of
-/// the day; replaces the per-target tvStatus*/statusOpen families.
+/// tvOS redesign to hold contrast against the sky gradient, then again in
+/// August 2026 into the coastal family the sky already uses — sea green,
+/// sandy amber, terracotta — so closed fields stop reading as traffic-light
+/// red against the night board.
 public extension StatusCategory {
-    /// open `#2AE07A` · limited `#F5A214` · closed `#E63A2B`
+    /// open `#29C97A` · limited `#E8A23C` · closed `#C64B38`
     var statusColor: Color {
+        Color(red: statusRGB.red, green: statusRGB.green, blue: statusRGB.blue)
+    }
+
+    /// Raw sRGB components of `statusColor`, for surfaces that interpolate
+    /// status colors numerically (the tvOS board mutes them toward the
+    /// night sky as the sun sets).
+    var statusRGB: (red: Double, green: Double, blue: Double) {
         switch self {
-        case .open: Color(statusHex: 0x2AE07A)
-        case .limited: Color(statusHex: 0xF5A214)
-        case .closed: Color(statusHex: 0xE63A2B)
+        case .open: Self.rgb(0x29C97A)
+        case .limited: Self.rgb(0xE8A23C)
+        case .closed: Self.rgb(0xC64B38)
         }
     }
-}
 
-extension Color {
-    /// Internal so it can't collide with app-target `Color(hex:)` helpers.
-    init(statusHex hex: UInt32) {
-        self.init(
+    private static func rgb(_ hex: UInt32) -> (red: Double, green: Double, blue: Double) {
+        (
             red: Double((hex >> 16) & 0xFF) / 255,
             green: Double((hex >> 8) & 0xFF) / 255,
             blue: Double(hex & 0xFF) / 255

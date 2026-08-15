@@ -148,13 +148,44 @@ struct SkyPalette {
             dimming: dimming + (other.dimming - dimming) * t
         )
     }
+
+    // MARK: Night-muted status colors
+
+    /// How far into night the sky is: 0 across the bright-day range,
+    /// 1 at deep night (dimming 0.55).
+    var nightness: Double { min(1, max(0, (1 - dimming) / 0.45)) }
+
+    /// Board status color, muted toward the night sky after dark. The dim
+    /// scrim only darkens — it can't desaturate — so an unblended closed
+    /// field glows against the near-black sky all night. Overlays keep raw
+    /// `statusColor`: they render above the scrim as opaque designed fields.
+    func statusColor(for category: StatusCategory) -> Color {
+        let c = category.statusRGB
+        let t = 0.35 * nightness
+        // Blend target: the night palette's mid stop (#101830).
+        let night = SkyStop(0x101830)
+        return Color(
+            red: c.red + (night.r - c.red) * t,
+            green: c.green + (night.g - c.green) * t,
+            blue: c.blue + (night.b - c.blue) * t
+        )
+    }
+}
+
+/// The board's current sky, injected by ContentView so status surfaces can
+/// mute with the sun. Defaults to full noon for previews.
+private struct SkyPaletteKey: EnvironmentKey {
+    static let defaultValue = SkyPalette.forSun(altitude: 48, isRising: true)
+}
+
+extension EnvironmentValues {
+    var skyPalette: SkyPalette {
+        get { self[SkyPaletteKey.self] }
+        set { self[SkyPaletteKey.self] = newValue }
+    }
 }
 
 extension StatusCategory {
-    /// Canonical status color from the shared package (open #2AE07A,
-    /// limited #F5A214, closed #E63A2B).
-    var tvColor: Color { statusColor }
-
     var tvLabel: String {
         switch self {
         case .open: return "Open"

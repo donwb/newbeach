@@ -90,6 +90,7 @@ struct ContentView: View {
 
             overlayLayer
         }
+        .environment(\.skyPalette, palette)
         .animation(.easeInOut(duration: 2.0), value: sunAltitude)
         .onExitCommand {
             // Menu on the board opens Recent changes (an open overlay's own

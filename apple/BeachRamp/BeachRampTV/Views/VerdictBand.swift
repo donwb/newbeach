@@ -22,6 +22,8 @@ struct VerdictBand: View {
     let stats: [StatTileModel]
     let onSelect: (DetailPanel) -> Void
 
+    @Environment(\.skyPalette) private var sky
+
     var body: some View {
         HStack(alignment: .top, spacing: 48) {
             headline
@@ -40,7 +42,7 @@ struct VerdictBand: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 20) {
                 Rectangle()
-                    .fill(verdict.category.statusColor)
+                    .fill(sky.statusColor(for: verdict.category))
                     .frame(width: 22, height: 76)
                 Text(verdict.headline)
                     .font(.system(size: 84, weight: .bold))
