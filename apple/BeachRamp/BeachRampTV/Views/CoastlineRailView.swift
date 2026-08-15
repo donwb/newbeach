@@ -6,12 +6,17 @@ import BeachStatus
 /// Camera switcher as a row of flat rules, ordered north (left) to south
 /// (right). The active camera's name is bold over a 4pt solid white rule;
 /// inactive pins are quiet 2pt rules. Moving focus channel-flips the stream;
-/// clicking selects too. A Menu affordance sits at the right edge.
+/// clicking selects too. A Recent changes button sits at the right edge
+/// (the Menu press remains a shortcut to the same overlay).
 struct CoastlineRail: View {
     let cameras: [Camera]
     let selectedID: String?
     @FocusState.Binding var focusedCamera: String?
+    /// Owned by ContentView so closing the Recent-changes overlay can hand
+    /// focus back to the button that opened it.
+    @FocusState.Binding var recentChangesFocused: Bool
     let onSelect: (String) -> Void
+    let onRecentChanges: () -> Void
 
     /// North→south ordering along the Volusia coast, keyed by camera id.
     /// Matches the geographic positions the old pin rail used.
@@ -57,10 +62,21 @@ struct CoastlineRail: View {
 
             Spacer(minLength: 0)
 
-            Label("Recent changes", systemImage: "line.3.horizontal")
-                .font(.system(size: 22))
-                .foregroundStyle(.white.opacity(0.6))
-                .padding(.top, 2)
+            Button {
+                onRecentChanges()
+            } label: {
+                Label("Recent changes", systemImage: "line.3.horizontal")
+                    .font(.system(size: 22))
+                    .opacity(recentChangesFocused ? 1.0 : 0.6)
+            }
+            .buttonStyle(FlatFocusButtonStyle(
+                isFocused: recentChangesFocused,
+                horizontalPadding: 16,
+                verticalPadding: 8,
+                idleFill: 0,
+                idleBorder: 0
+            ))
+            .focused($recentChangesFocused)
         }
         .focusSection()
         .animation(.easeOut(duration: 0.15), value: focusedCamera)
@@ -113,6 +129,7 @@ private struct CoastPin: View {
 #if DEBUG
 #Preview {
     @Previewable @FocusState var focused: String?
+    @Previewable @FocusState var recentFocused: Bool
     ZStack {
         Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
         VStack {
@@ -121,7 +138,9 @@ private struct CoastPin: View {
                 cameras: PreviewFixtures.cameras,
                 selectedID: "nsb",
                 focusedCamera: $focused,
-                onSelect: { _ in }
+                recentChangesFocused: $recentFocused,
+                onSelect: { _ in },
+                onRecentChanges: {}
             )
             .padding(.horizontal, 60)
             .padding(.bottom, 52)

@@ -54,6 +54,9 @@ struct TopBar: View {
         }
         .frame(height: 56)
         .foregroundStyle(.white)
+        // Row-level focus section: the row's only control sits far left, so
+        // without this, Up from the right-side stat tiles skips the row.
+        .focusSection()
     }
 
     @ViewBuilder private var freshnessChip: some View {

@@ -44,8 +44,7 @@ struct TVVideoPlayerView: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             if !showOffline, let player {
-                VideoPlayer(player: player)
-                    .aspectRatio(1280.0/270.0, contentMode: .fill)
+                PlayerLayerView(player: player)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
@@ -170,6 +169,32 @@ struct TVVideoPlayerView: View {
         player = newPlayer
         if isPlaying {
             newPlayer.play()
+        }
+    }
+}
+
+/// Bare AVPlayerLayer host. AVKit's `VideoPlayer` wraps AVPlayerViewController,
+/// which is focusable and consumes directional and Menu presses once focused —
+/// the cam is an ambient live stream with no transport UI, so it must never
+/// enter the focus graph.
+private struct PlayerLayerView: UIViewRepresentable {
+    let player: AVPlayer
+
+    final class LayerHostView: UIView {
+        override static var layerClass: AnyClass { AVPlayerLayer.self }
+        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    }
+
+    func makeUIView(context: Context) -> LayerHostView {
+        let view = LayerHostView()
+        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer.player = player
+        return view
+    }
+
+    func updateUIView(_ view: LayerHostView, context: Context) {
+        if view.playerLayer.player !== player {
+            view.playerLayer.player = player
         }
     }
 }

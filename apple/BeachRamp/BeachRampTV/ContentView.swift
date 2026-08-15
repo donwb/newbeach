@@ -30,6 +30,13 @@ struct ContentView: View {
     @State private var detailPanel: DetailPanel = .none
     /// The Recent-changes overlay (Menu from the board).
     @State private var showActivity = false
+    /// Which stat tile has focus. Owned here so closing a detail overlay can
+    /// hand focus back to the tile that opened it.
+    @FocusState private var focusedStat: DetailPanel?
+    /// True while the Recent-changes overlay was opened from the rail button
+    /// (vs. the Menu shortcut) — focus returns to the button on close.
+    @State private var activityOpenedFromButton = false
+    @FocusState private var recentChangesButtonFocused: Bool
 
     private let solar = SolarCalculator.newSmyrnaBeach
 
@@ -116,6 +123,20 @@ struct ContentView: View {
             // unchanged or the camera's URL isn't resolved yet.
             if let id { viewModel.selectCamera(id) }
         }
+        .onChange(of: detailPanel) { old, new in
+            // Hand focus back to the tile that opened the overlay. Deferred a
+            // runloop so the tile is back in the focus hierarchy after the
+            // overlay (which grabbed focus on appear) tears down.
+            if new == .none && old != .none {
+                DispatchQueue.main.async { focusedStat = old }
+            }
+        }
+        .onChange(of: showActivity) { _, open in
+            if !open && activityOpenedFromButton {
+                activityOpenedFromButton = false
+                DispatchQueue.main.async { recentChangesButtonFocused = true }
+            }
+        }
     }
 
     // MARK: - Overlays
@@ -166,6 +187,7 @@ struct ContentView: View {
             VerdictBand(
                 verdict: viewModel.verdict,
                 stats: statTiles,
+                focusedStat: $focusedStat,
                 onSelect: { detailPanel = $0 }
             )
             .padding(.top, 22)
@@ -203,7 +225,12 @@ struct ContentView: View {
                     cameras: viewModel.cameras,
                     selectedID: viewModel.selectedCameraID,
                     focusedCamera: $focusedCamera,
-                    onSelect: { viewModel.selectCamera($0) }
+                    recentChangesFocused: $recentChangesButtonFocused,
+                    onSelect: { viewModel.selectCamera($0) },
+                    onRecentChanges: {
+                        activityOpenedFromButton = true
+                        showActivity = true
+                    }
                 )
                 .padding(.top, 16)
             }

@@ -20,6 +20,9 @@ struct StatTileModel {
 struct VerdictBand: View {
     let verdict: Verdict
     let stats: [StatTileModel]
+    /// Owned by ContentView so it can restore focus to the tile that opened
+    /// a detail overlay after that overlay closes.
+    @FocusState.Binding var focusedStat: DetailPanel?
     let onSelect: (DetailPanel) -> Void
 
     @Environment(\.skyPalette) private var sky
@@ -31,11 +34,15 @@ struct VerdictBand: View {
 
             HStack(spacing: 20) {
                 ForEach(stats, id: \.label) { stat in
-                    StatTile(stat: stat, onSelect: onSelect)
+                    StatTile(stat: stat, focusedStat: $focusedStat, onSelect: onSelect)
                 }
             }
             .frame(width: 687)
         }
+        // Focus section across the whole band (headline included) so Down
+        // from the far-left city chip enters the stat tiles instead of
+        // falling through to the rail — the tiles sit on the right edge.
+        .focusSection()
     }
 
     private var headline: some View {
@@ -65,9 +72,10 @@ struct VerdictBand: View {
 /// A focusable stat tile. Select opens its detail panel.
 private struct StatTile: View {
     let stat: StatTileModel
+    @FocusState.Binding var focusedStat: DetailPanel?
     let onSelect: (DetailPanel) -> Void
 
-    @FocusState private var focused: Bool
+    private var focused: Bool { focusedStat == stat.panel }
 
     var body: some View {
         Button {
@@ -103,11 +111,12 @@ private struct StatTile: View {
             horizontalPadding: 16,
             verticalPadding: 12
         ))
-        .focused($focused)
+        .focused($focusedStat, equals: stat.panel)
     }
 }
 
 #Preview {
+    @Previewable @FocusState var focusedStat: DetailPanel?
     ZStack {
         Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
         VStack {
@@ -122,6 +131,7 @@ private struct StatTile: View {
                     StatTileModel(label: "Water · Air", value: "82° · 89°", detail: "Mostly clear", panel: .temp),
                     StatTileModel(label: "Wind", value: "ENE 9", detail: "Sat 93°", panel: .wind),
                 ],
+                focusedStat: $focusedStat,
                 onSelect: { _ in }
             )
             .padding(.horizontal, 60)
@@ -132,6 +142,7 @@ private struct StatTile: View {
 }
 
 #Preview("Closed") {
+    @Previewable @FocusState var focusedStat: DetailPanel?
     ZStack {
         Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
         VStack {
@@ -146,6 +157,7 @@ private struct StatTile: View {
                     StatTileModel(label: "Water · Air", value: "82° · 89°", detail: "Mostly clear", panel: .temp),
                     StatTileModel(label: "Wind", value: "ENE 9", detail: "Sat 93°", panel: .wind),
                 ],
+                focusedStat: $focusedStat,
                 onSelect: { _ in }
             )
             .padding(.horizontal, 60)

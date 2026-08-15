@@ -14,17 +14,19 @@ app_review_state: |
   tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-14 (tvOS board redesign implemented + verified in simulator; cam relay live)
+last_verified: 2026-08-14 (tvOS focus-order fix + coastal status colors shipped, remote nav covered by UI tests; cam relay live)
 ---
 
 ## Top open items
 1. Carry the 2026-08 design language to iPadOS → iPhone → web (agreed sequence; tvOS
    shipped first and named the tokens). Includes migrating iOS AppTheme + WatchTheme to
-   the BeachStatus StatusColors (#2AE07A/#F5A214/#E63A2B) and retiring the old
-   statusOpen/#10B981 family. Handoff spec: "August design_handoff_tvos_board/README.md".
-2. Verify tvOS Menu-button flow on the physical Apple TV — overlays verified by simulator
-   screenshot; the Menu open/close cycle (board → Recent changes, overlay → close) uses
-   onExitCommand and needs one manual pass with the real remote.
+   the BeachStatus StatusColors (coastal retune 2026-08-14: #29C97A/#E8A23C/#C64B38) and
+   retiring the old statusOpen/#10B981 family. Handoff spec:
+   "August design_handoff_tvos_board/README.md".
+2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
+   changes button, Menu open/close, overlay focus restore) is now covered by
+   BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
+   is still wanted before calling it done.
 3. Web multi-camera switcher — backend roster (5 cams, /api/v2/cameras) and iOS/tvOS
    switchers shipped; website still plays the single default stream. INTAKE §6.
 4. Finish domain move to beach.donwb.com — Apple apps, TRMNL plugins, CI, and the
@@ -52,6 +54,14 @@ last_verified: 2026-08-14 (tvOS board redesign implemented + verified in simulat
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-14 (evening): tvOS remote-navigation fix — cam banner swapped from AVKit
+  VideoPlayer to a bare AVPlayerLayer (it was a giant focusable that swallowed
+  directional + Menu presses), row focus sections (top bar / verdict band / rail),
+  "Recent changes" promoted from static label to focusable button, and overlays now
+  return focus to the tile that opened them. Covered by 4 XCUIRemote UI tests.
+- 2026-08-14 (evening): status colors retuned to the coastal family (open #29C97A,
+  limited #E8A23C, closed #C64B38) and tvOS board surfaces now mute them toward the
+  night sky after sunset — closed tiles no longer glow fire-red all night.
 - 2026-08-14: tvOS ambient-board redesign (from "August design_handoff_tvos_board/"):
   verdict band answering "can I get on?" in one line, status carried by solid tile
   fields instead of tinted text, 16 sun phases (three twilights each side), designed
