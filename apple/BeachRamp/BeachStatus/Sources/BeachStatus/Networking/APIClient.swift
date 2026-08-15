@@ -111,9 +111,10 @@ public actor APIClient {
 
     /// Fetch one ramp's contiguous status intervals over the trailing window
     /// (default 48h server-side, clamped 1...168). Backs the detail screen's
-    /// today band.
-    public func fetchIntervals(accessID: String, hours: Int = 48) async throws -> RampIntervals {
-        try await get("/api/v2/ramps/\(accessID)/intervals",
+    /// today band. Keyed by the numeric database id (`Ramp.id`), not the
+    /// county access id.
+    public func fetchIntervals(rampID: Int, hours: Int = 48) async throws -> RampIntervals {
+        try await get("/api/v2/ramps/\(rampID)/intervals",
                       query: [URLQueryItem(name: "hours", value: String(hours))])
     }
 

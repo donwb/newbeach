@@ -93,11 +93,15 @@ struct TideSectionView: View {
     }
 }
 
-/// The curve itself: tidefill under a 2px ink stroke, 2px accent now-line.
-private struct TideCurveShapeView: View {
+/// The curve itself: tidefill under a 2px ink stroke, 2px accent now-line,
+/// and (on the ramp detail) a dashed amber line at the ramp's closure height.
+struct TideCurveShapeView: View {
     let points: [TideCurve.Point]
     let range: ClosedRange<Date>
     let height: CGFloat
+    /// Closure threshold in feet — the dashed line is the point of the
+    /// detail chart. Nil draws nothing.
+    var threshold: Double? = nil
     @Environment(\.ground) private var ground
 
     var body: some View {
@@ -107,6 +111,15 @@ private struct TideCurveShapeView: View {
             ZStack(alignment: .topLeading) {
                 fillPath(in: size).fill(t.tideFill)
                 strokePath(in: size).stroke(t.ink, lineWidth: 2)
+                if let threshold {
+                    Path { p in
+                        let ty = y(for: threshold, in: size)
+                        p.move(to: CGPoint(x: 0, y: ty))
+                        p.addLine(to: CGPoint(x: size.width, y: ty))
+                    }
+                    .stroke(Color(red: 0xF5 / 255, green: 0xA2 / 255, blue: 0x14 / 255),
+                            style: StrokeStyle(lineWidth: 2, dash: [6, 5]))
+                }
                 Rectangle()
                     .fill(t.accent)
                     .frame(width: 2)
@@ -117,7 +130,8 @@ private struct TideCurveShapeView: View {
     }
 
     private var heights: (min: Double, max: Double) {
-        let values = points.map(\.height)
+        var values = points.map(\.height)
+        if let threshold { values.append(threshold) }
         let lo = values.min() ?? 0
         let hi = values.max() ?? 1
         // Pad so the curve never kisses the frame edges.

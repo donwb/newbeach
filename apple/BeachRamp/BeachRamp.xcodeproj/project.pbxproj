@@ -43,9 +43,6 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		ED1D182F2F619813000604A1 /* BeachRampTV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeachRampTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED1D183D2F619814000604A1 /* BeachRampTVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeachRampTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -53,8 +50,8 @@
 		ED76810C2F60ADF300B251E5 /* BeachRamp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeachRamp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED76811B2F60ADF500B251E5 /* BeachRampTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeachRampTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED7681252F60ADF500B251E5 /* BeachRampUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeachRampUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BeachRampWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDCF16010000000000000001 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
+		EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BeachRampWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

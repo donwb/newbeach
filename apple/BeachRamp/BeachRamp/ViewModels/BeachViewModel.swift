@@ -92,6 +92,42 @@ final class BeachViewModel {
         )
     }
 
+    // MARK: - Ramp Detail
+
+    /// Per-ramp 48h intervals, keyed by access id. Refreshed on detail open.
+    private(set) var intervalsByRamp: [String: RampIntervals] = [:]
+    /// Per-ramp 48h activity feed, keyed by access id.
+    private(set) var activityByRamp: [String: [ActivityEntry]] = [:]
+
+    /// Load the detail screen's data for one ramp. Cached values render
+    /// immediately; both fetches refresh behind them.
+    @MainActor
+    func loadDetail(for ramp: Ramp) async {
+        async let intervals = try? api.fetchIntervals(rampID: ramp.id, hours: 48)
+        async let activity = try? api.fetchActivity(
+            limit: 50,
+            since: Date().addingTimeInterval(-48 * 3600),
+            ramp: ramp.accessID
+        )
+        if let intervals = await intervals {
+            intervalsByRamp[ramp.accessID] = intervals
+        }
+        if let activity = await activity {
+            activityByRamp[ramp.accessID] = activity
+        }
+    }
+
+    /// The projection line for a ramp against its closure threshold, nil
+    /// without a threshold or a crossing.
+    func projection(for ramp: Ramp) -> ClosureProjection? {
+        guard let chart = tideChart else { return nil }
+        return ClosureProjector.project(
+            ramp: ramp,
+            hourly: chart.hourly,
+            highLow: chart.highLow
+        )
+    }
+
     // MARK: - Favorites
 
     func isFavorite(_ ramp: Ramp) -> Bool {

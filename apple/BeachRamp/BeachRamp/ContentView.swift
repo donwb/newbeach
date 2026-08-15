@@ -35,6 +35,13 @@ struct ContentView: View {
         NavigationStack {
             BoardiPhoneView(viewModel: viewModel)
                 .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: Ramp.self) { ramp in
+                    RampDetailView(viewModel: viewModel, ramp: ramp)
+                }
+        }
+        .fullScreenCover(isPresented: $viewModel.camPresented) {
+            LiveCamFullscreenView(viewModel: viewModel)
+                .environment(\.ground, ground.state)
         }
         .environment(\.ground, ground.state)
         .environment(\.skyPalette, ground.state.palette)
@@ -42,6 +49,12 @@ struct ContentView: View {
         .task {
             ground.start()
             await viewModel.loadAll()
+            // Foreground poll on the ingester's own cadence. Without it the
+            // stale state would trip simply from leaving the board open.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                await viewModel.refresh()
+            }
         }
         .refreshable {
             await viewModel.refresh()

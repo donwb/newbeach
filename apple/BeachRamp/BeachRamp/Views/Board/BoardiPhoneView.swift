@@ -87,7 +87,10 @@ struct BoardiPhoneView: View {
         } else {
             VStack(spacing: 10) {
                 ForEach(viewModel.filteredRamps) { ramp in
-                    RampRowView(ramp: ramp, stale: viewModel.isStale)
+                    NavigationLink(value: ramp) {
+                        RampRowView(ramp: ramp, stale: viewModel.isStale)
+                    }
+                    .buttonStyle(PressTintButtonStyle())
                 }
             }
         }
