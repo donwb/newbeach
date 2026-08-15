@@ -14,7 +14,7 @@ app_review_state: |
   tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (web redesign shipped: board + /ramp/:id detail, sun-following ground, Tailwind CDN dropped; API intervals endpoint + SPA fallback live)
+last_verified: 2026-08-15 (web redesign live + verified against the real all-five high-tide closure; height-based reopen prediction shipped same day)
 ---
 
 ## Top open items
@@ -27,6 +27,16 @@ last_verified: 2026-08-15 (web redesign shipped: board + /ramp/:id detail, sun-f
    driving hours, nearest-cam distance) doesn't exist anywhere yet — needs a
    ramp_metadata table + admin endpoints; the dashed closure line on the detail tide
    chart is built (renderTideChartSVG closureFt) and dormant until then.
+1c. Predictive closure features (Don, 2026-08-15: "def want to come back to that" —
+   after the redesign work finishes). Reopen prediction already ships: when a ramp
+   closes on the rising tide, the estimate is the falling curve's return to the
+   closure-time height (web/js/verdict.js reopenFromClosureHeight). Next steps:
+   (a) per-ramp closure heights in ramp_metadata unlock predicting closures BEFORE
+   they happen ("Expect full closure near high tide 11:35 AM") plus the dashed
+   threshold line in 1b; (b) calibrate those heights from ramp_status_history —
+   each real closure pairs a status change with a computable tide height (the
+   2026-08-15 10:16 AM all-five closure is a clean first data point); (c) carry the
+   same prediction to the Apple targets via BeachStatus VerdictBuilder.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
@@ -63,6 +73,13 @@ last_verified: 2026-08-15 (web redesign shipped: board + /ramp/:id detail, sun-f
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-15 (later): Height-based reopen prediction — a rising-tide closure's reopen
+  estimate is now the falling curve's return to the closure-time tide height
+  (bisected on the cosine curve; next-low+90m stays as the falling-side fallback),
+  verified live against the real 10:16 AM all-five NSB closure (predicted 12:56 PM
+  vs the old heuristic's 7:19 PM). Plus three post-deploy fixes: zero-time poll
+  stamp read as a billion-minute outage, hls.js preferred over Chromium's "maybe"
+  native-HLS probe, [hidden] beaten by display:flex on the cam-offline overlay.
 - 2026-08-15: Web redesign shipped (from design-review/design_handoff_web/): verdict
   band, status carried by card fields, sun-following ground (16 tvOS sky phases, JS
   ports of SolarCalculator/SkyPalette/VerdictBuilder/TideCurve with 46 Node smoke

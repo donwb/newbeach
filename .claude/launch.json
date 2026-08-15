@@ -8,10 +8,22 @@
       "port": 8080
     },
     {
+      "name": "beach-api-localdb",
+      "runtimeExecutable": "make",
+      "runtimeArgs": ["-C", "api", "dev", "DATABASE_URL=postgres://beach:beach@localhost:5432/beach?sslmode=disable"],
+      "port": 8080
+    },
+    {
       "name": "trmnl-preview",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8765", "--directory", "trmnl"],
       "port": 8765
+    },
+    {
+      "name": "downloads-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "/Users/donwb/Downloads"],
+      "port": 8766
     }
   ]
 }
