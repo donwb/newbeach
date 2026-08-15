@@ -47,9 +47,12 @@ Key properties:
   yt-dlp 2026.07.04).
 - **Self-healing.** Each camera runs in its own supervised loop: a watchdog
   restarts the pipeline if ffmpeg's progress file goes stale (>60s), YouTube's
-  ~6h URL expiry just triggers a restart, offline cams retry every 2 min, and
-  the whole roster re-fetches + restarts every 6h (picks up roster changes).
-  launchd restarts the supervisor itself if it dies.
+  ~6h URL expiry just triggers a restart (2 min retry after any session that
+  streamed), and the whole roster re-fetches + restarts every 6h (picks up
+  roster changes). launchd restarts the supervisor itself if it dies. A camera
+  that fails to *resolve* at all (offline broadcast, bot-checked) backs off
+  exponentially, 2 min doubling to a 30 min cap — hammering YouTube's player
+  API every 2 min from one IP is what drew the Aug 2026 bot-wall.
 
 ## Components & where things live
 

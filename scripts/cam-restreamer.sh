@@ -19,7 +19,11 @@
 #
 # The roster comes from GET /api/v2/admin/cameras, so adding/removing a camera
 # is a database change, never an edit to this script. A camera whose stream is
-# offline (e.g. Ormond Beach) just retries every RETRY_SECS.
+# offline (e.g. Ormond Beach) retries with exponential backoff, RETRY_SECS
+# doubling up to RETRY_MAX — resolving a dead video every 2 minutes is exactly
+# the anonymous-automation pattern that got the home IP bot-checked. A pipeline
+# that was streaming and dropped (the common YouTube session cut) still
+# recovers at a flat RETRY_SECS.
 #
 # Requires: yt-dlp, ffmpeg, jq, curl   (brew install yt-dlp ffmpeg jq)
 #
@@ -49,7 +53,8 @@ YTDLP_COOKIES="${YTDLP_COOKIES:-}"
 LOG_DIR="${LOG_DIR:-$HOME/Library/Logs/cam-restreamer}"
 
 STALL_SECS=60        # restart a pipeline if ffmpeg makes no progress this long
-RETRY_SECS=120       # wait before retrying an offline / failed stream
+RETRY_SECS=120       # retry after a stream that was up and dropped
+RETRY_MAX=1800       # backoff cap for streams that fail to resolve at all
 ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
 
 mkdir -p "$LOG_DIR"
@@ -87,6 +92,7 @@ stream_one() {
     local vid="${yt##*v=}"
     local log_f="$LOG_DIR/$id.log"
     local prog="$LOG_DIR/$id.progress"
+    local delay=$(( RETRY_SECS / 2 ))  # doubled before first use
 
     while true; do
         log "[$id] starting pipeline ($yt)" >> "$log_f"
@@ -115,8 +121,17 @@ stream_one() {
         done
         wait "$pid" 2>/dev/null
 
-        log "[$id] pipeline down, retrying in ${RETRY_SECS}s" >> "$log_f"
-        sleep "$RETRY_SECS"
+        # $prog only exists once ffmpeg moved data, so: streamed-then-dropped
+        # gets a flat fast retry; never-streamed (offline broadcast or
+        # bot-checked resolve) doubles its delay up to RETRY_MAX.
+        if [ -f "$prog" ]; then
+            delay="$RETRY_SECS"
+        else
+            delay=$(( delay * 2 ))
+            [ "$delay" -gt "$RETRY_MAX" ] && delay="$RETRY_MAX"
+        fi
+        log "[$id] pipeline down, retrying in ${delay}s" >> "$log_f"
+        sleep "$delay"
     done
 }
 
