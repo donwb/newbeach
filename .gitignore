@@ -48,3 +48,11 @@ build/
 .build/
 .swiftpm/
 Package.resolved
+
+# Claude Code agent worktrees (a real git worktree lives here)
+.claude/worktrees/
+
+# macOS + editor cruft
+.DS_Store
+*.tmp
+.~lock.*#
