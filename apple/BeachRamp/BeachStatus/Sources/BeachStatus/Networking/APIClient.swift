@@ -92,9 +92,35 @@ public actor APIClient {
     }
 
     /// Fetch recent ramp status changes, newest first. The server caps
-    /// `limit` at 200 and does not filter by city or date — callers filter.
-    public func fetchActivity(limit: Int = 50) async throws -> [ActivityEntry] {
-        try await get("/api/v2/activity", query: [URLQueryItem(name: "limit", value: String(limit))])
+    /// `limit` at 200. `city`, `since`, and `ramp` (access id) filters are
+    /// applied server-side when given.
+    public func fetchActivity(limit: Int = 50, city: String? = nil,
+                              since: Date? = nil, ramp: String? = nil) async throws -> [ActivityEntry] {
+        var query = [URLQueryItem(name: "limit", value: String(limit))]
+        if let city {
+            query.append(URLQueryItem(name: "city", value: city))
+        }
+        if let since {
+            query.append(URLQueryItem(name: "since", value: ISO8601DateFormatter.standard.string(from: since)))
+        }
+        if let ramp {
+            query.append(URLQueryItem(name: "ramp", value: ramp))
+        }
+        return try await get("/api/v2/activity", query: query)
+    }
+
+    /// Fetch one ramp's contiguous status intervals over the trailing window
+    /// (default 48h server-side, clamped 1...168). Backs the detail screen's
+    /// today band.
+    public func fetchIntervals(accessID: String, hours: Int = 48) async throws -> RampIntervals {
+        try await get("/api/v2/ramps/\(accessID)/intervals",
+                      query: [URLQueryItem(name: "hours", value: String(hours))])
+    }
+
+    /// Fetch service health. `ingester.lastPollAt` is the real GIS feed
+    /// timestamp — the input to the stale-board state.
+    public func fetchHealth() async throws -> HealthStatus {
+        try await get("/api/v2/health")
     }
 
     /// Ask the server to re-resolve the YouTube live HLS URL. Called by the

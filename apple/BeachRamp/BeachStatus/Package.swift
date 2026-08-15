@@ -8,13 +8,18 @@ let package = Package(
         .iOS("18.0"),
         .watchOS("11.0"),
         .tvOS("18.0"),
-        .macOS(.v13),
+        .macOS(.v14),
     ],
     products: [
         .library(name: "BeachStatus", targets: ["BeachStatus"]),
     ],
     targets: [
-        .target(name: "BeachStatus"),
+        .target(
+            name: "BeachStatus",
+            resources: [
+                .copy("Resources/Fonts")
+            ]
+        ),
         .testTarget(name: "BeachStatusTests", dependencies: ["BeachStatus"]),
     ]
 )
