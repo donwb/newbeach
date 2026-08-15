@@ -2,20 +2,20 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 16), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
   Web+API: live at https://beach.donwb.com (verified 2026-08-12, INTAKE dossier).
-  Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (16) uploaded 2026-08-15. The stale "Beach Ramp iOS App" record still needs deleting.
+  Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  iOS: Prepare for Submission, never submitted. Build 1.0 (16) uploaded to TestFlight 2026-08-15 — first iOS build ever to reach the record. Old "Beach Ramp iOS App" record still to be deleted.
-  tvOS: Prepare for Submission, never submitted. Record "Beach Ramp Status" (Apple ID 6761724123) is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV by upload history reaching build 15. Build 1.0 (16) uploaded 2026-08-15 alongside iOS.
+  iOS: Prepare for Submission, never submitted. Build 1.0 (17) on TestFlight 2026-08-15 — the redesign build, first with the widget extension.
+  tvOS: Prepare for Submission, never submitted. Record "Beach Ramp Status" (Apple ID 6761724123) is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV by upload history reaching build 15. Build 1.0 (17) uploaded 2026-08-15 alongside iOS.
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground boards, ramp detail, landscape cam, widget family, ramp_metadata backend deployed. Needs a re-flight to carry it to TestFlight. Live Activity + watch refresh deferred by decision. ASC consolidation complete; cam restreamer still pending `make deploy-restreamer` on the Studio.)
+last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground boards, ramp detail, landscape cam, widget family, ramp_metadata backend deployed. Flighted as 1.0 (17) same day. Live Activity + watch refresh deferred by decision. ASC consolidation complete; cam restreamer still pending `make deploy-restreamer` on the Studio.)
 ---
 
 ## Top open items
@@ -27,8 +27,8 @@ last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground board
    still has its own palette (watch deferred). REMAINING from the handoff, by
    decision (Don, 2026-08-15): Live Activity/Dynamic Island (needs an APNs
    ActivityKit push sender — pair with 1c), watch refresh + complications, and
-   stat-strip cell push-throughs to tide/water/wind detail screens. Needs a
-   re-flight to reach TestFlight.
+   stat-strip cell push-throughs to tide/water/wind detail screens. Flighted as 1.0 (17)
+   the same day.
 1a. Populate ramp_metadata values — the table, admin endpoint
    (PUT /api/v2/admin/ramps/:id/metadata, X-Api-Key), and nullable fields on
    /api/v2/ramps are LIVE (migration 008, deployed 2026-08-15) with NSB sort_order
@@ -55,8 +55,7 @@ last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground board
    hostname as of 12:23 — launchd runs a COPY at ~/bin/cam-restreamer.sh, and an API_BASE in
    ~/.cam-restreamer.env overrides the script default, so both need checking; `make
    deploy-restreamer` (a1c1f05) now handles the copy + kickstart and warns about the env
-   override. (b) TestFlight build 16 predates the change and still ships the old hostname —
-   needs a re-flight before any submission.
+   override. (b) DONE — build 1.0 (17), flighted 2026-08-15, ships beach.donwb.com.
 5. DONE 2026-08-15 — App Store Connect records consolidated. Both platforms flight as
    1.0 (16) to the single "Beach Ramp Status" record (Apple ID 6761724123, bundle ID
    com.donwb.BeachRampTV); the stale "Beach Ramp iOS App" record was deleted by Don. Only
