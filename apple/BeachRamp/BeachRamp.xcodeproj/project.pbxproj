@@ -52,6 +52,20 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		EDA11E57000000000000000E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EDA11E57000000000000000F /* BeachRampWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		ED1D182F2F619813000604A1 /* BeachRampTV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeachRampTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED1D183D2F619814000604A1 /* BeachRampTVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeachRampTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -59,10 +73,20 @@
 		ED76810C2F60ADF300B251E5 /* BeachRamp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeachRamp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED76811B2F60ADF500B251E5 /* BeachRampTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeachRampTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED7681252F60ADF500B251E5 /* BeachRampUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeachRampUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		EDCF16010000000000000001 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		EDA11E570000000000000003 /* BeachRampWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeachRampWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDCF16010000000000000001 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BeachRampWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		EDA11E570000000000000010 /* Exceptions for "BeachRampWidgets" folder in "BeachRampWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EDA11E570000000000000002 /* BeachRampWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		ED1D18302F619813000604A1 /* BeachRampTV */ = {
@@ -109,16 +133,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		EDA11E570000000000000010 /* Exceptions for "BeachRampWidgets" folder in "BeachRampWidgetsExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = EDA11E570000000000000002 /* BeachRampWidgetsExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		ED1D182C2F619813000604A1 /* Frameworks */ = {
@@ -182,20 +196,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		EDA11E57000000000000000E /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				EDA11E57000000000000000F /* BeachRampWidgetsExtension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXGroup section */
 		ED7681032F60ADF300B251E5 = {
@@ -388,29 +388,6 @@
 			productReference = ED7681252F60ADF500B251E5 /* BeachRampUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		EDF7BCF62FE979B000EC5440 /* BeachRampWatch Watch App */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = EDF7BD022FE979B000EC5440 /* Build configuration list for PBXNativeTarget "BeachRampWatch Watch App" */;
-			buildPhases = (
-				EDF7BCF32FE979B000EC5440 /* Sources */,
-				EDF7BCF42FE979B000EC5440 /* Frameworks */,
-				EDF7BCF52FE979B000EC5440 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				EDF7BCF82FE979B000EC5440 /* BeachRampWatch Watch App */,
-			);
-			name = "BeachRampWatch Watch App";
-			packageProductDependencies = (
-				EDF7BD0A2FE979C200EC5440 /* BeachStatus */,
-			);
-			productName = "BeachRampWatch Watch App";
-			productReference = EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */;
-			productType = "com.apple.product-type.application";
-		};
 		EDA11E570000000000000002 /* BeachRampWidgetsExtension */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EDA11E57000000000000000B /* Build configuration list for PBXNativeTarget "BeachRampWidgetsExtension" */;
@@ -433,6 +410,29 @@
 			productName = BeachRampWidgetsExtension;
 			productReference = EDA11E570000000000000003 /* BeachRampWidgetsExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		EDF7BCF62FE979B000EC5440 /* BeachRampWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EDF7BD022FE979B000EC5440 /* Build configuration list for PBXNativeTarget "BeachRampWatch Watch App" */;
+			buildPhases = (
+				EDF7BCF32FE979B000EC5440 /* Sources */,
+				EDF7BCF42FE979B000EC5440 /* Frameworks */,
+				EDF7BCF52FE979B000EC5440 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EDF7BCF82FE979B000EC5440 /* BeachRampWatch Watch App */,
+			);
+			name = "BeachRampWatch Watch App";
+			packageProductDependencies = (
+				EDF7BD0A2FE979C200EC5440 /* BeachStatus */,
+			);
+			productName = "BeachRampWatch Watch App";
+			productReference = EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
@@ -622,11 +622,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		EDA11E57000000000000000D /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = EDA11E570000000000000002 /* BeachRampWidgetsExtension */;
-			targetProxy = EDA11E57000000000000000C /* PBXContainerItemProxy */;
-		};
 		ED1D183F2F619814000604A1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = ED1D182E2F619813000604A1 /* BeachRampTV */;
@@ -646,6 +641,11 @@
 			isa = PBXTargetDependency;
 			target = ED76810B2F60ADF300B251E5 /* BeachRamp */;
 			targetProxy = ED7681262F60ADF500B251E5 /* PBXContainerItemProxy */;
+		};
+		EDA11E57000000000000000D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EDA11E570000000000000002 /* BeachRampWidgetsExtension */;
+			targetProxy = EDA11E57000000000000000C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1073,6 +1073,62 @@
 			};
 			name = Release;
 		};
+		EDA11E570000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = YR2B55YA56;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeachRampWidgets/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.donwb.BeachRampTV.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EDA11E57000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = YR2B55YA56;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeachRampWidgets/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.donwb.BeachRampTV.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		EDF7BD032FE979B000EC5440 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1131,56 +1187,6 @@
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
 				WATCHOS_DEPLOYMENT_TARGET = 11.0;
-			};
-			name = Release;
-		};
-		EDA11E570000000000000009 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWidgets.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = YR2B55YA56;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BeachRampWidgets/Info.plist;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks @executable_path/../../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.donwb.BeachRampTV.widgets;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		EDA11E57000000000000000A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWidgets.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = YR2B55YA56;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BeachRampWidgets/Info.plist;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks @executable_path/../../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.donwb.BeachRampTV.widgets;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1250,20 +1256,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		EDF7BD022FE979B000EC5440 /* Build configuration list for PBXNativeTarget "BeachRampWatch Watch App" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				EDF7BD032FE979B000EC5440 /* Debug */,
-				EDF7BD042FE979B000EC5440 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		EDA11E57000000000000000B /* Build configuration list for PBXNativeTarget "BeachRampWidgetsExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				EDA11E570000000000000009 /* Debug */,
 				EDA11E57000000000000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EDF7BD022FE979B000EC5440 /* Build configuration list for PBXNativeTarget "BeachRampWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EDF7BD032FE979B000EC5440 /* Debug */,
+				EDF7BD042FE979B000EC5440 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
