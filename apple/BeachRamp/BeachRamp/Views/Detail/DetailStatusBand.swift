@@ -81,8 +81,12 @@ struct TodayStatusBandView: View {
                         HStack(spacing: 2) {
                             ForEach(segments.indices, id: \.self) { i in
                                 let seg = segments[i]
+                                let field = StatusField.field(for: seg.category, isDay: ground.isDay)
                                 Rectangle()
-                                    .fill(StatusField.field(for: seg.category, isDay: ground.isDay).fill)
+                                    // Open reads as the green mark here, not the
+                                    // white card fill — on a timeline the band
+                                    // is a chart, and white reads as "nothing".
+                                    .fill(seg.category == .open ? field.mark : field.fill)
                                     .frame(width: max(seg.fraction * (width - CGFloat(segments.count - 1) * 2), 2))
                             }
                         }
