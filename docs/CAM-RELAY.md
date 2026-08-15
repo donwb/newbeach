@@ -58,7 +58,7 @@ Key properties:
 | Restreamer script (source of truth) | `scripts/cam-restreamer.sh` in this repo |
 | Installed copy on Mac Studio | `~/bin/cam-restreamer.sh` |
 | launchd job | `~/Library/LaunchAgents/com.donwb.cam-restreamer.plist` (source: `scripts/com.donwb.cam-restreamer.plist`) |
-| Studio config/secrets | `~/.cam-restreamer.env` (API_KEY, RELAY_HOST, RELAY_PUB_PASS) |
+| Studio config/secrets | `~/.cam-restreamer.env` (API_KEY, RELAY_HOST, RELAY_PUB_PASS, YTDLP_COOKIES) |
 | Studio logs | `~/Library/Logs/cam-restreamer/<cam-id>.log` + `/tmp/cam-restreamer.launchd.log` |
 | Relay droplet | `beach-cam-relay`, DO nyc3, 68.183.149.152 (ssh root@, ProMax key) |
 | MediaMTX config (incl. publisher password) | droplet `/opt/mediamtx/mediamtx.yml`, service `mediamtx` |
@@ -78,6 +78,15 @@ Key properties:
 
 **Restart everything on the Studio:**
 `launchctl kickstart -k gui/$(id -u)/com.donwb.cam-restreamer`
+
+**"Sign in to confirm you're not a bot" in a camera's log** (seen Aug 2026):
+YouTube bot-checks anonymous yt-dlp resolves from the home IP. Running pipelines
+keep working, but any camera that drops can't re-resolve and stays down until
+cookies are supplied. Fix: export YouTube cookies from a signed-in browser to a
+Netscape `cookies.txt` (e.g. the "Get cookies.txt LOCALLY" extension, or
+`yt-dlp --cookies-from-browser chrome --cookies /path/cookies.txt` once), set
+`YTDLP_COOKIES=/path/to/cookies.txt` in `~/.cam-restreamer.env`, and kickstart.
+Prefer a throwaway Google account — heavy automated use can flag the account.
 
 **A camera's YouTube video ID changed** (stream restarted under a new ID — this is
 what "Ormond Beach offline" looks like): update the roster row's `youtube_url`

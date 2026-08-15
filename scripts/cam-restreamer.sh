@@ -28,6 +28,11 @@
 #   API_KEY         admin API key (roster fetch)
 #   RELAY_HOST      relay droplet host/IP (RTMP ingest)
 #   RELAY_PUB_PASS  MediaMTX publisher password
+#   YTDLP_COOKIES   optional path to a Netscape cookies.txt exported from a
+#                   browser signed into YouTube. Needed since Aug 2026:
+#                   YouTube bot-checks anonymous yt-dlp resolves ("Sign in to
+#                   confirm you're not a bot"), so without cookies a dropped
+#                   pipeline can never re-resolve its stream.
 #
 # Runs under launchd: see scripts/com.donwb.cam-restreamer.plist
 
@@ -40,6 +45,7 @@ API_BASE="${API_BASE:-https://beach-ramp-status-kff7g.ondigitalocean.app}"
 API_KEY="${API_KEY:?set API_KEY (admin api key)}"
 RELAY_HOST="${RELAY_HOST:?set RELAY_HOST (relay droplet ip/host)}"
 RELAY_PUB_PASS="${RELAY_PUB_PASS:?set RELAY_PUB_PASS (mediamtx publisher password)}"
+YTDLP_COOKIES="${YTDLP_COOKIES:-}"
 LOG_DIR="${LOG_DIR:-$HOME/Library/Logs/cam-restreamer}"
 
 STALL_SECS=60        # restart a pipeline if ffmpeg makes no progress this long
@@ -49,6 +55,17 @@ ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
 mkdir -p "$LOG_DIR"
 
 log() { echo "$(date '+%F %T') $*"; }
+
+# Optional YouTube cookies for yt-dlp (empty array when unset). Expanded with
+# the ${arr[@]+...} idiom so set -u survives an empty array on bash 3.2.
+COOKIE_ARGS=()
+if [ -n "$YTDLP_COOKIES" ]; then
+    if [ -r "$YTDLP_COOKIES" ]; then
+        COOKIE_ARGS=(--cookies "$YTDLP_COOKIES")
+    else
+        log "WARNING: YTDLP_COOKIES=$YTDLP_COOKIES not readable, resolving without cookies"
+    fi
+fi
 
 # Kill one camera's whole pipeline: the remux ffmpeg, yt-dlp, and yt-dlp's
 # internal downloader ffmpeg (its cmdline contains the googlevideo URL with
@@ -76,6 +93,7 @@ stream_one() {
         rm -f "$prog"
         yt-dlp --no-warnings --no-part \
             --extractor-args "youtube:player_client=mweb" \
+            ${COOKIE_ARGS[@]+"${COOKIE_ARGS[@]}"} \
             -f "best[protocol^=m3u8]" -o - "$yt" 2>> "$log_f" \
             | ffmpeg -hide_banner -loglevel error -nostdin \
                 -i pipe:0 -c copy -f flv -progress "$prog" \
