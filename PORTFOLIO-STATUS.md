@@ -46,6 +46,11 @@ last_verified: 2026-08-14 (tvOS focus-order fix + coastal status colors shipped,
   restreams all cams (scripts/cam-restreamer.sh, launchd) to a MediaMTX relay droplet
   (beach-cam-relay, 68.183.149.152, $6/mo) serving stable HLS at cams.donwb.com —
   live and verified on all 4 online cams; the Studio remains a single point of failure.
+  Same night, YouTube's bot-check began blocking anonymous yt-dlp resolves from the
+  home IP (nsb went dark ~1h); fixed with the bgutil PO-token provider on the Studio
+  (com.donwb.bgutil-pot launchd job, no Google account) + exponential backoff for
+  failed resolves (commits 5ac4920/f83314a/40e5d16, runbook in docs/CAM-RELAY.md);
+  all 4 online cams verified re-resolving and publishing post-deploy.
 - Ormond Beach cam offline upstream — its YouTube video ID no longer exists; roster
   youtube_url needs updating when the county restarts the broadcast.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
