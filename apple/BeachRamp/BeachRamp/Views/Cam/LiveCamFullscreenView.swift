@@ -15,18 +15,14 @@ struct LiveCamFullscreenView: View {
             Color(red: 0x0A / 255, green: 0x14 / 255, blue: 0x20 / 255)
                 .ignoresSafeArea()
 
-            // The fill-mode panorama wants to be ~4.7× wider than the screen;
-            // pin it to the screen rect and clip so the scrims stay put.
-            GeometryReader { geo in
-                BeachCamView(
-                    url: viewModel.videoStreamURL,
-                    rebuildToken: viewModel.videoStreamGeneration,
-                    onPlaybackFailure: { viewModel.refreshVideoStream() },
-                    contentMode: .fill
-                )
-                .frame(width: geo.size.width, height: geo.size.height)
-                .clipped()
-            }
+            // Full-width letterbox: the whole 1280×270 panorama shows, with
+            // deep-water bars above and below. Cropping the pano to fill the
+            // frame threw away most of the beach.
+            BeachCamView(
+                url: viewModel.videoStreamURL,
+                rebuildToken: viewModel.videoStreamGeneration,
+                onPlaybackFailure: { viewModel.refreshVideoStream() }
+            )
             .ignoresSafeArea()
 
             VStack {

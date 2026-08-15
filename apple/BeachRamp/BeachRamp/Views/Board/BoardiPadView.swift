@@ -280,21 +280,14 @@ struct BoardiPadView: View {
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 18)
 
-            // The cam as a strip rather than a full-height crop.
+            // The cam at full width, uncropped — height follows the pano's
+            // own 1280/270 aspect (~160pt at portrait width).
             if viewModel.selectedCamera != nil {
-                ZStack(alignment: .bottomLeading) {
-                    GeometryReader { geo in
-                        BeachCamView(
-                            url: viewModel.videoStreamURL,
-                            rebuildToken: viewModel.videoStreamGeneration,
-                            onPlaybackFailure: { viewModel.refreshVideoStream() },
-                            contentMode: .fill
-                        )
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-                    }
-                    .frame(height: 106)
-                }
+                BeachCamView(
+                    url: viewModel.videoStreamURL,
+                    rebuildToken: viewModel.videoStreamGeneration,
+                    onPlaybackFailure: { viewModel.refreshVideoStream() }
+                )
                 .padding(.top, 12)
                 .onTapGesture { viewModel.camPresented = true }
             }
