@@ -45,7 +45,7 @@ set -uo pipefail
 ENV_FILE="$HOME/.cam-restreamer.env"
 [ -f "$ENV_FILE" ] && . "$ENV_FILE"
 
-API_BASE="${API_BASE:-https://beach-ramp-status-kff7g.ondigitalocean.app}"
+API_BASE="${API_BASE:-https://beach.donwb.com}"
 API_KEY="${API_KEY:?set API_KEY (admin api key)}"
 RELAY_HOST="${RELAY_HOST:?set RELAY_HOST (relay droplet ip/host)}"
 RELAY_PUB_PASS="${RELAY_PUB_PASS:?set RELAY_PUB_PASS (mediamtx publisher password)}"

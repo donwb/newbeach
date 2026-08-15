@@ -11,7 +11,7 @@ public actor APIClient {
     private let decoder: JSONDecoder
 
     public init(
-        baseURL: URL = URL(string: "https://beach-ramp-status-kff7g.ondigitalocean.app")!,
+        baseURL: URL = URL(string: "https://beach.donwb.com")!,
         session: URLSession = .shared
     ) {
         self.baseURL = baseURL

@@ -13,7 +13,7 @@
 # Requires: yt-dlp (brew install yt-dlp), jq (brew install jq)
 #
 # Configure these or set as environment variables:
-API_BASE="${API_BASE:-https://beach-ramp-status-kff7g.ondigitalocean.app}"
+API_BASE="${API_BASE:-https://beach.donwb.com}"
 API_KEY="${API_KEY:-test-secret-123}"
 
 set -uo pipefail

@@ -591,8 +591,8 @@ All values via environment variables:
 
 | URL | Endpoint | Template variable |
 |-----|----------|-------------------|
-| URL 1 | `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH` | `IDX_0.data[]` (array wrapped by TRMNL) |
-| URL 2 | `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides` | `IDX_1.*` (object keys directly) |
+| URL 1 | `https://beach.donwb.com/api/v2/ramps?city=NEW%20SMYRNA%20BEACH` | `IDX_0.data[]` (array wrapped by TRMNL) |
+| URL 2 | `https://beach.donwb.com/api/v2/tides` | `IDX_1.*` (object keys directly) |
 
 **Variable paths used in template:**
 
@@ -656,7 +656,7 @@ All values via environment variables:
 - Times formatted in `America/New_York` (proper tz database, not a hardcoded offset like the OG template)
 
 **TRMNL polling plugin configuration (single URL):**
-- `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/trmnl`
+- `https://beach.donwb.com/api/v2/trmnl`
 - Single-URL polling with an object root → JSON keys exposed directly as Liquid variables (`ramps`, `tide`, `weather`, `activity`, `local_time`, `local_date`) — no `IDX_` namespacing
 
 **Template** (`trmnl/template-x.html`, custom CSS prefixed `xb-`):
@@ -1057,7 +1057,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - Service: `beach-api` — Dockerfile build, 1x basic-xxs instance, health check at `/api/v2/health`
 - Database: external AWS RDS (PostgreSQL) — `DATABASE_URL` set as encrypted secret in DO dashboard
 - Auto-deploy on push to main via GitHub integration
-- Production URL: `https://beach-ramp-status-kff7g.ondigitalocean.app`
+- Production URL: `https://beach.donwb.com`
 
 **Production verification:**
 - v1 endpoints (`/rampstatus`, `/tides`) — working, Tidbyt compatible
@@ -1195,8 +1195,8 @@ These items are not in scope for the initial rebuild but the architecture should
 - Short statuses (`OPEN`, `CLOSED`, `4X4 ONLY`) pass through unchanged
 
 **TRMNL polling plugin configuration (two URLs, line-break separated):**
-- URL 1: `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps?city=NEW%20SMYRNA%20BEACH` → `IDX_0`
-- URL 2: `https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/tides` → `IDX_1`
+- URL 1: `https://beach.donwb.com/api/v2/ramps?city=NEW%20SMYRNA%20BEACH` → `IDX_0`
+- URL 2: `https://beach.donwb.com/api/v2/tides` → `IDX_1`
 
 **Variable paths used in template (polling → index-based access):**
 - `IDX_0.data[]` — ramp array (root array auto-wrapped in `data` key by TRMNL), looped and matched by `ramp_name`

@@ -13,7 +13,7 @@ apple/        → Xcode workspace: iOS, watchOS, tvOS targets + shared Swift pac
 trmnl/        → TRMNL e-ink display Liquid template
 ```
 
-The site is served at `https://beach.donwb.com` (custom domain declared in `.do/app.yaml`); the DigitalOcean default hostname `beach-ramp-status-kff7g.ondigitalocean.app` also works and is what the Apple apps, TRMNL plugins, CI, and the camera-refresh cron are pinned to.
+The site is served at `https://beach.donwb.com` (custom domain declared in `.do/app.yaml`), and everything in this repo points there as of 2026-08-15 — Apple apps, TRMNL templates, CI, and the cam restreamer. The DigitalOcean default hostname `beach-ramp-status-kff7g.ondigitalocean.app` still resolves, but nothing should depend on it. **The TRMNL polling URLs live in the TRMNL plugin settings, not in `trmnl/*.html`** — the URLs in those templates are comments, so changing them here does not change what the devices fetch.
 
 ## Go (API + Ingester)
 
