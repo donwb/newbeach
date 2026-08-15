@@ -49,18 +49,9 @@ function attachStream(video, url) {
     camState.hls = null;
   }
 
-  // Safari (and iOS) play HLS natively.
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = url;
-    video.onerror = () => {
-      markOffline();
-      requestRefresh();
-    };
-    video.addEventListener('loadedmetadata', () => tryPlay(video), { once: true });
-    return;
-  }
-
-  // Other browsers: hls.js.
+  // hls.js first: some Chromium builds answer "maybe" to the native HLS
+  // canPlayType probe and then stall, so only browsers without MSE (iOS
+  // Safari) should take the native branch below.
   if (window.Hls && Hls.isSupported()) {
     const hls = new Hls({ maxBufferLength: 30 });
     camState.hls = hls;
@@ -77,8 +68,13 @@ function attachStream(video, url) {
     return;
   }
 
-  // No HLS support at all — direct src, let the browser do what it can.
+  // No MSE (iOS Safari): native HLS playback.
   video.src = url;
+  video.onerror = () => {
+    markOffline();
+    requestRefresh();
+  };
+  video.addEventListener('loadedmetadata', () => tryPlay(video), { once: true });
 }
 
 function requestRefresh() {
