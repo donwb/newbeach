@@ -10,7 +10,7 @@ RESTREAMER_DEST  := $(HOME)/bin/cam-restreamer.sh
 RESTREAMER_ENV   := $(HOME)/.cam-restreamer.env
 RESTREAMER_LOG   := /tmp/cam-restreamer.launchd.log
 
-.PHONY: help flight flight-ios flight-tv flight-check \
+.PHONY: help flight flight-ios flight-tv flight-check screenshots \
         deploy-restreamer restreamer-status restreamer-diff
 
 help:  ## Show available targets
@@ -30,6 +30,9 @@ flight-tv:  ## Same, tvOS only
 
 flight-check:  ## Archive both platforms without uploading (dry run)
 	apple/scripts/flight.sh --archive-only --no-bump
+
+screenshots:  ## Capture App Store gallery screenshots (iPhone, iPad, watch)
+	apple/scripts/screenshots.sh
 
 # ----------------------------------------------------------- Cam relay ----
 #
