@@ -139,6 +139,12 @@ html[data-ground='night'] {
   box-sizing: border-box;
 }
 
+/* An explicit display (e.g. .cam-offline's flex) would otherwise beat the
+   UA's [hidden] rule and keep "hidden" elements visible. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: var(--font);
