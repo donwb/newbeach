@@ -46,7 +46,9 @@ func HandleV2Ramps(pool *pgxpool.Pool) echo.HandlerFunc {
 	}
 }
 
-// HandleV2RampByID returns a single ramp by its database ID.
+// HandleV2RampByID returns a single ramp by its database ID, including any
+// operator-curated metadata (nullable fields, omitted from the JSON when
+// unset — the response is unchanged for ramps without metadata).
 // GET /api/v2/ramps/:id
 func HandleV2RampByID(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -60,12 +62,16 @@ func HandleV2RampByID(pool *pgxpool.Pool) echo.HandlerFunc {
 			})
 		}
 
-		var r models.RampStatus
+		var r models.RampStatusWithSince
 		err = pool.QueryRow(ctx,
-			`SELECT id, ramp_name, access_status, status_category, object_id, city, access_id, location, updated_at
-			 FROM ramp_status WHERE id = $1`, id).
+			`SELECT r.id, r.ramp_name, r.access_status, r.status_category, r.object_id, r.city, r.access_id, r.location, r.updated_at,
+			        m.short_name, m.address, m.driving_hours, m.closure_height_ft, m.sort_order
+			 FROM ramp_status r
+			 LEFT JOIN ramp_metadata m ON m.access_id = r.access_id
+			 WHERE r.id = $1`, id).
 			Scan(&r.ID, &r.RampName, &r.AccessStatus, &r.StatusCategory,
-				&r.ObjectID, &r.City, &r.AccessID, &r.Location, &r.UpdatedAt)
+				&r.ObjectID, &r.City, &r.AccessID, &r.Location, &r.UpdatedAt,
+				&r.ShortName, &r.Address, &r.DrivingHours, &r.ClosureHeightFt, &r.SortOrder)
 
 		if err != nil {
 			slog.Error("querying ramp by id", "id", id, "err", err)
@@ -340,6 +346,40 @@ func HandleAdminUpdateCameraStream(pool *pgxpool.Pool) echo.HandlerFunc {
 	}
 }
 
+// HandleAdminUpsertRampMetadata inserts or fully replaces the curated
+// metadata for one ramp, keyed by access_id. All body fields are optional
+// and nullable; the row is replaced wholesale, so an absent or null field
+// clears the stored value. Returns the stored row.
+// PUT /api/v2/admin/ramps/:id/metadata
+// Body: {"short_name": "Beachway", "address": "...", "driving_hours": "...",
+//
+//	"closure_height_ft": 2.5, "sort_order": 1}
+func HandleAdminUpsertRampMetadata(pool *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		accessID := c.Param("id")
+		if accessID == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "ramp access_id is required"})
+		}
+
+		var body models.RampMetadata
+		if err := c.Bind(&body); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		}
+		// The path is authoritative for the key; ignore any access_id in the body.
+		body.AccessID = accessID
+
+		stored, err := database.UpsertRampMetadata(ctx, pool, body)
+		if err != nil {
+			slog.Error("failed to upsert ramp metadata", "access_id", accessID, "err", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to upsert ramp metadata"})
+		}
+
+		return c.JSON(http.StatusOK, stored)
+	}
+}
+
 // HandleV2VideoRefresh resolves the current HLS URL from YouTube and persists
 // it to settings. Called by clients (tvOS) when their player encounters a
 // playback error, indicating the cached URL has rotated. Concurrent calls and
@@ -541,8 +581,11 @@ func buildIntervals(events []models.StatusEvent, windowStart, windowEnd time.Tim
 	return intervals
 }
 
-// HandleV2RecentActivity returns recent status changes across all ramps.
-// GET /api/v2/activity?limit=50
+// HandleV2RecentActivity returns recent status changes across all ramps,
+// with optional filters: city (exact match), ramp (access_id), and since
+// (RFC3339 timestamp — only entries recorded at or after it). With no
+// filters the response is identical to the original unfiltered endpoint.
+// GET /api/v2/activity?limit=50&city=New+Smyrna+Beach&ramp=NSB-001&since=2026-08-15T00:00:00Z
 func HandleV2RecentActivity(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
@@ -559,7 +602,16 @@ func HandleV2RecentActivity(pool *pgxpool.Pool) echo.HandlerFunc {
 			}
 		}
 
-		entries, err := database.GetRecentHistory(ctx, pool, limit)
+		city := c.QueryParam("city")
+		ramp := c.QueryParam("ramp")
+		since, err := parseActivitySince(c.QueryParam("since"))
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "invalid since parameter, expected RFC3339 timestamp",
+			})
+		}
+
+		entries, err := database.GetRecentHistoryFiltered(ctx, pool, limit, city, ramp, since)
 		if err != nil {
 			slog.Error("querying recent activity", "err", err)
 			return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -573,6 +625,19 @@ func HandleV2RecentActivity(pool *pgxpool.Pool) echo.HandlerFunc {
 
 		return c.JSON(http.StatusOK, entries)
 	}
+}
+
+// parseActivitySince parses the activity endpoint's optional since parameter.
+// Empty means no filter (nil); anything else must be RFC3339.
+func parseActivitySince(raw string) (*time.Time, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return nil, fmt.Errorf("parsing since %q: %w", raw, err)
+	}
+	return &t, nil
 }
 
 // HandleV2Weather returns current conditions and forecast from the National

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/donwb/beach/api/internal/models"
@@ -95,12 +96,14 @@ func GetRampsByCity(ctx context.Context, pool *pgxpool.Pool, city string) ([]mod
 }
 
 // GetRampsWithStatusSince returns ramps along with the time each ramp's
-// current status took effect (the most recent history entry, if any).
+// current status took effect (the most recent history entry, if any) and any
+// operator-curated metadata (LEFT JOIN — all metadata fields nullable).
 // Empty city or status skips that filter.
 func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city, status string) ([]models.RampStatusWithSince, error) {
 	query := `
 		SELECT r.id, r.ramp_name, r.access_status, r.status_category, r.object_id, r.city, r.access_id, r.location, r.updated_at,
-		       h.recorded_at
+		       h.recorded_at,
+		       m.short_name, m.address, m.driving_hours, m.closure_height_ft, m.sort_order
 		FROM ramp_status r
 		LEFT JOIN LATERAL (
 			SELECT recorded_at
@@ -109,6 +112,7 @@ func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city, stat
 			ORDER BY recorded_at DESC
 			LIMIT 1
 		) h ON true
+		LEFT JOIN ramp_metadata m ON m.access_id = r.access_id
 		WHERE 1=1
 	`
 	args := make([]interface{}, 0, 2)
@@ -135,6 +139,7 @@ func GetRampsWithStatusSince(ctx context.Context, pool *pgxpool.Pool, city, stat
 			&r.ID, &r.RampName, &r.AccessStatus, &r.StatusCategory,
 			&r.ObjectID, &r.City, &r.AccessID, &r.Location, &r.UpdatedAt,
 			&r.StatusSince,
+			&r.ShortName, &r.Address, &r.DrivingHours, &r.ClosureHeightFt, &r.SortOrder,
 		); err != nil {
 			return nil, fmt.Errorf("scanning ramp with status since row: %w", err)
 		}
@@ -263,15 +268,17 @@ func GetRampStatusEvents(ctx context.Context, pool *pgxpool.Pool, accessID strin
 // enriched with ramp_name and city from the ramp_status table.
 // Results are ordered newest-first.
 func GetRecentHistory(ctx context.Context, pool *pgxpool.Pool, limit int) ([]models.RampHistoryEntry, error) {
-	const query = `
-		SELECT h.id, h.access_id, h.access_status, h.recorded_at, r.ramp_name, r.city
-		FROM ramp_status_history h
-		JOIN ramp_status r ON h.access_id = r.access_id
-		ORDER BY h.recorded_at DESC
-		LIMIT $1
-	`
+	return GetRecentHistoryFiltered(ctx, pool, limit, "", "", nil)
+}
 
-	rows, err := pool.Query(ctx, query, limit)
+// GetRecentHistoryFiltered is GetRecentHistory with optional filters: city
+// (exact match on the ramp's city), ramp (the history entry's access_id), and
+// since (only entries recorded at or after the given instant). Zero values
+// skip each filter, making the no-filter call identical to GetRecentHistory.
+func GetRecentHistoryFiltered(ctx context.Context, pool *pgxpool.Pool, limit int, city, ramp string, since *time.Time) ([]models.RampHistoryEntry, error) {
+	query, args := buildRecentHistoryQuery(limit, city, ramp, since)
+
+	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("querying recent history: %w", err)
 	}
@@ -291,6 +298,79 @@ func GetRecentHistory(ctx context.Context, pool *pgxpool.Pool, limit int) ([]mod
 	}
 
 	return entries, nil
+}
+
+// buildRecentHistoryQuery assembles the recent-history SQL and its positional
+// args. Split out from GetRecentHistoryFiltered so the clause/placeholder
+// construction is unit-testable without a database.
+func buildRecentHistoryQuery(limit int, city, ramp string, since *time.Time) (string, []interface{}) {
+	query := `
+		SELECT h.id, h.access_id, h.access_status, h.recorded_at, r.ramp_name, r.city
+		FROM ramp_status_history h
+		JOIN ramp_status r ON h.access_id = r.access_id
+	`
+	args := make([]interface{}, 0, 4)
+	var clauses []string
+	if city != "" {
+		args = append(args, city)
+		clauses = append(clauses, fmt.Sprintf("r.city = $%d", len(args)))
+	}
+	if ramp != "" {
+		args = append(args, ramp)
+		clauses = append(clauses, fmt.Sprintf("h.access_id = $%d", len(args)))
+	}
+	if since != nil {
+		args = append(args, *since)
+		clauses = append(clauses, fmt.Sprintf("h.recorded_at >= $%d", len(args)))
+	}
+	if len(clauses) > 0 {
+		query += "	WHERE " + strings.Join(clauses, " AND ") + "\n"
+	}
+	args = append(args, limit)
+	query += fmt.Sprintf(`	ORDER BY h.recorded_at DESC
+		LIMIT $%d
+	`, len(args))
+
+	return query, args
+}
+
+// UpsertRampMetadata inserts or fully replaces the metadata row for an
+// access_id and returns the stored row. Nil pointer fields store SQL NULL,
+// so an upsert with a missing or null field clears that column.
+func UpsertRampMetadata(ctx context.Context, pool *pgxpool.Pool, meta models.RampMetadata) (*models.RampMetadata, error) {
+	const query = `
+		INSERT INTO ramp_metadata (access_id, short_name, address, driving_hours, closure_height_ft, sort_order)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (access_id) DO UPDATE SET
+			short_name        = EXCLUDED.short_name,
+			address           = EXCLUDED.address,
+			driving_hours     = EXCLUDED.driving_hours,
+			closure_height_ft = EXCLUDED.closure_height_ft,
+			sort_order        = EXCLUDED.sort_order
+		RETURNING access_id, short_name, address, driving_hours, closure_height_ft, sort_order
+	`
+
+	var stored models.RampMetadata
+	err := pool.QueryRow(ctx, query,
+		meta.AccessID,
+		meta.ShortName,
+		meta.Address,
+		meta.DrivingHours,
+		meta.ClosureHeightFt,
+		meta.SortOrder,
+	).Scan(
+		&stored.AccessID,
+		&stored.ShortName,
+		&stored.Address,
+		&stored.DrivingHours,
+		&stored.ClosureHeightFt,
+		&stored.SortOrder,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("upserting ramp metadata for access_id %s: %w", meta.AccessID, err)
+	}
+
+	return &stored, nil
 }
 
 // --- Cameras ---

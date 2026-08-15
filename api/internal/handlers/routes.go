@@ -23,7 +23,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	// CORS: allow all origins (public API).
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
-		AllowMethods: []string{"GET", "POST", "HEAD", "OPTIONS"},
+		AllowMethods: []string{"GET", "POST", "PUT", "HEAD", "OPTIONS"},
 	}))
 
 	// Request logging.
@@ -80,6 +80,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	admin.POST("/settings", HandleAdminUpdateSetting(pool))
 	admin.GET("/cameras", HandleAdminGetCameras(pool))
 	admin.POST("/cameras/:id/stream", HandleAdminUpdateCameraStream(pool))
+	admin.PUT("/ramps/:id/metadata", HandleAdminUpsertRampMetadata(pool))
 }
 
 // apiKeyAuth returns middleware that validates the X-Api-Key header

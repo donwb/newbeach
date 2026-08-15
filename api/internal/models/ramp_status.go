@@ -22,9 +22,33 @@ type RampStatus struct {
 // RampStatusWithSince pairs a ramp's current status with the time that status
 // took effect, taken from the most recent history entry. StatusSince is nil
 // when the ramp has no recorded status changes.
+//
+// The metadata fields come from an optional LEFT JOIN against ramp_metadata
+// and are all pointers with omitempty: ramps without metadata serialize
+// exactly as they did before the ramp_metadata table existed, so existing
+// consumers (web, TRMNL, tvOS, iOS) see identical JSON until a field is set.
 type RampStatusWithSince struct {
 	RampStatus
-	StatusSince *time.Time `json:"status_since,omitempty"`
+	StatusSince     *time.Time `json:"status_since,omitempty"`
+	ShortName       *string    `json:"short_name,omitempty"`
+	Address         *string    `json:"address,omitempty"`
+	DrivingHours    *string    `json:"driving_hours,omitempty"`
+	ClosureHeightFt *float64   `json:"closure_height_ft,omitempty"`
+	SortOrder       *int       `json:"sort_order,omitempty"`
+}
+
+// RampMetadata is the operator-curated enrichment for a single ramp, keyed by
+// the county GIS access_id. Every field except AccessID is nullable; a nil
+// pointer serializes to an absent key and stores SQL NULL. The admin upsert
+// treats the body as a full replacement, so an absent or null field clears
+// the stored value.
+type RampMetadata struct {
+	AccessID        string   `json:"access_id" db:"access_id"`
+	ShortName       *string  `json:"short_name,omitempty" db:"short_name"`
+	Address         *string  `json:"address,omitempty" db:"address"`
+	DrivingHours    *string  `json:"driving_hours,omitempty" db:"driving_hours"`
+	ClosureHeightFt *float64 `json:"closure_height_ft,omitempty" db:"closure_height_ft"`
+	SortOrder       *int     `json:"sort_order,omitempty" db:"sort_order"`
 }
 
 // RampStatusHistory represents a single historical record of a ramp status change.
