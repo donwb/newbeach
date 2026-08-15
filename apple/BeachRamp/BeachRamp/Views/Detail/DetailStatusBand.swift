@@ -97,10 +97,15 @@ struct TodayStatusBandView: View {
                 }
                 .frame(height: 36)
 
-                // Start time + label under each segment.
-                HStack(alignment: .top, spacing: 8) {
-                    ForEach(segments.indices, id: \.self) { i in
-                        let seg = segments[i]
+                // Start time + label pinned under each segment's start — the
+                // label positions ARE the timeline; evenly spread they lie.
+                // Tight clusters (turtle sweep → open) nudge right just enough
+                // to stay legible without losing chronology.
+                GeometryReader { geo in
+                    let width = geo.size.width
+                    let placed = labelPositions(width: width)
+                    ForEach(placed, id: \.index) { item in
+                        let seg = segments[item.index]
                         VStack(alignment: .leading, spacing: 1) {
                             Text(SinceFormatter.clock(seg.start))
                                 .font(.archivo(12, weight: .extraBold))
@@ -110,9 +115,11 @@ struct TodayStatusBandView: View {
                                 .font(.archivo(10))
                                 .foregroundStyle(t.ink2)
                         }
-                        if i < segments.count - 1 { Spacer(minLength: 0) }
+                        .frame(width: Self.labelWidth, alignment: .leading)
+                        .offset(x: item.x)
                     }
                 }
+                .frame(height: 30)
             }
         }
         .accessibilityElement(children: .combine)
@@ -123,6 +130,27 @@ struct TodayStatusBandView: View {
         let label: String
         let start: Date
         let fraction: CGFloat
+        /// Where this segment begins in the day, 0...1.
+        let startFraction: CGFloat
+    }
+
+    private static let labelWidth: CGFloat = 62
+
+    /// Every segment keeps its label at (or as near as fits to) its true
+    /// start position: greedy left-to-right, each label pushed right past the
+    /// previous one when starts cluster, trailing labels dropped only when
+    /// the row is genuinely out of room.
+    private func labelPositions(width: CGFloat) -> [(index: Int, x: CGFloat)] {
+        var placed: [(index: Int, x: CGFloat)] = []
+        var nextFree: CGFloat = 0
+        for (i, seg) in segments.enumerated() {
+            let ideal = seg.startFraction * width
+            let x = max(ideal, nextFree)
+            guard x <= width - Self.labelWidth else { break }
+            placed.append((index: i, x: x))
+            nextFree = x + Self.labelWidth + 6
+        }
+        return placed
     }
 
     /// Today's intervals, clipped midnight → now (the band runs to midnight,
@@ -143,7 +171,8 @@ struct TodayStatusBandView: View {
                 label: interval.statusCategory == .open ? "Open"
                     : interval.statusCategory == .limited ? "Limited" : "Closed",
                 start: start,
-                fraction: CGFloat(end.timeIntervalSince(start) / dayLength)
+                fraction: CGFloat(end.timeIntervalSince(start) / dayLength),
+                startFraction: CGFloat(start.timeIntervalSince(dayStart) / dayLength)
             ))
         }
         return result
