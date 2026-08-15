@@ -15,7 +15,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground boards, ramp detail, landscape cam, widget family, ramp_metadata backend deployed. Flighted as 1.0 (17) same day. Live Activity + watch refresh deferred by decision. ASC consolidation complete; cam restreamer still pending `make deploy-restreamer` on the Studio.)
+last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground boards, ramp detail, landscape cam, widget family, ramp_metadata backend deployed. Flighted as 1.0 (17) same day. Live Activity + watch refresh deferred by decision. ASC consolidation complete; cam restreamer still pending `make deploy-restreamer` on the Studio. App Store gallery screenshots captured via new `make screenshots`.)
 ---
 
 ## Top open items
@@ -64,7 +64,10 @@ last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground board
 6. Historical analytics dashboard — ramp_status_history has been collecting since March,
    but the trends UI (web + iOS) was in-scope and never built. REQUIREMENTS.md §16.1.
 7. Refresh marketing screenshots — slides/screenshots/ are from March 2026, predating the
-   multi-camera switcher and the tvOS redesign. INTAKE §8.
+   multi-camera switcher and the tvOS redesign. INTAKE §8. Partial 2026-08-15: App Store
+   gallery captured at store sizes (iPhone 6.9" ×3 sky phases, iPad 13" ×2, watch ×1) via
+   the new `make screenshots` automation into design/app-store-screenshots/ (5a972ab);
+   slides/screenshots/ itself still stale.
 8. Site-copy fixes from the claim audit — "Beville" ramp doesn't exist in the live feed;
    "six screens" is now seven. INTAKE §5 (V3, V8).
 
