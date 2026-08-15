@@ -15,31 +15,34 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (ASC consolidation COMPLETE — stale iOS record deleted, both platforms flighted as 1.0 (16) to the one com.donwb.BeachRampTV record. Domain move done in-repo and on TRMNL; cam restreamer still on the old hostname pending `make deploy-restreamer` on the Studio. iOS/iPad redesign starting against design-review/design_handoff_ios/.)
+last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground boards, ramp detail, landscape cam, widget family, ramp_metadata backend deployed. Needs a re-flight to carry it to TestFlight. Live Activity + watch refresh deferred by decision. ASC consolidation complete; cam restreamer still pending `make deploy-restreamer` on the Studio.)
 ---
 
 ## Top open items
-1. Carry the 2026-08 design language to iPadOS → iPhone (web shipped 2026-08-15; tvOS
-   named the tokens). Includes migrating iOS AppTheme + WatchTheme to the BeachStatus
-   StatusColors (coastal retune 2026-08-14: #29C97A/#E8A23C/#C64B38) and retiring the
-   old statusOpen/#10B981 family. IN PROGRESS as of 2026-08-15. Handoff specs:
-   design-review/design_handoff_ios/ (11 screens: iPhone board/detail/cam, iPad
-   landscape/portrait/sheet, widgets, Live Activity, watch), plus the precedents in
-   "August design_handoff_tvos_board/README.md" and design-review/design_handoff_web/.
-1b. Web detail-screen facts row deferred: per-ramp metadata (closure heights, address,
-   driving hours, nearest-cam distance) doesn't exist anywhere yet — needs a
-   ramp_metadata table + admin endpoints; the dashed closure line on the detail tide
-   chart is built (renderTideChartSVG closureFt) and dormant until then.
-1c. Predictive closure features (Don, 2026-08-15: "def want to come back to that" —
-   after the redesign work finishes). Reopen prediction already ships: when a ramp
-   closes on the rising tide, the estimate is the falling curve's return to the
-   closure-time height (web/js/verdict.js reopenFromClosureHeight). Next steps:
-   (a) per-ramp closure heights in ramp_metadata unlock predicting closures BEFORE
-   they happen ("Expect full closure near high tide 11:35 AM") plus the dashed
-   threshold line in 1b; (b) calibrate those heights from ramp_status_history —
-   each real closure pairs a status change with a computable tide height (the
-   2026-08-15 10:16 AM all-five closure is a clean first data point); (c) carry the
-   same prediction to the Apple targets via BeachStatus VerdictBuilder.
+1. DONE 2026-08-15 — iOS/iPadOS redesign shipped to main (commits e6689ce…7ab6210):
+   sun-following sky boards on iPhone + iPad, verdict hero, field-carried status,
+   ramp detail (push on iPhone, 760×762 panel on iPad), forced-landscape live cam,
+   and the widget extension (small/medium/large + Lock Screen accessories, App Group
+   snapshot pipeline, per-instance city config). AppTheme/WatchTheme… note: WatchTheme
+   still has its own palette (watch deferred). REMAINING from the handoff, by
+   decision (Don, 2026-08-15): Live Activity/Dynamic Island (needs an APNs
+   ActivityKit push sender — pair with 1c), watch refresh + complications, and
+   stat-strip cell push-throughs to tide/water/wind detail screens. Needs a
+   re-flight to reach TestFlight.
+1a. Populate ramp_metadata values — the table, admin endpoint
+   (PUT /api/v2/admin/ramps/:id/metadata, X-Api-Key), and nullable fields on
+   /api/v2/ramps are LIVE (migration 008, deployed 2026-08-15) with NSB sort_order
+   seeded. Closure heights, addresses, driving hours, and short names are NULL until
+   Don curates them; the iOS detail facts, dashed threshold line, forward-looking
+   closure line (ClosureProjector), and web facts row all light up as values land.
+1c. Predictive closure features (Don, 2026-08-15: "def want to come back to that").
+   Client-side projection now ships on iOS: ClosureProjector turns closure_height_ft
+   + the tide curve into "Expect full closure near high tide 11:07 PM." / reopen
+   lines — blocked only on curated heights (1a). Next steps: (a) calibrate heights
+   from ramp_status_history (each real closure pairs a status change with a
+   computable tide height; the 2026-08-15 10:16 AM all-five closure is a clean first
+   data point); (b) server-side threshold math to feed a future APNs Live Activity
+   push sender; (c) carry the projection to web.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
@@ -91,7 +94,22 @@ last_verified: 2026-08-15 (ASC consolidation COMPLETE — stale iOS record delet
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
-- 2026-08-15 (latest): Apple release plumbing — unified iOS+tvOS on one App Store Connect
+- 2026-08-15 (latest): iOS/iPadOS redesign from design-review/design_handoff_ios/ —
+  the sixteen-phase SkyPalette moved into BeachStatus (tvOS unchanged) with the
+  day/night TokenSet, StatusField colors, GroundModel (dayness/veil/scrim, 30s tick),
+  ClosureProjector, App Group BoardSnapshot store, and bundled Archivo (OFL).
+  iPhone: sky-hero board with verdict, count-carrying filters, field-status rows,
+  12h tide section, stale state, 60s foreground poll; pushed ramp detail (today
+  band from /intervals, facts grid, dashed threshold chart, 48h feed, in-place ramp
+  flip); forced-landscape live cam with scrims + roster chips. iPad: wide board
+  (city tabs, 1.55fr/1fr verdict row, 372pt rail landscape, dissolved-rail
+  portrait) + 760×762 detail panel. New BeachRampWidgetsExtension target (first
+  embed phase + entitlements in the project) with small/medium/large and Lock
+  Screen widgets on the snapshot-first timeline. Backend: ramp_metadata table +
+  admin upsert + /api/v2/activity city/ramp/since filters, all additive, deployed
+  and verified against web + TRMNL. QA hooks: --sky-minutes, --simulate-stale,
+  --force-wide.
+- 2026-08-15: Apple release plumbing — unified iOS+tvOS on one App Store Connect
   record and one bundle ID (com.donwb.BeachRampTV), Config/Version.xcconfig as the single
   source of truth for version/build/display name/export-compliance, deployment floors
   corrected from Xcode's 26.2/26.5 defaults to iOS 18/tvOS 18/watchOS 11, committed shared
