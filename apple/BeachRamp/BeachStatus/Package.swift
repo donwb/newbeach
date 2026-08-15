@@ -5,9 +5,9 @@ import PackageDescription
 let package = Package(
     name: "BeachStatus",
     platforms: [
-        .iOS(.v17),
-        .watchOS(.v10),
-        .tvOS(.v17),
+        .iOS("18.0"),
+        .watchOS("11.0"),
+        .tvOS("18.0"),
         .macOS(.v13),
     ],
     products: [

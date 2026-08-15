@@ -1,0 +1,19 @@
+// Version.xcconfig — the single source of truth for version and build numbers.
+//
+// Attached as the project-level base configuration, so every target inherits
+// these. Do NOT re-declare MARKETING_VERSION or CURRENT_PROJECT_VERSION on an
+// individual target: a per-target value silently wins over this file and the
+// build bump becomes a no-op for that target.
+//
+// apple/scripts/flight.sh rewrites CURRENT_PROJECT_VERSION on every flight.
+
+MARKETING_VERSION = 1.0
+CURRENT_PROJECT_VERSION = 1
+
+// Shipped name under the icon on every platform. The App Store Connect
+// listing name is "Beach Ramp Status"; this is the shorter home-screen form.
+INFOPLIST_KEY_CFBundleDisplayName = Beach Ramps
+
+// Answers the export-compliance question at upload time instead of stalling
+// every build on it in App Store Connect.
+INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO

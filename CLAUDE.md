@@ -43,7 +43,7 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 ## Swift (iOS / watchOS / tvOS)
 
 - SwiftUI only — no UIKit
-- Minimum targets: iOS 17, watchOS 10, tvOS 17
+- Minimum targets: iOS 18, watchOS 11, tvOS 18 (per-target deployment settings in the Xcode project; `BeachStatus/Package.swift` declares the same floors)
 - Swift 5.9+
 - Shared Swift package `BeachStatus/` contains: Models, Networking, Utilities
 - All three app targets depend on the shared package — no duplicated model or networking code
@@ -52,6 +52,42 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - Local caching: SwiftData
 - Use SF Symbols for icons
 - Previews: every view should have a working Xcode preview with mock data
+
+## Apple Releases
+
+- **`make flight`** — bumps the build number, archives iOS + tvOS Release, and uploads
+  both to TestFlight. `make flight-ios` / `make flight-tv` for one platform;
+  `make flight-check` archives without uploading. Implementation:
+  `apple/scripts/flight.sh` (ported from the bkmks project's equivalent).
+- **Flighting is deliberately outside the commit/push/test loop** — it is bandwidth-heavy
+  and account-bound. **Don runs this**; agents must not flight as part of finishing work.
+- **`apple/BeachRamp/Config/Version.xcconfig` is the single source of truth** for
+  `MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`, the display name, and the
+  export-compliance key. It is the project-level base configuration, so every target
+  inherits it. **Never re-declare those settings on an individual target** — a per-target
+  value silently wins and the build bump becomes a no-op for that target.
+- **One App Store Connect record, one bundle ID.** The iOS and tvOS app targets both build
+  as `com.donwb.BeachRampTV`; that shared identifier is what lets a single ASC record carry
+  both platforms. The watch app is `com.donwb.BeachRampTV.watchkitapp`. The "TV" in the
+  identifier is historical and deliberate: the surviving ASC record ("Beach Ramp Status",
+  Apple ID 6761724123) had already taken a build, which permanently freezes its bundle ID,
+  so the project moved to the record rather than gambling the reserved app name on a
+  delete-and-recreate. Bundle IDs are never user-visible; the apps display as "Beach Ramps".
+- **watchOS is out of scope for 1.0** — the target still exists and builds, but the
+  "Embed Watch Content" phase was removed from the iOS app so it does not ride into the
+  archive. Re-adding that phase is how it ships later.
+- **Shared schemes are committed** at `BeachRamp.xcodeproj/xcshareddata/xcschemes/`.
+  Without them `xcodebuild -scheme` is not reproducible across machines.
+- **Auth: flight uses Xcode's signed-in Apple ID session, and it expires.** The export
+  step re-signs with cloud-managed distribution signing, which only the Apple ID session
+  can do — an App Store Connect API key fails here with "Cloud signing permission error /
+  No signing certificate iOS Distribution found." Symptoms of a stale session are
+  misleading ("Failed to Use Accounts", keychain "missing Xcode-Username"), and **Xcode's
+  Accounts pane lies** — it shows signed-in while dead. Fix: remove the Apple ID with the
+  − button and re-add with password/2FA, **at the Mac, not over a remote session**.
+  Recovery is cheap — the archive survives, so rerun `apple/scripts/flight.sh --no-bump --yes`.
+- **Hostname tripwire**: flight refuses (with a confirm) if `APIClient.swift` still points
+  at the `ondigitalocean.app` hostname instead of `beach.donwb.com`.
 
 ## Database
 

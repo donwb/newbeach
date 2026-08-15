@@ -1152,7 +1152,11 @@ These items are not in scope for the initial rebuild but the architecture should
 
 **Key decisions:**
 - Separate theme files per platform (AppTheme, WatchTheme, TVTheme) with platform-specific `StatusCategory` extensions to avoid UIKit/AppKit cross-compilation issues
-- Watch created as "Watch-only App" (not companion) since it fetches data directly from the API — no iPhone dependency
+- Watch was originally created as a "Watch-only App" since it fetches data directly from
+  the API, but was later re-wired as an iPhone companion (commit 8891a27) — it now carries
+  `WKCompanionAppBundleIdentifier` and the bundle ID `com.donwb.BeachRampTV.watchkitapp`.
+  **Out of scope for 1.0:** the target still builds, but the "Embed Watch Content" phase was
+  removed from the iOS app so it does not ride into the submitted archive.
 - TV auto-refresh uses structured concurrency (`Task` with `while !Task.isCancelled` loop) instead of `Timer` for better lifecycle management
 - `NSImage(size:)` creates Retina (2x) images on macOS — icons resized to correct pixel dimensions via `sips`
 - tvOS icons are landscape (5:3 ratio), not square — separate generation script for correct aspect ratios
@@ -1237,7 +1241,8 @@ All six implementation phases are complete. Every platform has reached a shippab
 - iOS: favorites, push notifications, widgets, Live Activities, settings screen, SwiftData caching
 - watchOS: complications, background refresh
 - PWA offline page
-- Apple apps not yet submitted to App Store
+- Apple apps not yet submitted to App Store — one consolidated App Store Connect record
+  (bundle ID `com.donwb.BeachRampTV`, iOS + tvOS); `make flight` handles archive + upload
 
 **What's next:** Polish, test on real devices, submit Apple apps, iterate on TRMNL template after live testing.
 

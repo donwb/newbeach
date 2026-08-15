@@ -2,19 +2,20 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 1) (apple/BeachRamp/BeachRamp.xcodeproj); API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 1), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
   Web+API: live at https://beach.donwb.com (verified 2026-08-12, INTAKE dossier).
-  Apple apps: build-from-Xcode only as far as this repo proves — no fastlane/store metadata; store presence UNVERIFIED — App Store Connect.
+  Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads to TestFlight. Two App Store Connect records existed ("Beach Ramp Status" tvOS, "Beach Ramp iOS App" iOS), both in Prepare for Submission; consolidating onto the tvOS record (Apple ID 6761724123) at bundle ID com.donwb.BeachRampTV — its ID is frozen by a prior build, so the project moved to it. ASC-side surgery pending (Don).
   TRMNL: two private plugin templates in trmnl/, active devices.
 app_review_state: |
-  iOS (+ watch companion): UNVERIFIED — no submission evidence in repo; check App Store Connect
-  tvOS: UNVERIFIED — no submission evidence in repo; check App Store Connect
+  iOS: Prepare for Submission, never submitted. Record "Beach Ramp iOS App" to be deleted in the consolidation.
+  tvOS: Prepare for Submission. Record "Beach Ramp Status" is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV (a build reached it at some point), so the iOS platform is added to it as-is.
+  watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (web redesign live + verified against the real all-five high-tide closure; height-based reopen prediction shipped same day)
+last_verified: 2026-08-15 (Apple record cleanup: unified bundle ID com.donwb.BeachRampTV across iOS+tvOS, deployment floors to iOS 18/tvOS 18/watchOS 11, Version.xcconfig, shared schemes, flight automation; all three platforms archive clean. ASC-side surgery still pending Don.)
 ---
 
 ## Top open items
@@ -45,8 +46,12 @@ last_verified: 2026-08-15 (web redesign live + verified against the real all-fiv
    switchers shipped; website still plays the single default stream. INTAKE §6.
 4. Finish domain move to beach.donwb.com — Apple apps, TRMNL plugins, CI, and the
    camera-refresh cron are still pinned to the DigitalOcean hostname. CLAUDE.md; commit 4e4cc13.
-5. Establish/verify App Store presence — bundle IDs exist but nothing proves a listing;
-   all Apple distribution state is unverified. INTAKE frontmatter.
+5. Consolidate the App Store Connect records — repo side is done (one bundle ID
+   com.donwb.BeachRampTV for iOS + tvOS, flight automation, shared schemes). Remaining is
+   Don's ASC/portal work: delete "Beach Ramp iOS App", add the iOS platform to
+   "Beach Ramp Status", delete the orphaned App IDs (BeachRampiOS, BeachRamp,
+   BeachRampWatch*). No bundle-ID edit is needed — the project moved to the record.
+   Then the first real `make flight`.
 6. Historical analytics dashboard — ramp_status_history has been collecting since March,
    but the trends UI (web + iOS) was in-scope and never built. REQUIREMENTS.md §16.1.
 7. Refresh marketing screenshots — slides/screenshots/ are from March 2026, predating the
@@ -69,7 +74,11 @@ last_verified: 2026-08-15 (web redesign live + verified against the real all-fiv
   youtube_url needs updating when the county restarts the broadcast.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
   (fixed in ff3a353 + migration 006); could recur.
-- App Store state unknown from the repo — blocks any "live on iOS" claim (INTAKE §5 V6).
+- Neither Apple app has ever been submitted — no "live on iOS/tvOS" claim is available yet.
+- The tvOS record's bundle ID is frozen (a build reached it), so com.donwb.BeachRampTV is
+  permanent for every platform including iOS and watch. Accepted deliberately on 2026-08-15:
+  the alternative was deleting and recreating both records, which would have risked the
+  reserved name "Beach Ramp Status" to fix a purely cosmetic identifier.
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
