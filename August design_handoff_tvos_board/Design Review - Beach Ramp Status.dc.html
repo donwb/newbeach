@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-6f404417-37b7-441b-82d2-6f4c6ff870be/styles.css" />
+<script src="_ds/modernist-6f404417-37b7-441b-82d2-6f4c6ff870be/_ds_bundle.js"></script>
+<title>Design Review — Beach Ramp Status</title>
+<style>
+  body { margin: 0; background: #201e1d; }
+  a { color: #ec3013; text-decoration: none; }
+  a:hover { color: #ae1800; text-decoration: underline; }
+</style>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+<section data-label="Cover" data-screen-label="01" data-speaker-notes="Framing: this is a read of what exists today, not a proposal yet. Six surfaces were captured on August 14 against live production data." style="display:flex;flex-direction:column;justify-content:center;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Design review</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h1 style="font-size:124px;font-weight:800;line-height:1.0;letter-spacing:-0.02em;margin:56px 0 0;">Beach Ramp Status</h1>
+  <p style="font-size:40px;line-height:1.25;max-width:38ch;margin:44px 0 0;">Current state across the web and Apple surfaces, read against the question the product exists to answer.</p>
+  <div style="position:absolute;left:120px;right:120px;bottom:100px;display:flex;gap:28px;font-size:24px;color:rgba(32,30,29,0.55);">
+    <span>August 14, 2026</span>
+    <span>Volusia County, FL</span>
+    <span>beach.donwb.com</span>
+  </div>
+</section>
+
+<section data-label="Contents" data-screen-label="02" data-speaker-notes="Three sections. Most of the time goes to the first one." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Contents</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <div style="display:flex;flex-direction:column;max-width:1200px;margin-top:80px;border-top:2px solid rgba(32,30,29,0.4);">
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:40px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;">01</span>
+      <span style="font-size:44px;font-weight:800;">tvOS — the primary surface</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:40px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;">02</span>
+      <span style="font-size:44px;font-weight:800;">The other surfaces</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:40px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;">03</span>
+      <span style="font-size:44px;font-weight:800;">Where a redesign starts</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="The three-second question" data-screen-label="03" data-speaker-notes="This is the whole critique in one slide. Everything after it is evidence." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Premise</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">The three-second question</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:56px;flex:1;">
+    <div style="display:flex;flex-direction:column;justify-content:flex-start;">
+      <p style="font-size:44px;font-weight:800;line-height:1.2;letter-spacing:-0.015em;color:#ae1800;margin:0;">&ldquo;Users are locals deciding right now whether to drive onto the beach.&rdquo;</p>
+      <p style="font-size:24px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);margin:36px 0 0;">DESIGN-BRIEF.md</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:36px;">
+      <p style="font-size:34px;line-height:1.4;margin:0;">Every surface answers that as <strong style="font-weight:800;">inventory</strong>: here are five ramps, here are their statuses, here is a chart.</p>
+      <p style="font-size:34px;line-height:1.4;margin:0;">None answers it as a <strong style="font-weight:800;">verdict</strong>: go to Flagler, the tide is dropping, you have five hours of light.</p>
+      <p style="font-size:34px;line-height:1.4;margin:0;">Every number a verdict needs is already on the screen. Nothing on the screen ranks them.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="Divider 01 — tvOS" data-screen-label="04" data-speaker-notes="Section one. The TV is the surface that runs all day, so it earns the most attention." style="display:flex;flex-direction:column;justify-content:center;padding:96px 120px 100px;background:#ec3013;color:#f3f2f2;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:260px;font-weight:800;line-height:0.9;letter-spacing:-0.02em;color:#ae1800;margin:0 0 0 -0.045em;">01</div>
+  <h2 style="font-size:124px;font-weight:800;line-height:1.0;letter-spacing:-0.02em;margin:48px 0 0;">tvOS</h2>
+  <p style="font-size:40px;line-height:1.25;max-width:34ch;margin:40px 0 0;">The primary surface. On in the house nearly all day, watched from across the room.</p>
+</section>
+
+<section data-label="tvOS today" data-screen-label="05" data-speaker-notes="Walk the board top to bottom. Note that the chrome is already lean — the header is just a city chip and a clock, which is the right instinct." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">tvOS · current state</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">The board today</h2>
+  <div style="display:flex;gap:60px;margin-top:48px;flex:1;align-items:flex-start;">
+    <img src="review/tvos-home.png" alt="tvOS dashboard, New Smyrna Beach, 2:23 PM" style="width:1020px;height:574px;object-fit:cover;display:block;" />
+    <div style="display:flex;flex-direction:column;gap:26px;width:600px;">
+      <div style="display:flex;gap:20px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">01</span><span style="font-size:28px;line-height:1.35;">City chip and clock. The only chrome — a good instinct, kept.</span></div>
+      <div style="display:flex;gap:20px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">02</span><span style="font-size:28px;line-height:1.35;">Ramp grid, three columns, two-thirds width, glass tiles.</span></div>
+      <div style="display:flex;gap:20px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">03</span><span style="font-size:28px;line-height:1.35;">Tide and weather share one card at a third of the width.</span></div>
+      <div style="display:flex;gap:20px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">04</span><span style="font-size:28px;line-height:1.35;">Day timeline — the sun's rhythm across the full width.</span></div>
+      <div style="display:flex;gap:20px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">05</span><span style="font-size:28px;line-height:1.35;">Cam banner at 1280&times;270, then the coastline rail.</span></div>
+      <p style="font-size:28px;line-height:1.4;margin:14px 0 0;color:rgba(32,30,29,0.7);">Composition is sound: one hero, one grid, one strip. The problems are inside the parts, not the arrangement.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="The time-of-day sky" data-screen-label="06" data-speaker-notes="Lead with what works. The sky is the best idea in the product and it is already shared with iPhone and iPad, which nobody has named as a design decision." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">tvOS · what to keep</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">The time-of-day sky</h2>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:16px;margin-top:48px;">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#070A14,#101830,#1C2A44);"></div>
+      <div style="font-size:24px;font-weight:800;">Night</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">&minus;10&deg; · dim 0.55</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#1B2A52,#6A5C8E,#F2B07A);"></div>
+      <div style="font-size:24px;font-weight:800;">Sunrise</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">&minus;2&deg; · dim 0.85</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#0E6E8C,#1F9BBF,#9CD8E8);"></div>
+      <div style="font-size:24px;font-weight:800;">Morning</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">+22&deg; · dim 1.00</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#0E7FA8,#33B0CC,#B2E6F0);"></div>
+      <div style="font-size:24px;font-weight:800;">Noon</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">+45&deg; · dim 1.00</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#10657F,#3F957E,#D9BC72);"></div>
+      <div style="font-size:24px;font-weight:800;">Afternoon</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">+22&deg; · dim 0.98</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#123A52,#9A5E50,#F08A46);"></div>
+      <div style="font-size:24px;font-weight:800;">Sunset</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">&minus;1&deg; · dim 0.90</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="height:300px;background:linear-gradient(160deg,#0A1228,#2E2A52,#6E3C58);"></div>
+      <div style="font-size:24px;font-weight:800;">Evening</div>
+      <div style="font-size:24px;color:rgba(32,30,29,0.6);">&minus;6&deg; · dim 0.72</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:80px;margin-top:52px;">
+    <p style="font-size:30px;line-height:1.4;margin:0;">Seven palettes interpolated on the sun's real altitude, on separate rising and falling tracks, cross-fading over two seconds. Night and noon are shared so the flip at the solar extremes is seamless.</p>
+    <p style="font-size:30px;line-height:1.4;margin:0;">iPhone and iPad already run the same model in <strong style="font-weight:800;">HeaderSky</strong>. The cross-platform language isn't missing — it exists, it's tested, and only the TV lets it fill the screen.</p>
+  </div>
+</section>
+
+<section data-label="The ramp grid" data-screen-label="07" data-speaker-notes="The core tvOS problem. Five identical objects. The tile you need to spot looks exactly like the four you don't." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">tvOS · the ramp grid</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">Five tiles of equal weight</h2>
+  <img src="review/crop-ramp-grid.png" alt="tvOS ramp grid, five glass tiles, all Open" style="width:1680px;height:366px;object-fit:cover;display:block;margin-top:44px;" />
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:60px;margin-top:48px;">
+    <p style="font-size:28px;line-height:1.4;margin:0;">The tile never changes. One 16px glass card, a 30px name, a 28px status line, identical padding. Status is carried entirely by a 30px icon and the color of one word.</p>
+    <p style="font-size:28px;line-height:1.4;margin:0;">At ten feet that reads as five equal things. A closed ramp gets exactly the visual weight of an open one, so the tile that matters is the one that looks like all the others.</p>
+    <p style="font-size:28px;line-height:1.4;margin:0;">The greens don't even match: <strong style="font-weight:800;">#33E566</strong> here, <strong style="font-weight:800;">#10B981</strong> on iPhone. Same semantic, two values, two files.</p>
+  </div>
+</section>
+
+<section data-label="Failure states" data-screen-label="08" data-speaker-notes="Both states they asked about. The recovery engineering is genuinely thorough — a 15-second stall watcher, KVO failure observers, URL re-resolution — and none of it is visible from the couch." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">tvOS · when things break</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">Failure states, at actual size</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:48px;">
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);">Stale data</div>
+      <div style="background:linear-gradient(135deg,#0E7FA8,#33B0CC,#B2E6F0);padding:40px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="font-size:32px;font-weight:600;color:rgba(255,255,255,0.95);">5h 41m of daylight left</div>
+        <div style="font-size:18px;color:rgba(255,255,255,0.5);">viewModel.errorMessage renders here</div>
+      </div>
+      <p style="font-size:28px;line-height:1.4;margin:0;">An 18px line at 50% white, under the timeline caption. Every tile above it keeps showing the last-known status at full confidence — nothing signals that the board stopped listening.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);">Cam offline</div>
+      <div style="background:linear-gradient(135deg,#0E7FA8,#33B0CC,#B2E6F0);padding:24px;">
+        <div style="background:rgba(255,255,255,0.05);height:148px;display:flex;align-items:center;justify-content:center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="square"><rect x="2" y="7" width="13" height="10"></rect><path d="M15 11l6-3v8l-6-3"></path><path d="M2 2l20 20"></path></svg>
+        </div>
+      </div>
+      <p style="font-size:28px;line-height:1.4;margin:0;">A 22-point SF Symbol at 30% white on a 5% white fill, in a banner 270 points tall. No text, no station name, no &ldquo;retrying.&rdquo; The recovery logic behind it is thorough and completely invisible.</p>
+    </div>
+  </div>
+  <p style="font-size:30px;line-height:1.4;margin:48px 0 0;max-width:64ch;">Both were built as engineering states, not designed ones. On a screen read from a couch, silence is indistinguishable from a working board.</p>
+</section>
+
+<section data-label="Divider 02 — The other surfaces" data-screen-label="09" data-speaker-notes="Section two. Shorter — these follow whatever the TV settles." style="display:flex;flex-direction:column;justify-content:center;padding:96px 120px 100px;background:#ec3013;color:#f3f2f2;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:260px;font-weight:800;line-height:0.9;letter-spacing:-0.02em;color:#ae1800;margin:0 0 0 -0.045em;">02</div>
+  <h2 style="font-size:124px;font-weight:800;line-height:1.0;letter-spacing:-0.02em;margin:48px 0 0;">The other surfaces</h2>
+  <p style="font-size:40px;line-height:1.25;max-width:34ch;margin:40px 0 0;">Web, iPhone and iPad — three personalities and two palettes that never reach the screen.</p>
+</section>
+
+<section data-label="Three personalities" data-screen-label="10" data-speaker-notes="The finding worth remembering: the beach palette is written down twice in Swift and applied zero times. The debt isn't a missing language, it's an unapplied one." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Cross-surface</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">Three personalities</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:56px;margin-top:44px;">
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <img src="review/web-desktop-light.png" alt="Website, light" style="width:100%;height:270px;object-fit:cover;object-position:top;display:block;" />
+      <div style="font-size:32px;font-weight:800;">Web</div>
+      <div style="display:flex;gap:0;height:44px;">
+        <div style="flex:1;background:#fdf6e3;"></div><div style="flex:1;background:#f4d68a;"></div><div style="flex:1;background:#0d9488;"></div><div style="flex:1;background:#115e59;"></div>
+      </div>
+      <p style="font-size:26px;line-height:1.4;margin:0;">Warm cream ground, Tailwind teal chrome. The only surface with a beach personality on screen.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <img src="review/ios-home-light.png" alt="iOS home, light" style="width:100%;height:270px;object-fit:cover;object-position:top;display:block;" />
+      <div style="font-size:32px;font-weight:800;">iPhone &amp; iPad</div>
+      <div style="display:flex;gap:0;height:44px;">
+        <div style="flex:1;background:#f2f2f7;"></div><div style="flex:1;background:#e5e5ea;"></div><div style="flex:1;background:#0f766e;"></div><div style="flex:1;background:#14b8a6;"></div>
+      </div>
+      <p style="font-size:26px;line-height:1.4;margin:0;">Stock system grouped gray under a sun-tracking teal banner. <strong style="font-weight:800;">sand50–300</strong> is declared in AppTheme.swift and used nowhere.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <img src="review/tvos-home.png" alt="tvOS dashboard" style="width:100%;height:270px;object-fit:cover;object-position:top;display:block;" />
+      <div style="font-size:32px;font-weight:800;">tvOS</div>
+      <div style="display:flex;gap:0;height:44px;">
+        <div style="flex:1;background:#0E7FA8;"></div><div style="flex:1;background:#33B0CC;"></div><div style="flex:1;background:#B2E6F0;"></div><div style="flex:1;background:#F08A46;"></div>
+      </div>
+      <p style="font-size:26px;line-height:1.4;margin:0;">A sky gradient owns the screen. <strong style="font-weight:800;">tvOcean500–800</strong> and <strong style="font-weight:800;">tvSand50</strong> are declared in TVTheme.swift and used nowhere.</p>
+    </div>
+  </div>
+  <p style="font-size:30px;line-height:1.4;margin:44px 0 0;max-width:80ch;">Two of the three surfaces carry a beach palette in code that never reaches a pixel. The shared language isn't absent — it's written down twice and applied once.</p>
+</section>
+
+<section data-label="iPad" data-screen-label="11" data-speaker-notes="They flagged this one. The clearest tell is the header: it stops at the left column's edge, so the page reads as a phone screen with a second column bolted on." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">iPadOS · current state</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">A widened iPhone</h2>
+  <div style="display:flex;gap:72px;margin-top:44px;flex:1;align-items:flex-start;">
+    <img src="review/ipad-home-light.png" alt="iPadOS portrait, light" style="width:412px;height:630px;object-fit:cover;object-position:top;display:block;" />
+    <div style="display:flex;flex-direction:column;gap:30px;width:1076px;">
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">01</span><span style="font-size:30px;line-height:1.35;">The teal banner stops at the left column's right edge. It reads as a phone header with a second column set beside it, not as a header for the page.</span></div>
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">02</span><span style="font-size:30px;line-height:1.35;">The filter row clips mid-word — &ldquo;Li…&rdquo; — because the chips inherit a horizontally scrolling strip sized for a phone.</span></div>
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">03</span><span style="font-size:30px;line-height:1.35;">Storm icons render magenta and the tide chart's Low labels indigo — SF Symbol multicolor defaults, not palette decisions.</span></div>
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">04</span><span style="font-size:30px;line-height:1.35;">The left column ends halfway down and the cam rail sits below both columns, so the tallest thing on the page is empty space.</span></div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Web" data-screen-label="12" data-speaker-notes="Web is last in the sequence but has the most surface-level inconsistency. It is also the one place Modernist will land directly." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Web · current state</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">Same data, different grammar</h2>
+  <div style="display:flex;gap:72px;margin-top:44px;flex:1;align-items:flex-start;">
+    <img src="review/web-desktop-light.png" alt="Website above the fold, light" style="width:960px;height:600px;object-fit:cover;object-position:top;display:block;" />
+    <div style="display:flex;flex-direction:column;gap:30px;width:648px;">
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">01</span><span style="font-size:28px;line-height:1.35;">Two grammars inside one row: Open, Limited and Closed carry a <strong style="font-weight:800;">border-l-4</strong> bar and a colored numeral; Total gets a plain gray border and black type. iPhone drops Total altogether.</span></div>
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">02</span><span style="font-size:28px;line-height:1.35;">The ramp name is <strong style="font-weight:800;">font-bold text-sm uppercase truncate</strong> — 14px, and clipped. &ldquo;International Speedway Blvd&rdquo; cannot fit the card the brief's first constraint requires it to fit.</span></div>
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">03</span><span style="font-size:28px;line-height:1.35;">Status is said three times per card — a 4px left bar, a tinted pill, and the status word — and none of the three is the largest thing on it.</span></div>
+      <div style="display:flex;gap:24px;border-top:2px solid rgba(32,30,29,0.4);padding-top:26px;"><span style="font-size:24px;font-weight:600;color:#ec3013;min-width:34px;">04</span><span style="font-size:28px;line-height:1.35;">Every section heading is the same 14px gray uppercase label, so Recent Activity — the only narrative in the product, and web-only — weighs the same as &ldquo;Live Beach Cam.&rdquo;</span></div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Divider 03 — Where a redesign starts" data-screen-label="13" data-speaker-notes="Section three. Constraints, then the order of work." style="display:flex;flex-direction:column;justify-content:center;padding:96px 120px 100px;background:#ec3013;color:#f3f2f2;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:260px;font-weight:800;line-height:0.9;letter-spacing:-0.02em;color:#ae1800;margin:0 0 0 -0.045em;">03</div>
+  <h2 style="font-size:124px;font-weight:800;line-height:1.0;letter-spacing:-0.02em;margin:48px 0 0;">Where a redesign starts</h2>
+  <p style="font-size:40px;line-height:1.25;max-width:34ch;margin:40px 0 0;">What has to survive, and the order the surfaces get done in.</p>
+</section>
+
+<section data-label="Constraints" data-screen-label="14" data-speaker-notes="These are non-negotiable. Read the live-data row out loud — it's the one that kills most clever layouts." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Constraints</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">What has to survive</h2>
+  <div style="display:flex;flex-direction:column;margin-top:44px;border-top:2px solid rgba(32,30,29,0.4);">
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:48px;border-bottom:1px solid rgba(32,30,29,0.25);padding:24px 0;">
+      <span style="font-size:28px;font-weight:800;">Glanceability</span>
+      <span style="font-size:28px;line-height:1.35;">Three seconds, outdoors in sun or across a room. Status and ramp name dominate at every size.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:48px;border-bottom:1px solid rgba(32,30,29,0.25);padding:24px 0;">
+      <span style="font-size:28px;font-weight:800;">Status semantics</span>
+      <span style="font-size:28px;line-height:1.35;">Open green, limited amber, closed red — retuned to sit with the accent, never replaced.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:48px;border-bottom:1px solid rgba(32,30,29,0.25);padding:24px 0;">
+      <span style="font-size:28px;font-weight:800;">Live-data tolerance</span>
+      <span style="font-size:28px;line-height:1.35;">&ldquo;27th Av&rdquo; to &ldquo;International Speedway Blvd.&rdquo; &ldquo;Open&rdquo; to &ldquo;Closed for High Tide.&rdquo; Five ramps to roughly thirty.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:48px;border-bottom:1px solid rgba(32,30,29,0.25);padding:24px 0;">
+      <span style="font-size:28px;font-weight:800;">Cam aspect</span>
+      <span style="font-size:28px;line-height:1.35;">1280&times;270 — 4.7:1, not 16:9. Downtime is normal, so the offline state is a design problem, not an edge case.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:48px;border-bottom:1px solid rgba(32,30,29,0.25);padding:24px 0;">
+      <span style="font-size:28px;font-weight:800;">tvOS focus</span>
+      <span style="font-size:28px;line-height:1.35;">Tiles and coast pins need visible focus. The cam stays the hero and keeps its channel-flip feel.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:24px 0;">
+      <span style="font-size:28px;font-weight:800;">Platform</span>
+      <span style="font-size:28px;line-height:1.35;">SwiftUI and SF Symbols on Apple, shared through BeachStatus. Tailwind and no build step on web.</span>
+    </div>
+  </div>
+  <p style="font-size:28px;line-height:1.4;margin:32px 0 0;color:rgba(32,30,29,0.7);">Out of scope: TRMNL X and the retired Tidbyt template.</p>
+</section>
+
+<section data-label="Sequence" data-screen-label="15" data-speaker-notes="The TV goes first because it sets the language, and because it's the surface that matters most to them. Everything downstream inherits its tokens." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Sequence</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">The order of work</h2>
+  <div style="display:flex;flex-direction:column;margin-top:52px;border-top:2px solid rgba(32,30,29,0.4);max-width:1500px;">
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:34px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;min-width:40px;">01</span>
+      <span style="font-size:40px;font-weight:800;min-width:230px;">tvOS</span>
+      <span style="font-size:30px;line-height:1.35;">The board, the tile, the failure states. It names the palette, type scale and status tokens.</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:34px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;min-width:40px;">02</span>
+      <span style="font-size:40px;font-weight:800;min-width:230px;">iPadOS</span>
+      <span style="font-size:30px;line-height:1.35;">Rebuild the two-column layout against the TV's grammar. Landscape included this time.</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:34px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;min-width:40px;">03</span>
+      <span style="font-size:40px;font-weight:800;min-width:230px;">iPhone</span>
+      <span style="font-size:30px;line-height:1.35;">Carry it down to one column, and settle whether the cam comes with it.</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:48px;border-bottom:2px solid rgba(32,30,29,0.4);padding:34px 0;">
+      <span style="font-size:24px;font-weight:600;color:#ec3013;min-width:40px;">04</span>
+      <span style="font-size:40px;font-weight:800;min-width:230px;">Web</span>
+      <span style="font-size:30px;line-height:1.35;">The Modernist pass, with the activity feed promoted from a footnote to a section.</span>
+    </div>
+  </div>
+</section>
+
+<section data-label="Open questions" data-screen-label="16" data-speaker-notes="Four calls I need from them before building the tvOS board. The verdict question is the one that changes the most." style="display:flex;flex-direction:column;padding:96px 120px 100px;background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+  <div style="font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Next</div>
+  <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:22px;"></div>
+  <h2 style="font-size:64px;font-weight:800;line-height:1.05;letter-spacing:-0.015em;margin:44px 0 0;">Open questions</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:56px 80px;margin-top:56px;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:24px;font-weight:600;color:#ec3013;">01</div>
+      <p style="font-size:32px;line-height:1.35;margin:0;">Does the verdict sit above the ramp grid, or does it replace the grid until something is closed?</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:24px;font-weight:600;color:#ec3013;">02</div>
+      <p style="font-size:32px;line-height:1.35;margin:0;">Does the sun-tracking sky become the whole family's identity, or stay a TV background and a phone banner?</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:24px;font-weight:600;color:#ec3013;">03</div>
+      <p style="font-size:32px;line-height:1.35;margin:0;">Activity everywhere — as a standing rail on the TV, a ticker, or a section you scroll to?</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:24px;font-weight:600;color:#ec3013;">04</div>
+      <p style="font-size:32px;line-height:1.35;margin:0;">Should the grid reorder itself when a ramp closes, or is a fixed geographic order more useful?</p>
+    </div>
+  </div>
+  <div style="margin-top:auto;background:#ec3013;color:#f3f2f2;padding:44px 48px;">
+    <p style="font-size:40px;font-weight:800;line-height:1.2;letter-spacing:-0.015em;margin:0;">Pick a direction on 01 and 02 and I'll build the tvOS board.</p>
+  </div>
+</section>
+
+</x-import>
+</x-dc>
+</body>
+</html>

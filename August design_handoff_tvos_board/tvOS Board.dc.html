@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-6f404417-37b7-441b-82d2-6f4c6ff870be/styles.css" />
+<script src="_ds/modernist-6f404417-37b7-441b-82d2-6f4c6ff870be/_ds_bundle.js"></script>
+<title>tvOS Board — Beach Ramp Status</title>
+<style>
+  body { margin: 0; background: #f3f2f2; }
+  a { color: #ec3013; text-decoration: none; }
+  a:hover { color: #ae1800; text-decoration: underline; }
+</style>
+</helmet>
+
+<div style="background:#f3f2f2;color:#201e1d;font-family:Archivo,system-ui,sans-serif;text-wrap:pretty;">
+
+  <sc-if value="{{ showChrome }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1920px;margin:0 auto;padding:72px 80px 44px;">
+    <div style="font-size:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">Redesign · surface 01</div>
+    <div style="height:2px;background:rgba(32,30,29,0.4);margin-top:14px;"></div>
+    <h1 style="font-size:64px;font-weight:800;line-height:1.02;letter-spacing:-0.015em;margin:32px 0 0;">tvOS board</h1>
+    <p style="font-size:22px;line-height:1.5;max-width:70ch;margin:24px 0 0;">Verdict above the grid, the grid kept for across-the-room glancing, sixteen sun phases instead of seven, and the three states that had no design. Scrub the time and switch the scenario in Tweaks.</p>
+
+    <div style="display:flex;gap:40px;margin-top:36px;padding-top:24px;border-top:2px solid rgba(32,30,29,0.4);font-size:18px;">
+      <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:16px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);">Time</span><span style="font-weight:800;">{{ clock }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:16px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);">Sun altitude</span><span style="font-weight:800;">{{ altLabel }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:16px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);">Sky phase</span><span style="font-weight:800;">{{ phaseLabel }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:16px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(32,30,29,0.55);">Scenario</span><span style="font-weight:800;">{{ scenarioLabel }}</span></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="margin:0 auto;position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E7FA8;">
+    <div style="position:absolute;inset:0;background:{{ skyGradient }};"></div>
+    <div style="position:absolute;inset:0;background:#000;opacity:{{ dimOpacity }};pointer-events:none;"></div>
+
+    <div style="position:absolute;inset:0;padding:56px 60px 52px;display:flex;flex-direction:column;color:#fff;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;height:56px;flex:none;">
+        <div style="display:flex;align-items:center;gap:14px;padding:8px 16px;background:rgba(255,255,255,0.10);border:2px solid rgba(255,255,255,0.28);">
+          <span style="font-size:38px;font-weight:800;letter-spacing:-0.01em;">New Smyrna Beach</span>
+          <span style="font-size:22px;opacity:0.6;">◂ ▸</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:24px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 16px;background:{{ freshnessFill }};border:2px solid {{ freshnessBorder }};">
+            <span style="width:14px;height:14px;background:{{ freshnessDot }};border-radius:50%;"></span>
+            <span style="font-size:24px;font-weight:600;letter-spacing:0.04em;">{{ freshnessLabel }}</span>
+          </div>
+          <span style="font-size:38px;font-weight:400;font-variant-numeric:tabular-nums;">{{ clock }}</span>
+        </div>
+      </div>
+
+      <div style="flex:none;margin-top:22px;display:grid;grid-template-columns:1.55fr 1fr;gap:48px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:20px;">
+            <span style="width:22px;height:76px;background:{{ verdictAccent }};flex:none;"></span>
+            <span style="font-size:84px;font-weight:800;line-height:0.92;letter-spacing:-0.02em;">{{ verdictHeadline }}</span>
+          </div>
+          <span style="font-size:34px;font-weight:400;line-height:1.25;opacity:0.92;padding-left:42px;">{{ verdictSub }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding-top:2px;">
+          <div onClick="{{ openTide }}" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.22);cursor:pointer;" style-hover="background:rgba(255,255,255,0.26);border-color:#ffffff;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Tide</span>
+              <span style="font-size:24px;opacity:0.55;">›</span>
+            </div>
+            <span style="font-size:40px;font-weight:800;line-height:1;">Dropping</span>
+            <span style="font-size:24px;opacity:0.75;">Low 4:57 PM</span>
+          </div>
+          <div onClick="{{ openTemp }}" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.22);cursor:pointer;" style-hover="background:rgba(255,255,255,0.26);border-color:#ffffff;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Water · Air</span>
+              <span style="font-size:24px;opacity:0.55;">›</span>
+            </div>
+            <span style="font-size:40px;font-weight:800;line-height:1;">82° · 89°</span>
+            <span style="font-size:24px;opacity:0.75;">Mostly clear</span>
+          </div>
+          <div onClick="{{ openWind }}" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.22);cursor:pointer;" style-hover="background:rgba(255,255,255,0.26);border-color:#ffffff;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Wind</span>
+              <span style="font-size:24px;opacity:0.55;">›</span>
+            </div>
+            <span style="font-size:40px;font-weight:800;line-height:1;">ENE 9</span>
+            <span style="font-size:24px;opacity:0.75;">Sat 93°</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;margin-top:26px;display:grid;grid-template-columns:repeat(5,1fr);gap:16px;height:184px;">
+        <sc-for list="{{ tiles }}" as="tile" hint-placeholder-count="5">
+          <div style="{{ tile.cardStyle }}">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">{{ tile.index }}</span>
+              <span style="font-size:38px;font-weight:800;line-height:1.02;letter-spacing:-0.01em;">{{ tile.name }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="{{ tile.markStyle }}"></span>
+                <span style="{{ tile.statusStyle }}">{{ tile.status }}</span>
+              </div>
+              <span style="font-size:22px;opacity:0.7;">{{ tile.since }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="flex:none;margin-top:22px;">
+        <div style="position:relative;height:18px;background:linear-gradient(90deg,#070A14 0%,#080C1A 4%,#0C1230 7%,#142046 9.5%,#1B2A52 12%,#17456B 16%,#0E6E8C 24%,#0E779A 36%,#0E7FA8 56%,#0F7294 62%,#10657F 69%,#145066 76%,#123A52 83.6%,#0E2840 86%,#0A1228 88.5%,#080D1C 92%,#070A14 100%);">
+          <div style="position:absolute;top:-7px;left:{{ markerLeft }};width:4px;height:32px;background:#fff;transform:translateX(-2px);"></div>
+          <div style="position:absolute;top:26px;left:{{ markerLeft }};width:14px;height:14px;background:#FF4438;border:2px solid rgba(255,255,255,0.9);border-radius:50%;transform:translateX(-9px);"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:26px;font-size:22px;opacity:0.8;">
+          <span>Sunrise 6:51 AM</span>
+          <span style="font-weight:600;">{{ sunCaption }}</span>
+          <span>Sunset 8:04 PM</span>
+        </div>
+      </div>
+
+      <div style="flex:1;margin-top:20px;position:relative;min-height:0;">
+        <img src="review/cam-banner.png" alt="New Smyrna Beach cam" style="width:100%;height:100%;object-fit:cover;display:block;opacity:{{ camOpacity }};" />
+        <div style="position:absolute;inset:0;background:#0A1420;display:{{ camOfflineDisplay }};flex-direction:column;justify-content:center;padding:0 56px;gap:14px;">
+          <span style="font-size:44px;font-weight:800;letter-spacing:-0.01em;">New Smyrna Beach cam offline</span>
+          <span style="font-size:28px;opacity:0.85;">Reconnecting — last frame 3:12 PM. Four other cams are live; press right.</span>
+        </div>
+        <div style="position:absolute;left:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(6,18,28,0.62);">
+          <span style="width:12px;height:12px;background:{{ liveDot }};border-radius:50%;"></span>
+          <span style="font-size:22px;font-weight:600;letter-spacing:0.04em;">{{ liveLabel }}</span>
+        </div>
+      </div>
+
+      <div style="flex:none;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:flex-end;gap:0;flex:1;max-width:1420px;">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;">
+            <span style="font-size:22px;opacity:0.55;">Ormond-By-The-Sea</span>
+            <div style="width:100%;height:2px;background:rgba(255,255,255,0.28);"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;">
+            <span style="font-size:22px;opacity:0.55;">Ormond Beach</span>
+            <div style="width:100%;height:2px;background:rgba(255,255,255,0.28);"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;">
+            <span style="font-size:22px;opacity:0.55;">Dunlawton</span>
+            <div style="width:100%;height:2px;background:rgba(255,255,255,0.28);"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;">
+            <span style="font-size:22px;opacity:0.55;">Ponce Inlet</span>
+            <div style="width:100%;height:2px;background:rgba(255,255,255,0.28);"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;">
+            <span style="font-size:22px;font-weight:800;">New Smyrna Beach</span>
+            <div style="width:100%;height:4px;background:#fff;"></div>
+          </div>
+        </div>
+        <span style="font-size:22px;opacity:0.6;margin-left:32px;">☰ Recent changes</span>
+      </div>
+
+    </div>
+
+    <div style="position:absolute;inset:0;background:#0A1420;display:{{ activityDisplay }};align-items:center;justify-content:flex-start;padding:0 120px;color:#fff;">
+      <div style="display:flex;flex-direction:column;gap:0;width:1180px;">
+        <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Recent changes · New Smyrna Beach</span>
+        <span style="font-size:56px;font-weight:800;letter-spacing:-0.015em;margin-top:14px;">Today</span>
+        <div style="height:2px;background:rgba(255,255,255,0.4);margin-top:28px;"></div>
+        <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:32px;padding:22px 0;border-bottom:1px solid rgba(255,255,255,0.22);font-size:30px;">
+          <span style="font-variant-numeric:tabular-nums;opacity:0.75;">12:48 PM</span><span style="font-weight:800;">Crawford Rd</span><span>Closed for high tide</span>
+        </div>
+        <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:32px;padding:22px 0;border-bottom:1px solid rgba(255,255,255,0.22);font-size:30px;">
+          <span style="font-variant-numeric:tabular-nums;opacity:0.75;">11:15 AM</span><span style="font-weight:800;">Beachway Av</span><span>Open — entrance only</span>
+        </div>
+        <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:32px;padding:22px 0;border-bottom:1px solid rgba(255,255,255,0.22);font-size:30px;">
+          <span style="font-variant-numeric:tabular-nums;opacity:0.75;">6:02 AM</span><span style="font-weight:800;">3rd Av</span><span>Open</span>
+        </div>
+        <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:32px;padding:22px 0;border-bottom:2px solid rgba(255,255,255,0.4);font-size:30px;">
+          <span style="font-variant-numeric:tabular-nums;opacity:0.75;">Yest 4:11 PM</span><span style="font-weight:800;">27th Av</span><span>Open</span>
+        </div>
+        <span style="font-size:24px;opacity:0.6;margin-top:28px;">Press Menu to close · the board never shows this unprompted</span>
+      </div>
+    </div>
+
+    <sc-if value="{{ showTide }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeDetail }}" style="position:absolute;inset:0;background:#0A1420;display:flex;align-items:center;padding:0 120px;color:#fff;cursor:pointer;">
+        <div style="width:1560px;">
+          <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Tide · Ponce Inlet</span>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:14px;">
+            <span style="font-size:72px;font-weight:800;letter-spacing:-0.02em;line-height:1;">Dropping</span>
+            <span style="font-size:34px;opacity:0.85;">{{ nextTideLine }}</span>
+          </div>
+          <div style="height:2px;background:rgba(255,255,255,0.4);margin-top:24px;"></div>
+          <svg viewBox="0 0 1560 340" style="width:100%;height:340px;display:block;margin-top:24px;" aria-label="Tide curve for the day">
+            <line x1="0" y1="270" x2="1560" y2="270" stroke="rgba(255,255,255,0.25)" stroke-width="2"></line>
+            <path d="{{ tideArea }}" fill="rgba(255,255,255,0.12)"></path>
+            <path d="{{ tidePath }}" fill="none" stroke="#ffffff" stroke-width="5"></path>
+            <line x1="{{ tideNowX }}" y1="10" x2="{{ tideNowX }}" y2="300" stroke="#F5A214" stroke-width="4"></line>
+          </svg>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:20px;">
+            <div style="display:flex;flex-direction:column;gap:6px;border-top:2px solid rgba(255,255,255,0.4);padding-top:16px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Low</span>
+              <span style="font-size:40px;font-weight:800;">4:40 AM</span>
+              <span style="font-size:24px;opacity:0.7;">&minus;0.1 ft</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;border-top:2px solid rgba(255,255,255,0.4);padding-top:16px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">High</span>
+              <span style="font-size:40px;font-weight:800;">10:44 AM</span>
+              <span style="font-size:24px;opacity:0.7;">2.8 ft</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;border-top:2px solid rgba(255,255,255,0.4);padding-top:16px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Low</span>
+              <span style="font-size:40px;font-weight:800;">4:57 PM</span>
+              <span style="font-size:24px;opacity:0.7;">&minus;0.1 ft</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;border-top:2px solid rgba(255,255,255,0.4);padding-top:16px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">High</span>
+              <span style="font-size:40px;font-weight:800;">11:07 PM</span>
+              <span style="font-size:24px;opacity:0.7;">2.8 ft</span>
+            </div>
+          </div>
+          <span style="font-size:22px;opacity:0.6;display:block;margin-top:26px;">NOAA station 8721164 · predictions, not observations · press Menu to close</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showTemp }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeDetail }}" style="position:absolute;inset:0;background:#0A1420;display:flex;align-items:center;padding:0 120px;color:#fff;cursor:pointer;">
+        <div style="width:1560px;">
+          <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Water &amp; air</span>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:14px;">
+            <span style="font-size:72px;font-weight:800;letter-spacing:-0.02em;line-height:1;">Water 82° · Air 89°</span>
+            <span style="font-size:34px;opacity:0.85;">Mostly clear</span>
+          </div>
+          <div style="height:2px;background:rgba(255,255,255,0.4);margin-top:24px;"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:24px;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Trident Pier</span>
+              <span style="font-size:52px;font-weight:800;">82°</span>
+              <span style="font-size:22px;opacity:0.7;">Station 8721604 · Port Canaveral</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Mayport</span>
+              <span style="font-size:52px;font-weight:800;">83°</span>
+              <span style="font-size:22px;opacity:0.7;">Station 8720218 · Bar Pilots Dock</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Average</span>
+              <span style="font-size:52px;font-weight:800;">82°</span>
+              <span style="font-size:22px;opacity:0.7;">What the board shows</span>
+            </div>
+          </div>
+          <div style="height:2px;background:rgba(255,255,255,0.4);margin-top:30px;"></div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:20px;margin-top:24px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">This afternoon</span>
+              <span style="font-size:44px;font-weight:800;">93°</span>
+              <span style="font-size:22px;opacity:0.75;line-height:1.3;">Chance showers and thunderstorms</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Tonight</span>
+              <span style="font-size:44px;font-weight:800;">76°</span>
+              <span style="font-size:22px;opacity:0.75;line-height:1.3;">Slight chance showers, then mostly clear</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Saturday</span>
+              <span style="font-size:44px;font-weight:800;">93°</span>
+              <span style="font-size:22px;opacity:0.75;line-height:1.3;">Sunny, then slight chance thunderstorms</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Saturday night</span>
+              <span style="font-size:44px;font-weight:800;">77°</span>
+              <span style="font-size:22px;opacity:0.75;line-height:1.3;">Mostly clear</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Sunday</span>
+              <span style="font-size:44px;font-weight:800;">96°</span>
+              <span style="font-size:22px;opacity:0.75;line-height:1.3;">Sunny, then slight chance showers</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Sunday night</span>
+              <span style="font-size:44px;font-weight:800;">77°</span>
+              <span style="font-size:22px;opacity:0.75;line-height:1.3;">Slight chance showers, then mostly clear</span>
+            </div>
+          </div>
+          <span style="font-size:22px;opacity:0.6;display:block;margin-top:26px;">NOAA water temperature · NWS api.weather.gov · press Menu to close</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showWind }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeDetail }}" style="position:absolute;inset:0;background:#0A1420;display:flex;align-items:center;padding:0 120px;color:#fff;cursor:pointer;">
+        <div style="width:1560px;">
+          <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65;">Wind</span>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:14px;">
+            <span style="font-size:72px;font-weight:800;letter-spacing:-0.02em;line-height:1;">ENE 9 mph</span>
+            <span style="font-size:34px;opacity:0.85;">Onshore · 67°</span>
+          </div>
+          <div style="height:2px;background:rgba(255,255,255,0.4);margin-top:24px;"></div>
+          <div style="margin-top:34px;position:relative;">
+            <div style="height:18px;background:linear-gradient(90deg,rgba(255,255,255,0.10),rgba(255,255,255,0.34),rgba(255,255,255,0.10));"></div>
+            <div style="position:absolute;top:-8px;left:18.75%;width:4px;height:34px;background:#F5A214;transform:translateX(-2px);"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:22px;font-size:24px;opacity:0.75;">
+              <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span><span>N</span>
+            </div>
+          </div>
+          <div style="height:2px;background:rgba(255,255,255,0.4);margin-top:34px;"></div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:20px;margin-top:24px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">This afternoon</span>
+              <span style="font-size:40px;font-weight:800;">5–10</span>
+              <span style="font-size:24px;opacity:0.75;">ESE</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Tonight</span>
+              <span style="font-size:40px;font-weight:800;">0–10</span>
+              <span style="font-size:24px;opacity:0.75;">S</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Saturday</span>
+              <span style="font-size:40px;font-weight:800;">0–10</span>
+              <span style="font-size:24px;opacity:0.75;">S</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Saturday night</span>
+              <span style="font-size:40px;font-weight:800;">5–10</span>
+              <span style="font-size:24px;opacity:0.75;">S</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Sunday</span>
+              <span style="font-size:40px;font-weight:800;">5</span>
+              <span style="font-size:24px;opacity:0.75;">SSW</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:22px;opacity:0.65;">Sunday night</span>
+              <span style="font-size:40px;font-weight:800;">5</span>
+              <span style="font-size:24px;opacity:0.75;">S</span>
+            </div>
+          </div>
+          <span style="font-size:22px;opacity:0.6;display:block;margin-top:26px;">NWS api.weather.gov · mph · press Menu to close</span>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ showChrome }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1920px;margin:0 auto;padding:56px 80px 96px;display:grid;grid-template-columns:repeat(4,1fr);gap:48px;">
+    <div style="display:flex;flex-direction:column;gap:12px;border-top:2px solid rgba(32,30,29,0.4);padding-top:20px;">
+      <span style="font-size:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">01 · Verdict</span>
+      <p style="font-size:19px;line-height:1.45;margin:0;">One line at 84px answers the question before the grid does. The red bar left of it is the status field, so the headline reads at any distance even before the words resolve.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;border-top:2px solid rgba(32,30,29,0.4);padding-top:20px;">
+      <span style="font-size:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">02 · The grid, kept</span>
+      <p style="font-size:19px;line-height:1.45;margin:0;">Five across in your NSB order — Beachway, Crawford, Flagler, 3rd, 27th. Open tiles go quiet; limited and closed become solid fields. The tile you need is the loud one.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;border-top:2px solid rgba(32,30,29,0.4);padding-top:20px;">
+      <span style="font-size:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">03 · Sixteen phases</span>
+      <p style="font-size:19px;line-height:1.45;margin:0;">Nine on the rising track, seven falling, night and noon shared. Adds the three twilights at each end — the hours the old seven-anchor model flattened into one &ldquo;night.&rdquo;</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;border-top:2px solid rgba(32,30,29,0.4);padding-top:20px;">
+      <span style="font-size:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#ec3013;">04 · States</span>
+      <p style="font-size:19px;line-height:1.45;margin:0;">Stale drops a chip into the header and mutes every tile. Cam offline says which cam, when the last frame was, and what to press. Activity stays behind Menu.</p>
+      <p style="font-size:19px;line-height:1.45;margin:12px 0 0;">The three stat tiles are focusable — click one for the full tide curve, both water stations and the forecast, or the wind rose and its six periods. Click anywhere to close.</p>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 2080, &quot;height&quot;: 1720 },
+  &quot;timeMinutes&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 810, &quot;min&quot;: 0, &quot;max&quot;: 1439, &quot;step&quot;: 5, &quot;unit&quot;: &quot;min from midnight&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Board state&quot; },
+  &quot;scenario&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;All open&quot;, &quot;options&quot;: [&quot;All open&quot;, &quot;Beachway closing soon&quot;, &quot;Crawford closed&quot;, &quot;Stale data&quot;, &quot;Cam offline&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Board state&quot; },
+  &quot;detailPanel&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;None&quot;, &quot;options&quot;: [&quot;None&quot;, &quot;Tide&quot;, &quot;Water &amp; air&quot;, &quot;Wind&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Detail views&quot; },
+  &quot;showActivity&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Board state&quot; },
+  &quot;chromeless&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Export&quot; }
+}">
+const PHASES = [
+  { name: "Night",            alt: -18,   top: "#070A14", mid: "#101830", bot: "#1C2A44", dim: 0.55 },
+  { name: "Astronomical dawn",alt: -13,   top: "#080C1A", mid: "#141C38", bot: "#26304E", dim: 0.58 },
+  { name: "Nautical dawn",    alt: -9,    top: "#0C1230", mid: "#22265A", bot: "#3E3A6B", dim: 0.64 },
+  { name: "Civil dawn",       alt: -5,    top: "#142046", mid: "#4A4478", bot: "#8E6A82", dim: 0.74 },
+  { name: "Sunrise",          alt: -0.8,  top: "#1B2A52", mid: "#6A5C8E", bot: "#F2B07A", dim: 0.85 },
+  { name: "Golden morning",   alt: 6,     top: "#17456B", mid: "#3E7C9E", bot: "#F0C48E", dim: 0.92 },
+  { name: "Morning",          alt: 20,    top: "#0E6E8C", mid: "#1F9BBF", bot: "#9CD8E8", dim: 1.00 },
+  { name: "Late morning",     alt: 34,    top: "#0E779A", mid: "#29A6C6", bot: "#A8DEEC", dim: 1.00 },
+  { name: "Noon",             alt: 48,    top: "#0E7FA8", mid: "#33B0CC", bot: "#B2E6F0", dim: 1.00 }
+];
+const FALLING = [
+  { name: "Night",            alt: -18,   top: "#070A14", mid: "#101830", bot: "#1C2A44", dim: 0.55 },
+  { name: "Astronomical dusk",alt: -13,   top: "#080D1C", mid: "#1A1C3A", bot: "#3A2942", dim: 0.62 },
+  { name: "Nautical dusk",    alt: -9,    top: "#0A1228", mid: "#2E2A52", bot: "#6E3C58", dim: 0.72 },
+  { name: "Civil dusk",       alt: -5,    top: "#0E2840", mid: "#5E4055", bot: "#B45C50", dim: 0.80 },
+  { name: "Sunset",           alt: -0.8,  top: "#123A52", mid: "#9A5E50", bot: "#F08A46", dim: 0.90 },
+  { name: "Golden evening",   alt: 6,     top: "#145066", mid: "#6F7A66", bot: "#E8A85E", dim: 0.94 },
+  { name: "Afternoon",        alt: 20,    top: "#10657F", mid: "#3F957E", bot: "#D9BC72", dim: 0.98 },
+  { name: "Early afternoon",  alt: 34,    top: "#0F7294", mid: "#39A5A5", bot: "#C5D6B1", dim: 0.99 },
+  { name: "Noon",             alt: 48,    top: "#0E7FA8", mid: "#33B0CC", bot: "#B2E6F0", dim: 1.00 }
+];
+
+const OPEN = "#2AE07A", LIMITED = "#F5A214", CLOSED = "#E63A2B";
+
+// New Smyrna Beach, Aug 14: the times the live board reported.
+const SUNRISE = 6 + 51 / 60, SUNSET = 20 + 4 / 60, NOON = 13 + 28 / 60, MIDNIGHT = 1 + 28 / 60;
+
+function hex(c) {
+  return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+}
+function mix(a, b, t) {
+  const x = hex(a), y = hex(b);
+  return "rgb(" + x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(",") + ")";
+}
+
+// NOAA predictions for the captured day, in minutes from midnight.
+const TIDES = [
+  { min: -60,  h: 2.8, kind: "High" },
+  { min: 280,  h: -0.1, kind: "Low" },
+  { min: 644,  h: 2.8, kind: "High" },
+  { min: 1017, h: -0.1, kind: "Low" },
+  { min: 1387, h: 2.8, kind: "High" },
+  { min: 1740, h: -0.1, kind: "Low" }
+];
+
+class Component extends DCLogic {
+  state = { detail: null };
+
+  componentDidUpdate(prev) {
+    if (prev.detailPanel !== this.props.detailPanel) this.setState({ detail: null });
+  }
+
+  /** Cosine interpolation between the bracketing NOAA extremes. */
+  tideHeight(min) {
+    for (let i = 0; i < TIDES.length - 1; i++) {
+      const a = TIDES[i], b = TIDES[i + 1];
+      if (min >= a.min && min <= b.min) {
+        const u = (min - a.min) / (b.min - a.min);
+        return a.h + (b.h - a.h) * (1 - Math.cos(Math.PI * u)) / 2;
+      }
+    }
+    return 0;
+  }
+
+  /** Synthetic sun altitude for the day, sine-shaped between sunrise and sunset. */
+  sun(hours) {
+    if (hours >= SUNRISE && hours <= SUNSET) {
+      return 75 * Math.sin(Math.PI * (hours - SUNRISE) / (SUNSET - SUNRISE));
+    }
+    const nightLen = 24 - (SUNSET - SUNRISE);
+    const into = hours > SUNSET ? hours - SUNSET : hours + (24 - SUNSET);
+    return -18 * Math.sin(Math.PI * into / nightLen);
+  }
+
+  palette(alt, rising) {
+    const anchors = rising ? PHASES : FALLING;
+    if (alt <= anchors[0].alt) return { p: anchors[0], name: anchors[0].name };
+    if (alt >= anchors[anchors.length - 1].alt) {
+      const last = anchors[anchors.length - 1];
+      return { p: last, name: last.name };
+    }
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const lo = anchors[i], hi = anchors[i + 1];
+      if (alt >= lo.alt && alt <= hi.alt) {
+        const t = (alt - lo.alt) / (hi.alt - lo.alt);
+        return {
+          p: {
+            top: mix(lo.top, hi.top, t), mid: mix(lo.mid, hi.mid, t),
+            bot: mix(lo.bot, hi.bot, t), dim: lo.dim + (hi.dim - lo.dim) * t
+          },
+          name: t < 0.5 ? lo.name : hi.name
+        };
+      }
+    }
+    return { p: anchors[0], name: anchors[0].name };
+  }
+
+  tile(name, index, kind, status, since) {
+    // Every state carries its semantic in an opaque FIELD or MARK, never in tinted
+    // text: a saturated green word on a near-transparent fill measures ~1.3:1 against
+    // the noon sky. Open gets a deep translucent ink field (7:1 for white type, 4:1
+    // for the green mark at noon, and only darker as the sky dims).
+    const fields = {
+      open:    { bg: "rgba(4,24,34,0.55)", border: "rgba(255,255,255,0.30)", fg: "#fff",    mark: OPEN },
+      limited: { bg: LIMITED,              border: LIMITED,                  fg: "#241500", mark: "#241500" },
+      closed:  { bg: CLOSED,               border: CLOSED,                   fg: "#fff",    mark: "#fff" }
+    }[kind];
+    return {
+      name, index, status, since,
+      cardStyle: "display:flex;flex-direction:column;justify-content:space-between;padding:16px 18px;"
+        + "background:" + fields.bg + ";border:2px solid " + fields.border + ";color:" + fields.fg + ";"
+        + (kind === "open" ? "" : "box-shadow:0 0 0 6px rgba(0,0,0,0.18);"),
+      markStyle: "width:14px;height:26px;flex:none;background:" + fields.mark + ";",
+      statusStyle: "font-size:28px;font-weight:800;line-height:1.1;letter-spacing:-0.005em;color:" + fields.fg + ";"
+    };
+  }
+
+  renderVals() {
+    const minutes = Math.max(0, Math.min(1439, this.props.timeMinutes ?? 810));
+    const scenario = this.props.scenario ?? "All open";
+    const hours = minutes / 60;
+    const alt = this.sun(hours);
+    const rising = hours >= MIDNIGHT && hours < NOON;
+    const { p, name } = this.palette(alt, rising);
+
+    const h24 = Math.floor(hours), m = minutes % 60;
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    const clock = h12 + ":" + String(m).padStart(2, "0") + " " + (h24 < 12 ? "AM" : "PM");
+
+    const stale = scenario === "Stale data";
+    const offline = scenario === "Cam offline";
+    const closed = scenario === "Crawford closed";
+    const soon = scenario === "Beachway closing soon";
+
+    let tiles = [
+      this.tile("Beachway Av", "01", "open", "Open", "since 6:02 AM"),
+      this.tile("Crawford Rd", "02", "open", "Open", "since 6:02 AM"),
+      this.tile("Flagler Av", "03", "open", "Open", "since 6:02 AM"),
+      this.tile("3rd Av", "04", "open", "Open", "since 6:02 AM"),
+      this.tile("27th Av", "05", "open", "Open", "since Yest 4:11 PM")
+    ];
+    let headline = "All five open", sub = "Tide dropping · low 4:57 PM · 5h 41m of light left", accent = OPEN;
+
+    if (closed) {
+      tiles[1] = this.tile("Crawford Rd", "02", "closed", "Closed — high tide", "since 12:48 PM");
+      headline = "Crawford Rd closed";
+      sub = "Four open · closed for high tide since 12:48 PM · reopens near 6:30 PM";
+      accent = CLOSED;
+    }
+    if (soon) {
+      tiles[0] = this.tile("Beachway Av", "01", "limited", "Entrance only", "since 11:15 AM");
+      headline = "Beachway closing soon";
+      sub = "High tide 4:57 PM · entrance only since 11:15 AM · four others fully open";
+      accent = LIMITED;
+    }
+    if (stale) {
+      tiles = tiles.map(t => ({
+        ...t,
+        cardStyle: t.cardStyle + "opacity:0.42;",
+        since: "as of 2:09 PM"
+      }));
+      headline = "Last known: five open";
+      sub = "County feed unreachable for 14 minutes · retrying every 60s · do not trust this board";
+      accent = LIMITED;
+    }
+
+    const seen = alt > 0;
+    const sunCaption = stale ? "Sun data local — unaffected"
+      : seen ? "Golden hour 7:32 PM · 5h 41m of daylight left"
+      : "Sunrise 6:51 AM";
+
+    // Tide curve, sampled every 10 minutes across the 24-hour day.
+    const W = 1560, H = 340, TOP = 20, BOT = 270;
+    const y = h => BOT - (h + 0.5) / 3.7 * (BOT - TOP);
+    const pts = [];
+    for (let t = 0; t <= 1440; t += 10) {
+      pts.push((t / 1440 * W).toFixed(1) + "," + y(this.tideHeight(t)).toFixed(1));
+    }
+    const tidePath = "M" + pts.join("L");
+    const tideArea = tidePath + "L" + W + "," + BOT + "L0," + BOT + "Z";
+
+    const fmt = t => {
+      const hh = Math.floor(t / 60) % 24, mm = t % 60;
+      const h12 = hh % 12 === 0 ? 12 : hh % 12;
+      return h12 + ":" + String(mm).padStart(2, "0") + " " + (hh < 12 ? "AM" : "PM");
+    };
+    const next = TIDES.find(t => t.min > minutes && t.min <= 1440);
+    const away = next ? next.min - minutes : 0;
+    const nextTideLine = next
+      ? "Next " + next.kind.toLowerCase() + " " + fmt(next.min) + " · in "
+        + (away >= 60 ? Math.floor(away / 60) + "h " + (away % 60) + "m" : away + "m")
+      : "Next low tomorrow";
+
+    const detail = this.state.detail === null
+      ? ({ "Tide": "tide", "Water & air": "temp", "Wind": "wind" }[this.props.detailPanel] || "none")
+      : this.state.detail;
+
+    return {
+      clock,
+      showChrome: !this.props.chromeless,
+      tidePath, tideArea, nextTideLine,
+      tideNowX: (minutes / 1440 * W).toFixed(1),
+      showTide: detail === "tide",
+      showTemp: detail === "temp",
+      showWind: detail === "wind",
+      openTide: () => this.setState({ detail: "tide" }),
+      openTemp: () => this.setState({ detail: "temp" }),
+      openWind: () => this.setState({ detail: "wind" }),
+      closeDetail: () => this.setState({ detail: "none" }),
+      altLabel: (alt >= 0 ? "+" : "") + alt.toFixed(1) + "°",
+      phaseLabel: name + (rising ? " (rising)" : " (falling)"),
+      scenarioLabel: scenario,
+      skyGradient: "linear-gradient(160deg," + p.top + "," + p.mid + "," + p.bot + ")",
+      dimOpacity: String(1 - p.dim),
+      markerLeft: (minutes / 1440 * 100).toFixed(2) + "%",
+      sunCaption,
+      tiles,
+      verdictHeadline: headline,
+      verdictSub: sub,
+      verdictAccent: accent,
+      freshnessLabel: stale ? "Stale · 14 min" : "Live",
+      freshnessFill: stale ? "rgba(245,162,20,0.22)" : "rgba(255,255,255,0.10)",
+      freshnessBorder: stale ? LIMITED : "rgba(255,255,255,0.28)",
+      freshnessDot: stale ? LIMITED : OPEN,
+      camOpacity: offline ? "0.22" : "1",
+      camOfflineDisplay: offline ? "flex" : "none",
+      liveDot: offline ? LIMITED : "#E63A2B",
+      liveLabel: offline ? "Offline" : "Live · New Smyrna Beach",
+      activityDisplay: this.props.showActivity ? "flex" : "none"
+    };
+  }
+}
+</script>
+</body>
+</html>
