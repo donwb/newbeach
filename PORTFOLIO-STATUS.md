@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 1), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 16), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -10,12 +10,12 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads to TestFlight. Two App Store Connect records existed ("Beach Ramp Status" tvOS, "Beach Ramp iOS App" iOS), both in Prepare for Submission; consolidating onto the tvOS record (Apple ID 6761724123) at bundle ID com.donwb.BeachRampTV — its ID is frozen by a prior build, so the project moved to it. ASC-side surgery pending (Don).
   TRMNL: two private plugin templates in trmnl/, active devices.
 app_review_state: |
-  iOS: Prepare for Submission, never submitted. Record "Beach Ramp iOS App" to be deleted in the consolidation.
-  tvOS: Prepare for Submission. Record "Beach Ramp Status" is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV (a build reached it at some point), so the iOS platform is added to it as-is.
+  iOS: Prepare for Submission, never submitted. Build 1.0 (16) uploaded to TestFlight 2026-08-15 — first iOS build ever to reach the record. Old "Beach Ramp iOS App" record still to be deleted.
+  tvOS: Prepare for Submission, never submitted. Record "Beach Ramp Status" (Apple ID 6761724123) is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV by upload history reaching build 15. Build 1.0 (16) uploaded 2026-08-15 alongside iOS.
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (Apple record cleanup: unified bundle ID com.donwb.BeachRampTV across iOS+tvOS, deployment floors to iOS 18/tvOS 18/watchOS 11, Version.xcconfig, shared schemes, flight automation; all three platforms archive clean. ASC-side surgery still pending Don.)
+last_verified: 2026-08-15 (Apple record cleanup + first dual-platform flight: iOS and tvOS both uploaded as 1.0 (16) to the one com.donwb.BeachRampTV record. Deployment floors iOS 18/tvOS 18/watchOS 11, Version.xcconfig, shared schemes, flight automation all verified. Remaining ASC work: delete the old "Beach Ramp iOS App" record.)
 ---
 
 ## Top open items
