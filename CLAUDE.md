@@ -107,9 +107,10 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   persists per-ramp threshold/lead/lag/close-rate to the `prediction_params` settings key
   (inspect: `GET /api/v2/admin/prediction/params`). `GET /api/v2/outlook` (bulk, 10-min
   TTL cache) and `/api/v2/ramps/:id/outlook` serve risk + **server-built casual copy** —
-  clients must render the strings verbatim, never format their own clock-time promises;
-  the county is too inconsistent for precision. Time buckets ("midafternoon"), hedged
-  verbs ("likely"/"could", never "will").
+  clients must render the strings verbatim, never compute their own predictions. Copy
+  rules: approximate clock times only — rounded to the half hour and hedged with
+  "around"/"by"/"~" ("likely around 1:30pm"), never minute-precise promises; hedged verbs
+  ("likely"/"could", never "will"). The `short` field is the compact board-card hint.
 - **A non-NULL `ramp_metadata.closure_height_ft` overrides the learned threshold** — only
   curate it deliberately.
 - `api/internal/predict/backtest_test.go` replays five months of checked-in real history

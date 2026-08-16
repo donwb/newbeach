@@ -29,22 +29,18 @@ func testParams() Params {
 	}
 }
 
-func TestTimeBuckets(t *testing.T) {
-	tests := []struct {
-		hour int
-		want string
-	}{
-		{5, "early morning"}, {9, "midmorning"}, {12, "midday"},
-		{14, "midafternoon"}, {17, "late afternoon"}, {20, "evening"}, {23, "overnight"}, {2, "overnight"},
-	}
-	for _, tt := range tests {
-		assert.Equal(t, tt.want, timeBucket(et(1, tt.hour, 0)), "hour %d", tt.hour)
-	}
+func TestFmtClock(t *testing.T) {
+	assert.Equal(t, "1pm", fmtClock(et(1, 13, 0)))
+	assert.Equal(t, "1:30pm", fmtClock(et(1, 13, 30)))
+	assert.Equal(t, "11am", fmtClock(et(1, 11, 0)))
+	assert.Equal(t, "12pm", fmtClock(et(1, 12, 0)))
+	assert.Equal(t, "12:30am", fmtClock(et(1, 0, 30)))
 }
 
-func TestWindowLabel(t *testing.T) {
-	assert.Equal(t, "midafternoon", windowLabel(et(1, 13, 30), et(1, 15, 30)))
-	assert.Equal(t, "midafternoon into late afternoon", windowLabel(et(1, 14, 0), et(1, 17, 30)))
+func TestClockRange(t *testing.T) {
+	assert.Equal(t, "1–4:30pm", clockRange(et(1, 13, 0), et(1, 16, 30)))
+	assert.Equal(t, "11am–1:30pm", clockRange(et(1, 11, 0), et(1, 13, 30)))
+	assert.Equal(t, "8–10:30am", clockRange(et(1, 8, 0), et(1, 10, 30)))
 }
 
 func TestRiskForPeak(t *testing.T) {
@@ -120,21 +116,26 @@ func TestBuildOutlookTurtleSeasonRisk(t *testing.T) {
 		byID[ro.AccessID] = ro
 	}
 
-	// 3.4 ft peak: eager closer far above threshold — likely.
+	// 3.4 ft peak: eager closer far above threshold — likely. Close time =
+	// peak 15:30 − 120m lead = 13:30; reopen = 15:30 + 80m lag ≈ 17:00.
 	eager := byID["NS-141"]
 	assert.Equal(t, RiskLikely, eager.Risk)
-	assert.Equal(t, "High-tide closure likely midafternoon", eager.Headline)
+	assert.Equal(t, "High-tide closure likely around 1:30pm", eager.Headline)
+	assert.Equal(t, "Often back open by 5pm once the tide drops", eager.Detail)
+	assert.Equal(t, "closure likely ~1:30pm", eager.Short)
 	assert.Equal(t, "high", eager.Confidence)
 	require.NotNil(t, eager.Window)
-	assert.Equal(t, "Usually closes ahead of high tides like this one · often back open by late afternoon", eager.Detail)
-	// 120 lead + 45 pad before 15:30 → 12:45 floor → 12:30.
+	// 120 lead + 45 pad before 15:30 → 12:45 floor → 12:30; 80 lag + 45
+	// pad after → 17:35 ceil → 18:00.
 	assert.Equal(t, et(16, 12, 30), eager.Window.Start.In(eastern))
+	assert.Equal(t, "12:30–6pm", eager.Window.Label)
 
 	// Beachway at 3.25+0.3 > 3.4 > 3.25-0.3 — inside the band, possible.
 	tough := byID["NS-106"]
 	assert.Equal(t, RiskPossible, tough.Risk)
-	assert.Equal(t, "Could close around the midafternoon high tide", tough.Headline)
+	assert.Equal(t, "Could close around the 3:30pm high tide", tough.Headline)
 	assert.Equal(t, "Depends on surf and sand · could just as well stay open", tough.Detail)
+	assert.Equal(t, "could close ~3:30pm", tough.Short)
 
 	// DB-041: 3.4 < 3.85-0.3 but close_rate 0.42 in the action zone — possible.
 	flipper := byID["DB-041"]
@@ -171,8 +172,8 @@ func TestBuildOutlookClosedNow(t *testing.T) {
 	assert.Equal(t, "Closed for high tide", ro.Headline)
 	require.NotNil(t, ro.Reopen)
 	// Symmetric falling-limb crossing: closed 90m before peak → reopens
-	// ~90m after (≈17:00, late afternoon).
-	assert.Equal(t, "often back open by late afternoon", ro.Reopen.Label)
+	// ~90m after (≈17:00), rounded to the half hour.
+	assert.Equal(t, "often back open around 5pm", ro.Reopen.Label)
 
 	_ = now
 }

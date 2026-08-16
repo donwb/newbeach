@@ -2,44 +2,50 @@ package predict
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/donwb/beach/api/internal/models"
 )
 
-// All outlook prose is generated here, under strict rules: no bare clock
-// times (the county is too inconsistent to promise minutes), hedged verbs
-// per risk level ("likely" closes, "could" close — never "will"), and
-// reopens are always "often back open ...". Clients render these strings
-// verbatim so every platform tells the same story.
+// All outlook prose is generated here. The rules: times are approximate —
+// always rounded to the half hour and softened with "around"/"by"/"~",
+// never minute-precise promises (the county is too inconsistent for those);
+// hedged verbs per risk level ("likely" closes, "could" close — never
+// "will"); reopens are always "often back open ...". Clients render these
+// strings verbatim so every platform tells the same story.
 
-// timeBucket names a coarse Eastern-time stretch of day.
-func timeBucket(t time.Time) string {
-	switch h := t.In(eastern).Hour(); {
-	case h >= 5 && h < 8:
-		return "early morning"
-	case h >= 8 && h < 11:
-		return "midmorning"
-	case h >= 11 && h < 13:
-		return "midday"
-	case h >= 13 && h < 16:
-		return "midafternoon"
-	case h >= 16 && h < 19:
-		return "late afternoon"
-	case h >= 19 && h < 21:
-		return "evening"
-	default:
-		return "overnight"
+// fmtClock formats an Eastern instant casually: "1pm", "1:30pm", "11am".
+func fmtClock(t time.Time) string {
+	et := t.In(eastern)
+	h12 := et.Hour() % 12
+	if h12 == 0 {
+		h12 = 12
 	}
+	ampm := "am"
+	if et.Hour() >= 12 {
+		ampm = "pm"
+	}
+	if et.Minute() == 0 {
+		return fmt.Sprintf("%d%s", h12, ampm)
+	}
+	return fmt.Sprintf("%d:%02d%s", h12, et.Minute(), ampm)
 }
 
-// windowLabel describes a window's span in bucket terms.
-func windowLabel(start, end time.Time) string {
-	sb, eb := timeBucket(start), timeBucket(end)
-	if sb == eb {
-		return sb
+// clockRange renders "1–4:30pm", dropping the first meridiem when both ends
+// share it ("11am–1:30pm" otherwise).
+func clockRange(start, end time.Time) string {
+	s := fmtClock(start)
+	if (start.In(eastern).Hour() >= 12) == (end.In(eastern).Hour() >= 12) {
+		s = strings.TrimSuffix(strings.TrimSuffix(s, "am"), "pm")
 	}
-	return sb + " into " + eb
+	return s + "–" + fmtClock(end)
+}
+
+// roundNearest30 snaps a display time to the nearest half hour — the copy's
+// way of promising less precision than the math produced.
+func roundNearest30(t time.Time) time.Time {
+	return t.Round(30 * time.Minute)
 }
 
 // scheduleCopy is the "no tide trouble" detail line.
@@ -47,19 +53,25 @@ func scheduleCopy(sched Schedule) string {
 	return "Open for driving until " + sched.ClosesLabel
 }
 
-// riskText builds the headline and detail for a not-currently-closed ramp.
-func riskText(risk string, peak *models.TidePrediction, window *Window, sched Schedule, laterPeakRisky bool) (headline, detail string) {
+// riskText builds the headline, detail, and short board hint for a ramp
+// that is not currently closed.
+func riskText(risk string, peak *models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
 	switch risk {
 	case RiskLikely:
-		headline = "High-tide closure likely " + timeBucket(peak.Time)
-		if window != nil {
-			detail = fmt.Sprintf("Usually closes ahead of high tides like this one · often back open by %s", timeBucket(window.End))
+		closeAt := roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
+		reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
+		headline = "High-tide closure likely around " + fmtClock(closeAt)
+		if sched.ClosesAt != nil && reopenAt.After(*sched.ClosesAt) {
+			detail = "Might not reopen before the day's " + sched.ClosesLabel + " close"
 		} else {
-			detail = "Usually closes ahead of high tides like this one"
+			detail = "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
 		}
+		short = "closure likely ~" + fmtClock(closeAt)
 	case RiskPossible:
-		headline = fmt.Sprintf("Could close around the %s high tide", timeBucket(peak.Time))
+		peakAt := roundNearest30(peak.Time)
+		headline = "Could close around the " + fmtClock(peakAt) + " high tide"
 		detail = "Depends on surf and sand · could just as well stay open"
+		short = "could close ~" + fmtClock(peakAt)
 	default:
 		headline = "No tide trouble expected"
 		detail = scheduleCopy(sched)
@@ -67,7 +79,7 @@ func riskText(risk string, peak *models.TidePrediction, window *Window, sched Sc
 	if laterPeakRisky && risk != RiskNone {
 		detail += " · the next high tide could bring another round"
 	}
-	return headline, detail
+	return headline, detail, short
 }
 
 // closedNowText builds the copy for a ramp that is tide-closed right now.
@@ -77,7 +89,7 @@ func closedNowText(reopen time.Time, sched Schedule) (headline, detail string, r
 		detail = "Reopening depends on the county getting back out there"
 		return headline, detail, nil
 	}
-	label := "often back open by " + timeBucket(reopen)
+	label := "often back open around " + fmtClock(roundNearest30(reopen))
 	if sched.ClosesAt != nil && reopen.After(*sched.ClosesAt) {
 		label = "may stay closed for the day"
 	}

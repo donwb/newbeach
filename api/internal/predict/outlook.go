@@ -57,6 +57,8 @@ type Reopen struct {
 }
 
 // RampOutlook is one ramp's tide outlook for the rest of the driving day.
+// Short is a compact hint for tight spots (board cards); like every string
+// here it is rendered verbatim by clients.
 type RampOutlook struct {
 	AccessID   string  `json:"access_id"`
 	RampID     int64   `json:"ramp_id"`
@@ -64,6 +66,7 @@ type RampOutlook struct {
 	Confidence string  `json:"confidence"`
 	Headline   string  `json:"headline"`
 	Detail     string  `json:"detail,omitempty"`
+	Short      string  `json:"short,omitempty"`
 	Window     *Window `json:"window,omitempty"`
 	Reopen     *Reopen `json:"reopen,omitempty"`
 }
@@ -230,7 +233,7 @@ func closureWindow(peak models.TidePrediction, rp RampParams, sched Schedule) *W
 	}
 	start = roundDown30(start)
 	end = roundUp30(end)
-	return &Window{Label: windowLabel(start, end), Start: start, End: end}
+	return &Window{Label: clockRange(start, end), Start: start, End: end}
 }
 
 // heightAtCos interpolates the tide height at t between hilo extremes using
@@ -386,7 +389,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		if riskPeak != nil && riskRank(risk) >= 1 {
 			ro.Window = closureWindow(*riskPeak, rp, sched)
 		}
-		ro.Headline, ro.Detail = riskText(risk, riskPeak, ro.Window, sched, laterPeakRisky)
+		ro.Headline, ro.Detail, ro.Short = riskText(risk, riskPeak, rp, sched, laterPeakRisky)
 		out.Ramps = append(out.Ramps, ro)
 	}
 

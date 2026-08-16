@@ -298,16 +298,18 @@ export function createBoardView(store) {
   /**
    * Short tide-risk hint from the server outlook — only for ramps that are
    * currently drivable but predicted to close, so the card stays quiet
-   * whenever there's nothing worth saying.
+   * whenever there's nothing worth saying. The server's `short` string
+   * carries the approximate time ("closure likely ~1:30pm"); the bare
+   * fallbacks cover older servers during deploy skew.
    */
   function riskHint(ramp, s) {
     const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
     if (cat === 'closed') return '';
     const ro = (s.outlook?.ramps || []).find((r) => r.access_id === ramp.access_id);
     if (!ro) return '';
-    if (ro.risk === 'likely') return 'tide closure likely';
-    if (ro.risk === 'possible') return 'could close on the tide';
-    return '';
+    if (ro.risk !== 'likely' && ro.risk !== 'possible') return '';
+    if (ro.short) return ro.short;
+    return ro.risk === 'likely' ? 'tide closure likely' : 'could close on the tide';
   }
 
   function sinceLine(ramp, s) {
