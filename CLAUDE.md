@@ -100,6 +100,28 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - Use `TIMESTAMPTZ` for all timestamps
 - Connection via `DATABASE_URL` environment variable
 
+## Prediction ("Outlook")
+
+- `api/internal/predict` learns per-ramp tide-closure behavior from `ramp_status_history`
+  joined to NOAA high-tide peaks: a nightly trainer (03:30 ET, plus boot when stale)
+  persists per-ramp threshold/lead/lag/close-rate to the `prediction_params` settings key
+  (inspect: `GET /api/v2/admin/prediction/params`). `GET /api/v2/outlook` (bulk, 10-min
+  TTL cache) and `/api/v2/ramps/:id/outlook` serve risk + **server-built casual copy** —
+  clients must render the strings verbatim, never format their own clock-time promises;
+  the county is too inconsistent for precision. Time buckets ("midafternoon"), hedged
+  verbs ("likely"/"could", never "will").
+- **A non-NULL `ramp_metadata.closure_height_ft` overrides the learned threshold** — only
+  curate it deliberately.
+- `api/internal/predict/backtest_test.go` replays five months of checked-in real history
+  and pins recall/calibration floors — engine changes that degrade real-world behavior
+  fail tests. Refresh fixtures from `/api/v2/ramps/:id/history` + NOAA hilo when needed.
+- `api/internal/conditions` snapshots tide/wind/NDBC-buoy waves + ramp counts to
+  `beach_conditions` every 30 min. This is the training data for the future wave-aware
+  model (tide height alone can't explain mid-range 2.25–3.25 ft closures) — don't turn it
+  off casually.
+- `api/internal/solar` is the Go port of `web/js/solar.js` (itself ported from
+  SolarCalculator.swift) — three ports exist; keep reference values in their tests aligned.
+
 ## TRMNL (E-Ink Display)
 
 - Two devices, two templates:

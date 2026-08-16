@@ -15,7 +15,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground boards, ramp detail, landscape cam, widget family, ramp_metadata backend deployed. Flighted as 1.0 (17) same day. Live Activity + watch refresh deferred by decision. ASC consolidation complete; cam restreamer still pending `make deploy-restreamer` on the Studio. App Store gallery screenshots captured via new `make screenshots`.)
+last_verified: 2026-08-16 (Prediction feature SHIPPED to main: nightly-trained per-ramp tide-closure model, /api/v2/outlook endpoints with casual server-built copy, web detail band + board risk hints, beach_conditions snapshot logger accruing tide/wind/wave training data. Prior 08-15 state: 1.0 (17) flighted, ASC consolidated, cam restreamer pending Studio deploy.)
 ---
 
 ## Top open items
@@ -35,14 +35,19 @@ last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground board
    seeded. Closure heights, addresses, driving hours, and short names are NULL until
    Don curates them; the iOS detail facts, dashed threshold line, forward-looking
    closure line (ClosureProjector), and web facts row all light up as values land.
-1c. Predictive closure features (Don, 2026-08-15: "def want to come back to that").
-   Client-side projection now ships on iOS: ClosureProjector turns closure_height_ft
-   + the tide curve into "Expect full closure near high tide 11:07 PM." / reopen
-   lines — blocked only on curated heights (1a). Next steps: (a) calibrate heights
-   from ramp_status_history (each real closure pairs a status change with a
-   computable tide height; the 2026-08-15 10:16 AM all-five closure is a clean first
-   data point); (b) server-side threshold math to feed a future APNs Live Activity
-   push sender; (c) carry the projection to web.
+1c. Predictive closure features — SERVER-SIDE MODEL SHIPPED 2026-08-16. A nightly
+   trainer (03:30 ET) learns per-ramp closure thresholds/lead/lag/base-rate from
+   ramp_status_history + NOAA peaks (settings key prediction_params; inspect via
+   GET /api/v2/admin/prediction/params). /api/v2/outlook + /ramps/:id/outlook serve
+   casual risk copy ("High-tide closure likely midafternoon"), consumed by web
+   (detail band + board hints). A five-month backtest pins recall/calibration
+   floors in CI. beach_conditions snapshots (tide/wind/NDBC waves, 30-min) accrue
+   for the surf feature that mid-range accuracy needs. NOTE: a curated
+   ramp_metadata.closure_height_ft OVERRIDES the learned threshold — with learned
+   values now live, curation (1a) is optional and can even fight the model; clear
+   or verify curated heights against learned ones. REMAINING: Apple + TRMNL
+   consumption of /outlook, retire the duplicated JS/Swift reopen heuristics,
+   wave-aware model once conditions data matures, APNs Live Activity sender.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
@@ -96,7 +101,18 @@ last_verified: 2026-08-15 (iOS/iPadOS redesign SHIPPED to main: sky-ground board
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
-- 2026-08-15 (latest): iOS/iPadOS redesign from design-review/design_handoff_ios/ —
+- 2026-08-16 (latest): Beach open/close prediction ("outlook") — validated against
+  13,399 history transitions joined to NOAA tides (per-ramp thresholds 2.1–3.85 ft
+  MLLW, closures ~90–120 min before peak, reopens ~60–100 min after), then shipped
+  as: beach_conditions snapshot logger (30-min tide/wind/NDBC-buoy-wave rows,
+  migration 009), Go solar port, NOAA range fetches with 6h TTL cache, nightly
+  trainer persisting learned params to settings, outlook engine with casual
+  server-built copy (risk levels with hysteresis, hard 2.0/3.5 ft rules, coarse
+  half-hour windows, falling-limb reopen estimates), /api/v2/outlook endpoints,
+  and web integration (detail band prefers server outlook; board cards show italic
+  "tide closure likely" hints; sw v8). Five-month backtest in CI pins recall and
+  calibration floors. All free data sources — zero incremental hosting cost.
+- 2026-08-15: iOS/iPadOS redesign from design-review/design_handoff_ios/ —
   the sixteen-phase SkyPalette moved into BeachStatus (tvOS unchanged) with the
   day/night TokenSet, StatusField colors, GroundModel (dayness/veil/scrim, 30s tick),
   ClosureProjector, App Group BoardSnapshot store, and bundled Archivo (OFL).
