@@ -140,6 +140,15 @@ func buildSchedule(now time.Time) (string, Schedule) {
 			sched.ClosesAt = &closes
 		}
 	}
+	// Carry approximate clock times in the labels ("sunset (~5:30pm)") —
+	// same half-hour-rounded voice as the tide copy. The close time already
+	// includes the county's close-a-bit-early buffer.
+	if sched.OpensAt != nil {
+		sched.OpensLabel = "sunrise (~" + fmtClock(roundNearest30(*sched.OpensAt)) + ")"
+	}
+	if sched.ClosesAt != nil {
+		sched.ClosesLabel = "sunset (~" + fmtClock(roundNearest30(*sched.ClosesAt)) + ")"
+	}
 	return "standard", sched
 }
 

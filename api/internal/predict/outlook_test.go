@@ -199,11 +199,13 @@ func TestBuildOutlookOffSeason(t *testing.T) {
 
 	out := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds)
 	assert.Equal(t, "standard", out.Season)
-	assert.Equal(t, "around sunset", out.Schedule.ClosesLabel)
 	require.NotNil(t, out.Schedule.ClosesAt)
-	// Mid-December NSB sunset ~5:30 PM ET; schedule closes 15 min early.
+	// Mid-December NSB sunset ~5:30 PM ET; schedule closes 15 min early and
+	// the labels carry the approximate clock times.
 	assert.Equal(t, 17, out.Schedule.ClosesAt.In(eastern).Hour())
-	assert.Equal(t, "Open for driving until around sunset", out.Ramps[0].Detail)
+	assert.Regexp(t, `^sunrise \(~\d{1,2}(:30)?am\)$`, out.Schedule.OpensLabel)
+	assert.Regexp(t, `^sunset \(~\d{1,2}(:30)?pm\)$`, out.Schedule.ClosesLabel)
+	assert.Equal(t, "Open for driving until "+out.Schedule.ClosesLabel, out.Ramps[0].Detail)
 }
 
 func TestReopenEstimateFallsBackToLowTide(t *testing.T) {
