@@ -503,6 +503,58 @@ func GetAllSettings(ctx context.Context, pool *pgxpool.Pool) (map[string]string,
 	return settings, nil
 }
 
+// --- Beach conditions ---
+
+// InsertBeachConditions appends one snapshot row to the beach_conditions
+// table. recorded_at defaults to NOW() in the database.
+func InsertBeachConditions(ctx context.Context, pool *pgxpool.Pool, c models.BeachConditions) error {
+	const query = `
+		INSERT INTO beach_conditions (
+			tide_predicted_ft, next_peak_ft, next_peak_at,
+			wind_speed_mph, wind_gust_mph, wind_dir,
+			wave_height_ft, dominant_period_s,
+			ramps_open, ramps_closed_tide, ramps_closed_other
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`
+
+	_, err := pool.Exec(ctx, query,
+		c.TidePredictedFt, c.NextPeakFt, c.NextPeakAt,
+		c.WindSpeedMph, c.WindGustMph, c.WindDir,
+		c.WaveHeightFt, c.DominantPeriodS,
+		c.RampsOpen, c.RampsClosedTide, c.RampsClosedOther,
+	)
+	if err != nil {
+		return fmt.Errorf("inserting beach conditions: %w", err)
+	}
+
+	return nil
+}
+
+// ListRampStatuses returns the current access_status of every ramp. Category
+// mapping stays in Go (models.StatusToCategory) so callers count without
+// duplicating the status taxonomy in SQL.
+func ListRampStatuses(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
+	rows, err := pool.Query(ctx, `SELECT access_status FROM ramp_status`)
+	if err != nil {
+		return nil, fmt.Errorf("querying ramp statuses: %w", err)
+	}
+	defer rows.Close()
+
+	var statuses []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, fmt.Errorf("scanning ramp status: %w", err)
+		}
+		statuses = append(statuses, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating ramp statuses: %w", err)
+	}
+	return statuses, nil
+}
+
 // scanRamps collects all rows from a pgx.Rows into a slice of RampStatus.
 func scanRamps(rows pgx.Rows) ([]models.RampStatus, error) {
 	var ramps []models.RampStatus

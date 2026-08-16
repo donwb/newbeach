@@ -131,6 +131,16 @@ func (c *Client) GetWeather(ctx context.Context) (*WeatherInfo, error) {
 	}, nil
 }
 
+// GetCurrentConditions returns just the latest observed conditions, without
+// fetching the multi-period forecast. Used by callers that sample conditions
+// on an interval (e.g. the beach_conditions snapshot logger).
+func (c *Client) GetCurrentConditions(ctx context.Context) (*Conditions, error) {
+	if err := c.ensureGridResolved(ctx); err != nil {
+		return nil, fmt.Errorf("resolving NWS grid point: %w", err)
+	}
+	return c.fetchCurrentConditions(ctx)
+}
+
 // --- NWS API response shapes ---
 
 // nwsPointsResponse is the JSON shape from GET /points/{lat},{lon}.

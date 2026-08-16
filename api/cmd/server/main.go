@@ -17,6 +17,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	beachapi "github.com/donwb/beach/api"
+	"github.com/donwb/beach/api/internal/conditions"
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/handlers"
 	"github.com/donwb/beach/api/internal/ingester"
@@ -76,6 +77,19 @@ func main() {
 		tempStationsStr = "8721604,8720218"
 	}
 	tempStations := strings.Split(tempStationsStr, ",")
+
+	ndbcStation := os.Getenv("NDBC_STATION")
+	if ndbcStation == "" {
+		ndbcStation = "41113" // Ponce de Leon Inlet wave buoy
+	}
+
+	conditionsInterval := 30 * time.Minute
+	if ci := os.Getenv("CONDITIONS_INTERVAL"); ci != "" {
+		if mins, err := strconv.Atoi(ci); err == nil && mins > 0 {
+			conditionsInterval = time.Duration(mins) * time.Minute
+		}
+	}
+	conditionsEnabled := os.Getenv("CONDITIONS_ENABLED") != "false"
 
 	// Connect to the database.
 	pool, err := database.Connect(databaseURL)
@@ -163,6 +177,13 @@ func main() {
 	videoRefresher.PrimeFromDB(ctx)
 
 	go ing.Start(ctx)
+
+	// Conditions snapshot logger — accumulates tide/wind/wave + ramp-count
+	// snapshots in beach_conditions as training data for closure prediction.
+	if conditionsEnabled {
+		condLogger := conditions.New(pool, noaaClient, weatherClient, ndbcStation, conditionsInterval)
+		go condLogger.Start(ctx)
+	}
 
 	// Start the HTTP server in a goroutine.
 	go func() {

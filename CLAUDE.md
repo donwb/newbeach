@@ -168,6 +168,9 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `WEBCAM_URL` | API | Configurable webcam image URL |
 | `NOAA_TIDE_STATION` | API | NOAA tide station ID (default: 8721147) |
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
+| `NDBC_STATION` | Conditions logger | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
+| `CONDITIONS_INTERVAL` | Conditions logger | Minutes between beach_conditions snapshots (default: 30) |
+| `CONDITIONS_ENABLED` | Conditions logger | Set `false` to disable snapshotting |
 | `WEB_DIR` | API | Path to web static files (auto-detected in dev, `/web` in Docker) |
 | `ADMIN_API_KEY` | API | Secret key for admin endpoints (`/api/v2/admin/*`) |
 
