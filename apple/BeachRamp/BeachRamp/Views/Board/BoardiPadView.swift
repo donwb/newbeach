@@ -350,6 +350,7 @@ struct BoardiPadView: View {
                         stale: viewModel.isStale,
                         isFavorite: viewModel.isFavorite(ramp),
                         minHeight: minHeight,
+                        outlookHint: viewModel.outlookHint(for: ramp),
                         toggleFavorite: { viewModel.toggleFavorite(ramp) }
                     )
                 }
@@ -365,6 +366,8 @@ struct RampGridTile: View {
     let stale: Bool
     let isFavorite: Bool
     var minHeight: CGFloat = 152
+    /// Server prediction hint; replaces the since line when set.
+    var outlookHint: String? = nil
     let toggleFavorite: () -> Void
     @Environment(\.ground) private var ground
 
@@ -411,7 +414,12 @@ struct RampGridTile: View {
                     Text(statusWord)
                         .font(.archivo(15, weight: .extraBold))
                         .foregroundStyle(field.text)
-                    if let since = ramp.statusSince {
+                    if let outlookHint, !stale {
+                        Text(outlookHint)
+                            .font(.archivo(11))
+                            .italic()
+                            .foregroundStyle(field.text2)
+                    } else if let since = ramp.statusSince {
                         Text(stale ? "as of \(SinceFormatter.string(from: since))"
                                    : "since \(SinceFormatter.string(from: since))")
                             .font(.archivo(11))

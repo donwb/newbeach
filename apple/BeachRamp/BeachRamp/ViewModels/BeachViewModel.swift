@@ -14,6 +14,9 @@ final class BeachViewModel {
     var weather: WeatherInfo?
     var config: AppConfig?
     var health: HealthStatus?
+    /// Server-side open/close prediction. Non-critical: nil (old server or
+    /// failed fetch) hides the board hints and detail outlook line.
+    var outlook: Outlook?
 
     var isLoading = false
 
@@ -137,6 +140,32 @@ final class BeachViewModel {
             hourly: chart.hourly,
             highLow: chart.highLow
         )
+    }
+
+    // MARK: - Server Outlook
+
+    /// The compact board hint ("closure likely ~1:30pm"), or nil when there's
+    /// nothing worth saying. Mirrors the web/tvOS boards: only for drivable
+    /// ramps the server flags, always the server's own string.
+    func outlookHint(for ramp: Ramp) -> String? {
+        guard ramp.category != .closed,
+              let entry = outlook?.ramp(for: ramp.accessID),
+              entry.flagsRisk else { return nil }
+        return entry.short
+    }
+
+    /// The detail screen's forward-looking line. The server outlook wins —
+    /// timing headline for predicted risk, detail copy otherwise (it carries
+    /// the reopen story for closed ramps) — with the client-side
+    /// ClosureProjector as the fallback for old servers, same as the web.
+    func outlookLine(for ramp: Ramp) -> String? {
+        guard let entry = outlook?.ramp(for: ramp.accessID) else {
+            return projection(for: ramp)?.line
+        }
+        if entry.flagsRisk {
+            return entry.headline
+        }
+        return entry.detail ?? entry.headline
     }
 
     // MARK: - Favorites
@@ -263,6 +292,7 @@ final class BeachViewModel {
             group.addTask { await self.loadConfig() }
             group.addTask { await self.loadCameras() }
             group.addTask { await self.loadHealth() }
+            group.addTask { await self.loadOutlook() }
         }
 
         // Default to New Smyrna Beach on first load
@@ -335,6 +365,11 @@ final class BeachViewModel {
     @MainActor
     private func loadHealth() async {
         health = (try? await api.fetchHealth()) ?? health
+    }
+
+    @MainActor
+    private func loadOutlook() async {
+        outlook = (try? await api.fetchOutlook()) ?? outlook
     }
 
     @MainActor

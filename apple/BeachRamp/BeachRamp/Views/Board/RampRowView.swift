@@ -6,6 +6,9 @@ import BeachStatus
 struct RampRowView: View {
     let ramp: Ramp
     var stale: Bool = false
+    /// Server prediction hint ("closure likely ~1:30pm"); replaces the since
+    /// line when set, italic so it reads as a forecast.
+    var outlookHint: String? = nil
     @Environment(\.ground) private var ground
 
     private var field: StatusField {
@@ -36,9 +39,16 @@ struct RampRowView: View {
                     .tracking(22 * ArchivoTracking.rampName)
                     .lineSpacing(1)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(sinceLine)
-                    .font(.archivo(11))
-                    .opacity(0.7)
+                if let outlookHint, !stale {
+                    Text(outlookHint)
+                        .font(.archivo(11))
+                        .italic()
+                        .opacity(0.75)
+                } else {
+                    Text(sinceLine)
+                        .font(.archivo(11))
+                        .opacity(0.7)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 8) {
@@ -66,6 +76,7 @@ struct RampRowView: View {
         if let since = ramp.statusSince {
             text += " since \(SinceFormatter.string(from: since))"
         }
+        if let outlookHint, !stale { text += ", \(outlookHint)" }
         if stale { text += ", data stale" }
         return text
     }

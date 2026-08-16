@@ -2,11 +2,15 @@ import SwiftUI
 import BeachStatus
 
 /// The full-width status field band: mark, status word, since line, and the
-/// forward-looking line — the reason the detail screen exists. The line
-/// disappears (never placeholders) when the ramp has no threshold.
+/// forward-looking line — the reason the detail screen exists. The line is
+/// the server outlook when available (the learned prediction, rendered
+/// verbatim), else the client-side projection, else nothing — never a
+/// placeholder.
 struct DetailStatusBand: View {
     let ramp: Ramp
     let projection: ClosureProjection?
+    /// Server outlook line; wins over `projection` when set.
+    var outlookLine: String? = nil
     /// 20 on iPhone, 28 in the iPad sheet.
     var statusSize: CGFloat = 20
     @Environment(\.ground) private var ground
@@ -40,8 +44,8 @@ struct DetailStatusBand: View {
                     }
                 }
             }
-            if let projection {
-                Text(projection.line)
+            if let line = outlookLine ?? projection?.line {
+                Text(line)
                     .font(.archivo(14, weight: .semiBold))
                     .foregroundStyle(field.text)
                     .fixedSize(horizontal: false, vertical: true)

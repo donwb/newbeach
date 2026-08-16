@@ -78,6 +78,7 @@ struct RampDetailSheet: View {
                     DetailStatusBand(
                         ramp: ramp,
                         projection: viewModel.projection(for: ramp),
+                        outlookLine: viewModel.outlookLine(for: ramp),
                         statusSize: 28
                     )
 
