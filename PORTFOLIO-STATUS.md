@@ -15,7 +15,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-16 (Prediction feature SHIPPED to main: nightly-trained per-ramp tide-closure model, /api/v2/outlook endpoints with casual server-built copy, web detail band + board risk hints, beach_conditions snapshot logger accruing tide/wind/wave training data. Prior 08-15 state: 1.0 (17) flighted, ASC consolidated, cam restreamer pending Studio deploy.)
+last_verified: 2026-08-16 (Camera switcher restored on web + iPad board, b3c9817 — web board/detail chip tabs off /api/v2/cameras, iPad inline chips await next flight. Earlier same day: Prediction feature SHIPPED to main: nightly-trained per-ramp tide-closure model, /api/v2/outlook endpoints with casual server-built copy, web detail band + board risk hints, beach_conditions snapshot logger accruing tide/wind/wave training data. Prior 08-15 state: 1.0 (17) flighted, ASC consolidated, cam restreamer pending Studio deploy.)
 ---
 
 ## Top open items
@@ -61,8 +61,11 @@ last_verified: 2026-08-16 (Prediction feature SHIPPED to main: nightly-trained p
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
    is still wanted before calling it done.
-3. Web multi-camera switcher — backend roster (5 cams, /api/v2/cameras) and iOS/tvOS
-   switchers shipped; website still plays the single default stream. INTAKE §6.
+3. DONE 2026-08-16 (b3c9817) — Web multi-camera switcher: board + ramp-detail cam
+   sections render roster chip tabs off /api/v2/cameras; recovery re-fetches the
+   roster so a non-default pick survives playback failures. Same commit restored
+   inline switcher chips to the iPad board (lost in the redesign; iPhone switches
+   in the fullscreen cam). iPad chips ride the next flight. INTAKE §6.
 4. Finish domain move to beach.donwb.com — repo repointed 2026-08-15 (c5eb5b9) and verified
    against live endpoints; TRMNL plugin polling URLs updated by Don the same day. TWO THINGS
    REMAIN: (a) the cam restreamer on the Studio was still logging fetches from the old
