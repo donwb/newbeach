@@ -11,7 +11,8 @@ import { sortRampsForCity } from '../order.js';
 import { curvePoints, renderTideChartSVG } from '../tide.js';
 import { easternMidnight } from '../format.js';
 import { events as solarEvents } from '../solar.js';
-import { mountCam, updateCamUrl, unmountCam } from '../cam.js';
+import { mountCam, updateCamUrl, unmountCam, pickCamera } from '../cam.js';
+import { loadCameras } from '../api.js';
 
 const capFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -107,6 +108,7 @@ export function createBoardView(store) {
           <span class="kicker" id="cam-kicker">Live cam</span>
           <span class="section-note">1280 × 270 · panoramic</span>
         </div>
+        <div class="cam-tabs" id="cam-tabs" hidden></div>
         <div class="cam-frame">
           <video id="cam-video" muted playsinline autoplay></video>
           <div class="cam-offline" id="cam-offline" hidden>
@@ -159,7 +161,7 @@ export function createBoardView(store) {
     sub(['tide', 'now'], updateTideSection);
     sub(['weather'], updateForecast);
     sub(['activity'], updateChanges);
-    sub(['config'], updateCam);
+    sub(['config', 'cameras', 'selectedCameraId'], updateCam);
     sub(['health', 'stale', 'dataAgeMs', 'config'], updateChrome);
 
     const s = store.state;
@@ -192,6 +194,11 @@ export function createBoardView(store) {
     $('#citytabs').addEventListener('click', (e) => {
       const tab = e.target.closest('.citytab');
       if (tab) store.set({ selectedCity: tab.dataset.city });
+    });
+
+    $('#cam-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.cam-tab');
+      if (tab && !tab.disabled) store.set({ selectedCameraId: tab.dataset.cam });
     });
 
     $('#city-select').addEventListener('click', () => {
@@ -489,7 +496,8 @@ export function createBoardView(store) {
   }
 
   function updateCam(s) {
-    const url = s.config?.video_stream_url;
+    const camera = pickCamera(s.cameras, s.selectedCameraId);
+    const url = camera?.stream_url || s.config?.video_stream_url;
     const section = $('#cam-section');
     const scenario = new URLSearchParams(location.search).get('scenario');
     if (!url && scenario !== 'camoff') {
@@ -497,8 +505,11 @@ export function createBoardView(store) {
       return;
     }
     section.removeAttribute('hidden');
-    $('#cam-kicker').textContent = `Live cam · ${titleCase(s.selectedCity)}`;
-    $('#cam-offline-title').textContent = `${titleCase(s.selectedCity)} cam offline`;
+    const camName = camera?.name || titleCase(s.selectedCity);
+    $('#cam-kicker').textContent = `Live cam · ${camName}`;
+    $('#cam-offline-title').textContent = `${camName} cam offline`;
+
+    updateCamTabs(s, camera);
 
     const elements = {
       frame: $('.cam-frame'),
@@ -508,10 +519,43 @@ export function createBoardView(store) {
     };
     if (!elements.video.dataset.bound) {
       elements.video.dataset.bound = '1';
-      mountCam(elements, url, { forceOffline: scenario === 'camoff' });
+      mountCam(elements, url, {
+        forceOffline: scenario === 'camoff',
+        resolveUrl: camResolveUrl,
+      });
     } else {
       updateCamUrl(url);
     }
+  }
+
+  /** The cam switcher chips; hidden until the roster has a second camera. */
+  function updateCamTabs(s, activeCamera) {
+    const tabs = $('#cam-tabs');
+    const cams = s.cameras?.cameras || [];
+    if (cams.length < 2) {
+      tabs.setAttribute('hidden', '');
+      return;
+    }
+    tabs.removeAttribute('hidden');
+
+    const print = cams.map((c) => c.id + ':' + (c.stream_url ? 1 : 0)).join('|')
+      + '@' + (activeCamera?.id || '');
+    if (prints.camTabs === print) return;
+    prints.camTabs = print;
+
+    tabs.innerHTML = cams.map((c) => `
+      <button class="cam-tab" data-cam="${escapeHTML(c.id)}"
+        aria-pressed="${c.id === activeCamera?.id}" ${c.stream_url ? '' : 'disabled'}>
+        ${escapeHTML(c.name)}
+      </button>
+    `).join('');
+  }
+
+  /** Playback-failure recovery: re-fetch the roster, replay the selected cam. */
+  async function camResolveUrl() {
+    const roster = await loadCameras();
+    store.set({ cameras: roster });
+    return pickCamera(roster, store.state.selectedCameraId)?.stream_url || null;
   }
 
   return { mount, unmount };

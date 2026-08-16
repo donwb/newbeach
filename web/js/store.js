@@ -25,6 +25,8 @@ export function createStore() {
     config: null,         // /api/v2/config payload
     health: null,         // /api/v2/health payload
     outlook: null,        // /api/v2/outlook payload (server-side prediction)
+    cameras: null,        // /api/v2/cameras payload (roster + default_id)
+    selectedCameraId: null, // user's cam pick; null until set, then sticky for the session
     chart: null,          // /api/v2/tides/chart payload
     dataAgeMs: null,      // grown client-side between polls
     stale: false,

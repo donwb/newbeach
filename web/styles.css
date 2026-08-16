@@ -671,6 +671,42 @@ html[data-stale='true'] .ramp-card {
   padding: 10px 0 24px;
 }
 
+/* The camera switcher: one chip per roster cam, active chip filled. */
+.cam-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.cam-tab {
+  min-height: 34px;
+  padding: 5px 14px;
+  border: 2px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.cam-tab[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+html[data-ground='night'] .cam-tab[aria-pressed='true'] {
+  color: #0a1420;
+}
+
+.cam-tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .cam-frame {
   position: relative;
   width: 100%;

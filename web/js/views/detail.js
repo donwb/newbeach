@@ -13,8 +13,8 @@ import { escapeHTML, prettyRampName, titleCase, sinceString, clock, categoryFrom
 import { statusPhrase, nextExtreme, tideIsRising, reopenEstimate } from '../verdict.js';
 import { sortRampsForCity } from '../order.js';
 import { curvePoints, renderTideChartSVG } from '../tide.js';
-import { loadIntervals } from '../api.js';
-import { mountCam, unmountCam } from '../cam.js';
+import { loadIntervals, loadCameras } from '../api.js';
+import { mountCam, updateCamUrl, unmountCam, pickCamera } from '../cam.js';
 
 const capFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -85,8 +85,9 @@ export function createDetailView(store) {
 
       <section class="cam" id="detail-cam" hidden>
         <div class="section-head">
-          <span class="kicker" id="detail-cam-kicker">Nearest cam</span>
+          <span class="kicker" id="detail-cam-kicker">Live cam</span>
         </div>
+        <div class="cam-tabs" id="detail-cam-tabs" hidden></div>
         <div class="cam-frame">
           <video id="detail-cam-video" muted playsinline autoplay></video>
           <div class="cam-offline" id="detail-cam-offline" hidden>
@@ -109,10 +110,15 @@ export function createDetailView(store) {
       if (ramp) store.toggleFavorite(ramp.access_id);
     });
 
+    $('#detail-cam-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.cam-tab');
+      if (tab && !tab.disabled) store.set({ selectedCameraId: tab.dataset.cam });
+    });
+
     const sub = (keys, fn) => unsubs.push(store.subscribe(keys, fn));
     sub(['now'], updateClock);
     sub(['ramps', 'tide', 'favorites', 'now', 'stale'], updateAll);
-    sub(['config'], updateCam);
+    sub(['config', 'cameras', 'selectedCameraId'], updateCam);
 
     updateClock(store.state);
     updateAll(store.state);
@@ -323,17 +329,19 @@ export function createDetailView(store) {
   }
 
   function updateCam(s) {
-    const url = s.config?.video_stream_url;
+    const camera = pickCamera(s.cameras, s.selectedCameraId);
+    const url = camera?.stream_url || s.config?.video_stream_url;
     const section = $('#detail-cam');
     if (!url) {
       section.setAttribute('hidden', '');
       return;
     }
     section.removeAttribute('hidden');
-    const ramp = currentRamp();
-    const city = titleCase(ramp?.city || store.state.selectedCity);
-    $('#detail-cam-kicker').textContent = `Nearest cam · ${city}`;
-    $('#detail-cam-offline-title').textContent = `${city} cam offline`;
+    const camName = camera?.name || titleCase(currentRamp()?.city || store.state.selectedCity);
+    $('#detail-cam-kicker').textContent = `Live cam · ${camName}`;
+    $('#detail-cam-offline-title').textContent = `${camName} cam offline`;
+
+    updateCamTabs(s, camera);
 
     const video = $('#detail-cam-video');
     if (!video.dataset.bound) {
@@ -343,8 +351,34 @@ export function createDetailView(store) {
         video,
         offline: $('#detail-cam-offline'),
         offlineNote: $('#detail-cam-offline-note'),
-      }, url);
+      }, url, { resolveUrl: camResolveUrl });
+    } else {
+      updateCamUrl(url);
     }
+  }
+
+  /** Same switcher chips as the board; hidden until a second camera exists. */
+  function updateCamTabs(s, activeCamera) {
+    const tabs = $('#detail-cam-tabs');
+    const cams = s.cameras?.cameras || [];
+    if (cams.length < 2) {
+      tabs.setAttribute('hidden', '');
+      return;
+    }
+    tabs.removeAttribute('hidden');
+    tabs.innerHTML = cams.map((c) => `
+      <button class="cam-tab" data-cam="${escapeHTML(c.id)}"
+        aria-pressed="${c.id === activeCamera?.id}" ${c.stream_url ? '' : 'disabled'}>
+        ${escapeHTML(c.name)}
+      </button>
+    `).join('');
+  }
+
+  /** Playback-failure recovery: re-fetch the roster, replay the selected cam. */
+  async function camResolveUrl() {
+    const roster = await loadCameras();
+    store.set({ cameras: roster });
+    return pickCamera(roster, store.state.selectedCameraId)?.stream_url || null;
   }
 
   return { mount, unmount };

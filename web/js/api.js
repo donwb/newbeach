@@ -21,7 +21,7 @@ async function fetchJSON(path, { timeoutMs = 15_000 } = {}) {
  * whether the core ramps fetch succeeded (drives the stale bookkeeping).
  */
 export async function loadAll() {
-  const [ramps, tide, weather, activity, config, health, outlook] = await Promise.allSettled([
+  const [ramps, tide, weather, activity, config, health, outlook, cameras] = await Promise.allSettled([
     fetchJSON('/api/v2/ramps'),
     fetchJSON('/api/v2/tides'),
     fetchJSON('/api/v2/weather'),
@@ -29,6 +29,7 @@ export async function loadAll() {
     fetchJSON('/api/v2/config'),
     fetchJSON('/api/v2/health'),
     fetchJSON('/api/v2/outlook'),
+    fetchJSON('/api/v2/cameras'),
   ]);
   const value = (r) => (r.status === 'fulfilled' ? r.value : null);
   return {
@@ -39,8 +40,14 @@ export async function loadAll() {
     config: value(config),
     health: value(health),
     outlook: value(outlook),
+    cameras: value(cameras),
     ok: ramps.status === 'fulfilled',
   };
+}
+
+/** The camera roster: { cameras: [{id, name, location, stream_url}], default_id }. */
+export function loadCameras() {
+  return fetchJSON('/api/v2/cameras');
 }
 
 export function loadTideChart() {

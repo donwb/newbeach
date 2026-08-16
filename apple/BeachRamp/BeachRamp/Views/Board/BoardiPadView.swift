@@ -241,6 +241,7 @@ struct BoardiPadView: View {
                     }
                     .buttonStyle(PressTintButtonStyle())
                 }
+                CameraSwitcherView(viewModel: viewModel)
                 BeachCamView(
                     url: viewModel.videoStreamURL,
                     rebuildToken: viewModel.videoStreamGeneration,
@@ -283,12 +284,23 @@ struct BoardiPadView: View {
             // The cam at full width, uncropped — height follows the pano's
             // own 1280/270 aspect (~160pt at portrait width).
             if viewModel.selectedCamera != nil {
+                HStack {
+                    Text("Live cam · \(viewModel.selectedCamera?.name ?? "")".uppercased())
+                        .font(.archivo(10, weight: .bold))
+                        .tracking(10 * ArchivoTracking.kicker)
+                        .foregroundStyle(t.ink2)
+                        .lineLimit(1)
+                    Spacer()
+                }
+                .padding(.top, 12)
+                CameraSwitcherView(viewModel: viewModel)
+                    .padding(.top, 8)
                 BeachCamView(
                     url: viewModel.videoStreamURL,
                     rebuildToken: viewModel.videoStreamGeneration,
                     onPlaybackFailure: { viewModel.refreshVideoStream() }
                 )
-                .padding(.top, 12)
+                .padding(.top, 10)
                 .onTapGesture { viewModel.camPresented = true }
             }
 

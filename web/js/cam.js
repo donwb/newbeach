@@ -18,7 +18,20 @@ const camState = {
   lastFrameAt: null,
   offline: false,
   els: null, // { frame, video, offline, offlineNote }
+  resolveUrl: null, // async () => freshest URL for the *selected* cam, or null
 };
+
+/**
+ * Pick the active camera from the /api/v2/cameras payload: the user's pick,
+ * else the roster default, else the first. Null when the roster is empty.
+ */
+export function pickCamera(roster, selectedId) {
+  const cams = roster?.cameras;
+  if (!cams?.length) return null;
+  return cams.find((c) => c.id === selectedId)
+    || cams.find((c) => c.id === roster.default_id)
+    || cams[0];
+}
 
 function tryPlay(video) {
   const p = video.play();
@@ -84,9 +97,16 @@ function requestRefresh() {
   camState.lastRefreshAttempt = now;
   camState.refreshInflight = true;
 
-  refreshVideo()
-    .then((payload) => {
-      const url = payload?.video_stream_url;
+  // Roster-aware path: the view resolves the freshest URL for the cam the
+  // user actually selected (re-fetching /api/v2/cameras). The legacy
+  // /video/refresh fallback only knows the default cam, so it would silently
+  // flip a non-default selection back to NSB.
+  const resolve = camState.resolveUrl
+    ? camState.resolveUrl()
+    : refreshVideo().then((payload) => payload?.video_stream_url);
+
+  Promise.resolve(resolve)
+    .then((url) => {
       if (url && camState.els) attachStream(camState.els.video, url);
     })
     .catch(() => { /* swallow — server safety-poll will catch up */ })
@@ -98,10 +118,12 @@ function requestRefresh() {
 /**
  * Binds the cam to a mounted .cam-frame. `elements`:
  * { frame, video, offline, offlineNote }. Re-binding with the same URL is a
- * no-op so the 60s poll doesn't restart playback.
+ * no-op so the 60s poll doesn't restart playback. `resolveUrl` (optional,
+ * async) returns the freshest URL for the selected cam on fatal errors.
  */
-export function mountCam(elements, url, { forceOffline = false } = {}) {
+export function mountCam(elements, url, { forceOffline = false, resolveUrl = null } = {}) {
   camState.els = elements;
+  camState.resolveUrl = resolveUrl;
 
   elements.video.addEventListener('playing', markOnline);
 
@@ -126,4 +148,5 @@ export function unmountCam() {
   }
   camState.els = null;
   camState.currentUrl = null;
+  camState.resolveUrl = null;
 }
