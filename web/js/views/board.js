@@ -279,6 +279,7 @@ export function createBoardView(store) {
     const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
     const name = prettyRampName(ramp.ramp_name);
     const since = sinceLine(ramp, s);
+    const risk = riskHint(ramp, s);
     return `
       <span class="card-index tabular">${String(index + 1).padStart(2, '0')}</span>
       <button class="card-star" aria-pressed="${s.favorites.has(ramp.access_id)}"
@@ -289,9 +290,24 @@ export function createBoardView(store) {
       </div>
       <div class="card-bottom">
         <div class="card-status"><span class="card-mark"></span><span class="card-word">${escapeHTML(statusWord(ramp.access_status))}</span></div>
-        <div class="card-since">${escapeHTML(since)}</div>
+        ${risk ? `<div class="card-risk">${escapeHTML(risk)}</div>` : `<div class="card-since">${escapeHTML(since)}</div>`}
       </div>
     `;
+  }
+
+  /**
+   * Short tide-risk hint from the server outlook — only for ramps that are
+   * currently drivable but predicted to close, so the card stays quiet
+   * whenever there's nothing worth saying.
+   */
+  function riskHint(ramp, s) {
+    const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
+    if (cat === 'closed') return '';
+    const ro = (s.outlook?.ramps || []).find((r) => r.access_id === ramp.access_id);
+    if (!ro) return '';
+    if (ro.risk === 'likely') return 'tide closure likely';
+    if (ro.risk === 'possible') return 'could close on the tide';
+    return '';
   }
 
   function sinceLine(ramp, s) {
@@ -326,7 +342,7 @@ export function createBoardView(store) {
       let el = cardEls.get(ramp.access_id);
       const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
       const print = [cat, ramp.access_status, ramp.status_since, index,
-        s.favorites.has(ramp.access_id), s.stale].join('|');
+        s.favorites.has(ramp.access_id), s.stale, riskHint(ramp, s)].join('|');
 
       if (!el) {
         el = document.createElement('a');

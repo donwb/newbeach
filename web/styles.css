@@ -605,6 +605,14 @@ html[data-ground='night'] .filter-btn[aria-pressed='true'] {
   display: none;
 }
 
+/* Server-predicted tide risk. Italic marks it as a forecast, not a fact. */
+.ramp-card .card-risk {
+  margin-top: 4px;
+  font-size: 13px;
+  opacity: 0.75;
+  font-style: italic;
+}
+
 /* Limited and closed: status carried by the whole card field. */
 .ramp-card.is-limited {
   background: var(--c-limited);
@@ -1172,6 +1180,9 @@ html[data-stale='true'] .ramp-card {
   }
   .ramp-card .card-bottom .card-since {
     display: none;
+  }
+  .ramp-card .card-bottom .card-risk {
+    font-size: 12px;
   }
 
   .tide-weather,

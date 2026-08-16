@@ -92,6 +92,7 @@ async function poll() {
   if (data.weather) patch.weather = data.weather;
   if (data.activity) patch.activity = data.activity;
   if (data.config) patch.config = data.config;
+  if (data.outlook) patch.outlook = data.outlook;
   if (data.health) {
     patch.health = data.health;
     const stamp = data.health.ingester?.last_poll_at;

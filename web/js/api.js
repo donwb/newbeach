@@ -21,13 +21,14 @@ async function fetchJSON(path, { timeoutMs = 15_000 } = {}) {
  * whether the core ramps fetch succeeded (drives the stale bookkeeping).
  */
 export async function loadAll() {
-  const [ramps, tide, weather, activity, config, health] = await Promise.allSettled([
+  const [ramps, tide, weather, activity, config, health, outlook] = await Promise.allSettled([
     fetchJSON('/api/v2/ramps'),
     fetchJSON('/api/v2/tides'),
     fetchJSON('/api/v2/weather'),
     fetchJSON('/api/v2/activity?limit=20'),
     fetchJSON('/api/v2/config'),
     fetchJSON('/api/v2/health'),
+    fetchJSON('/api/v2/outlook'),
   ]);
   const value = (r) => (r.status === 'fulfilled' ? r.value : null);
   return {
@@ -37,6 +38,7 @@ export async function loadAll() {
     activity: value(activity),
     config: value(config),
     health: value(health),
+    outlook: value(outlook),
     ok: ramps.status === 'fulfilled',
   };
 }

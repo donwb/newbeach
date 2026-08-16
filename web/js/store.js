@@ -24,6 +24,7 @@ export function createStore() {
     activity: null,       // /api/v2/activity payload
     config: null,         // /api/v2/config payload
     health: null,         // /api/v2/health payload
+    outlook: null,        // /api/v2/outlook payload (server-side prediction)
     chart: null,          // /api/v2/tides/chart payload
     dataAgeMs: null,      // grown client-side between polls
     stale: false,

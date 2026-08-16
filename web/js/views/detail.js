@@ -176,12 +176,25 @@ export function createDetailView(store) {
     $('#band-since').textContent = ramp.status_since
       ? `${s.stale ? 'as of' : 'since'} ${sinceString(new Date(ramp.status_since), s.now)}`
       : '';
-    $('#band-outlook').textContent = outlookLine(ramp, s);
+    $('#band-outlook').textContent = serverOutlookLine(ramp, s) || outlookLine(ramp, s);
 
     updateDayBand(s);
     updateTide(s);
     updateFeed(s);
     updateOtherRamps(cityRamps, ramp);
+  }
+
+  /**
+   * The server's learned outlook for this ramp, when available. Timing
+   * headlines for upcoming risk, detail copy otherwise (which carries the
+   * reopen story for closed ramps). Empty string falls back to the legacy
+   * client-side heuristic.
+   */
+  function serverOutlookLine(ramp, s) {
+    const ro = (s.outlook?.ramps || []).find((r) => r.access_id === ramp.access_id);
+    if (!ro) return '';
+    if (ro.risk === 'likely' || ro.risk === 'possible') return ro.headline || '';
+    return ro.detail || ro.headline || '';
   }
 
   function outlookLine(ramp, s) {
