@@ -87,8 +87,10 @@ struct SmallWidgetView: View {
                         .font(.archivo(38, weight: .extraBold))
                         .monospacedDigit()
                         .foregroundStyle(t.ink)
-                    // With everything open, a coming closure is the news.
-                    if let hint = entry.outlookCompactLine, exceptions.isEmpty {
+                    // The forward look wins the second line: a coming
+                    // closure on a quiet board, or the reopen estimate when
+                    // ramps are down — the strip already shows who's closed.
+                    if let hint = entry.outlookCompactLine {
                         Text(hint)
                             .font(.archivo(12, weight: .bold))
                             .italic()
@@ -455,8 +457,9 @@ struct AccessoryRectangularView: View {
     }
 
     private var secondLine: String {
-        // A quiet board with a predicted closure: the forecast is the news.
-        if exceptions.isEmpty, let hint = entry.outlookCompactLine {
+        // The forward look wins: a coming closure or the reopen estimate —
+        // the headline already carries the count of what's closed now.
+        if let hint = entry.outlookCompactLine {
             return hint
         }
         return exceptions.count == 1 ? "\(entry.openCount) others open"

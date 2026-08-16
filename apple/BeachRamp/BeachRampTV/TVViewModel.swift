@@ -321,14 +321,11 @@ final class TVViewModel {
         catch { /* non-critical — tiles just drop their prediction hints */ }
     }
 
-    /// The compact prediction hint for a tile ("closure likely ~1:30pm"), or
-    /// nil when there's nothing worth saying. Mirrors the web board: only for
-    /// drivable ramps the server flags, and always the server's own string.
+    /// The compact prediction hint for a tile: a coming closure for drivable
+    /// ramps, the reopen estimate for tide-closed ones — the board always
+    /// looks forward. Always the server's own string.
     func outlookHint(for ramp: Ramp) -> String? {
-        guard ramp.category != .closed,
-              let entry = outlook?.ramp(for: ramp.accessID),
-              entry.flagsRisk else { return nil }
-        return entry.short
+        outlook?.boardHint(forAccessID: ramp.accessID, category: ramp.category)
     }
 
     @MainActor

@@ -33,6 +33,21 @@ struct BoardEntry: TimelineEntry {
     var openCount: Int { ramps.filter { $0.category == .open }.count }
 
     // MARK: Server prediction hints
+    //
+    // The widget always looks forward: tide-closed ramps lead with their
+    // reopen estimate, then drivable ramps the server flags. Prediction
+    // strings are always the server's own; only name prefixes and counts
+    // are composed here.
+
+    /// Tide-closed ramps that carry a reopen estimate.
+    private var closedOutlooks: [(ramp: Ramp, entry: RampOutlook)] {
+        guard let outlook else { return [] }
+        return ramps.compactMap { ramp in
+            guard let ro = outlook.ramp(for: ramp.accessID),
+                  ro.risk == "closed_now", ro.reopen != nil else { return nil }
+            return (ramp, ro)
+        }
+    }
 
     /// Flagged (possible/likely) drivable ramps with their outlook entries,
     /// most urgent first: likely beats possible, earlier window breaks ties.
@@ -53,15 +68,22 @@ struct BoardEntry: TimelineEntry {
         }
     }
 
-    /// One-line hint for the medium/large families. The prediction string is
-    /// always the server's own; only the name prefix and the count are
-    /// composed here. Solo mode uses the solo ramp's hint alone.
+    /// The solo ramp's own forward-looking hint.
+    private var soloHint: String? {
+        guard let soloRamp, let ro = outlook?.ramp(for: soloRamp.accessID) else { return nil }
+        if ro.risk == "closed_now" { return ro.reopen?.label }
+        guard soloRamp.category != .closed, ro.flagsRisk else { return nil }
+        return ro.short
+    }
+
+    /// One-line hint for the medium/large families.
     var outlookHintLine: String? {
-        if let soloRamp {
-            guard soloRamp.category != .closed,
-                  let ro = outlook?.ramp(for: soloRamp.accessID),
-                  ro.flagsRisk else { return nil }
-            return ro.short
+        if soloRamp != nil { return soloHint }
+        if let closed = closedOutlooks.first, let label = closed.entry.reopen?.label {
+            if closedOutlooks.count == 1 {
+                return "\(closed.ramp.shortDisplayName): \(label)"
+            }
+            return "\(closedOutlooks.count) closed · \(label)"
         }
         guard let best = flaggedOutlooks.first, let short = best.entry.short else { return nil }
         if flaggedOutlooks.count == 1 {
@@ -70,14 +92,11 @@ struct BoardEntry: TimelineEntry {
         return "Tide risk on \(flaggedOutlooks.count) ramps · \(short)"
     }
 
-    /// Compact hint for the small family and Lock Screen: the server string
-    /// alone for a single flagged ramp, a count line otherwise.
+    /// Compact hint for the small family and Lock Screen.
     var outlookCompactLine: String? {
-        if let soloRamp {
-            guard soloRamp.category != .closed,
-                  let ro = outlook?.ramp(for: soloRamp.accessID),
-                  ro.flagsRisk else { return nil }
-            return ro.short
+        if soloRamp != nil { return soloHint }
+        if let closed = closedOutlooks.first, let label = closed.entry.reopen?.label {
+            return label
         }
         guard let best = flaggedOutlooks.first, let short = best.entry.short else { return nil }
         return flaggedOutlooks.count == 1 ? short : "tide risk on \(flaggedOutlooks.count) ramps"

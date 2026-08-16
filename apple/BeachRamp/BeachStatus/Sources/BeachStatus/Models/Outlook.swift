@@ -27,6 +27,20 @@ public struct Outlook: Codable, Sendable {
         ramps.first { $0.accessID == accessID }
     }
 
+    /// The glanceable board hint for a ramp: boards always look forward, so
+    /// a tide-closed ramp shows its reopen estimate ("often back open around
+    /// 5pm") rather than a since time, a flagged drivable ramp shows its
+    /// closure hint, and everything else shows nothing. Non-tide closures
+    /// (turtles, capacity) have no prediction and return nil.
+    public func boardHint(forAccessID accessID: String, category: StatusCategory) -> String? {
+        guard let entry = ramp(for: accessID) else { return nil }
+        if entry.risk == "closed_now" {
+            return entry.reopen?.label
+        }
+        guard category != .closed, entry.flagsRisk else { return nil }
+        return entry.short
+    }
+
     enum CodingKeys: String, CodingKey {
         case generatedAt = "generated_at"
         case season

@@ -144,14 +144,12 @@ final class BeachViewModel {
 
     // MARK: - Server Outlook
 
-    /// The compact board hint ("closure likely ~1:30pm"), or nil when there's
-    /// nothing worth saying. Mirrors the web/tvOS boards: only for drivable
-    /// ramps the server flags, always the server's own string.
+    /// The compact board hint: a coming closure for drivable ramps
+    /// ("closure likely ~1:30pm"), the reopen estimate for tide-closed ones
+    /// ("often back open around 5pm") — the board always looks forward.
+    /// Always the server's own string.
     func outlookHint(for ramp: Ramp) -> String? {
-        guard ramp.category != .closed,
-              let entry = outlook?.ramp(for: ramp.accessID),
-              entry.flagsRisk else { return nil }
-        return entry.short
+        outlook?.boardHint(forAccessID: ramp.accessID, category: ramp.category)
     }
 
     /// The detail screen's forward-looking line. The server outlook wins —

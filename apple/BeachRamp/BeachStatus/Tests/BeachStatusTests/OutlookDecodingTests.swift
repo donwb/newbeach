@@ -95,4 +95,18 @@ struct OutlookDecodingTests {
         let outlook = try decode(payload)
         #expect(outlook.ramp(for: "XX-000") == nil)
     }
+
+    @Test func boardHintAlwaysLooksForward() throws {
+        let outlook = try decode(payload)
+        // Tide-closed → the reopen estimate, never a blank.
+        #expect(outlook.boardHint(forAccessID: "NS-106", category: .closed)
+                == "often back open around 5pm")
+        // Flagged drivable → the closure hint.
+        #expect(outlook.boardHint(forAccessID: "NS-141", category: .open)
+                == "closure likely ~1:30pm")
+        // Quiet ramp → nothing.
+        #expect(outlook.boardHint(forAccessID: "PI-097", category: .open) == nil)
+        // Closed for a non-tide reason (no closed_now entry) → nothing.
+        #expect(outlook.boardHint(forAccessID: "PI-097", category: .closed) == nil)
+    }
 }
