@@ -8,14 +8,18 @@ public struct BoardSnapshot: Codable, Sendable {
     public let tide: TideInfo?
     public let tideChart: TideChartData?
     public let weather: WeatherInfo?
+    /// Server open/close prediction; optional so snapshots written by older
+    /// app builds still decode.
+    public let outlook: Outlook?
     public let fetchedAt: Date
 
     public init(ramps: [Ramp], tide: TideInfo?, tideChart: TideChartData?,
-                weather: WeatherInfo?, fetchedAt: Date) {
+                weather: WeatherInfo?, outlook: Outlook? = nil, fetchedAt: Date) {
         self.ramps = ramps
         self.tide = tide
         self.tideChart = tideChart
         self.weather = weather
+        self.outlook = outlook
         self.fetchedAt = fetchedAt
     }
 

@@ -102,9 +102,10 @@ enum WidgetData {
         async let ramps = try? APIClient.shared.fetchRamps()
         async let tide = try? APIClient.shared.fetchTides()
         async let chart = try? APIClient.shared.fetchTideChart()
+        async let outlook = try? APIClient.shared.fetchOutlook()
         guard let ramps = await ramps else { return nil }
         return BoardSnapshot(ramps: ramps, tide: await tide, tideChart: await chart,
-                             weather: nil, fetchedAt: Date())
+                             weather: nil, outlook: await outlook, fetchedAt: Date())
     }
 
     /// Snapshot refreshed over the network when it has aged past the poll
@@ -117,10 +118,13 @@ enum WidgetData {
         async let rampsTask = try? APIClient.shared.fetchRamps()
         async let tideTask = try? APIClient.shared.fetchTides()
         async let chartTask = try? APIClient.shared.fetchTideChart()
+        async let outlookTask = try? APIClient.shared.fetchOutlook()
         if let ramps = await rampsTask {
             let fresh = BoardSnapshot(ramps: ramps, tide: await tideTask,
                                       tideChart: await chartTask,
-                                      weather: cached?.weather, fetchedAt: Date())
+                                      weather: cached?.weather,
+                                      outlook: await outlookTask ?? cached?.outlook,
+                                      fetchedAt: Date())
             SnapshotStore.save(fresh)
             return fresh
         }

@@ -75,15 +75,31 @@ struct SmallWidgetView: View {
                 Spacer(minLength: 0)
                 if let solo = entry.soloRamp {
                     soloBlock(solo, tokens: t, ground: ground)
+                    if let hint = entry.outlookCompactLine {
+                        Text(hint)
+                            .font(.archivo(11))
+                            .italic()
+                            .foregroundStyle(t.ink2)
+                            .lineLimit(2)
+                    }
                 } else {
                     Text("\(entry.openCount) open")
                         .font(.archivo(38, weight: .extraBold))
                         .monospacedDigit()
                         .foregroundStyle(t.ink)
-                    Text(exceptionLine)
-                        .font(.archivo(12, weight: .bold))
-                        .foregroundStyle(t.ink)
-                        .lineLimit(2)
+                    // With everything open, a coming closure is the news.
+                    if let hint = entry.outlookCompactLine, exceptions.isEmpty {
+                        Text(hint)
+                            .font(.archivo(12, weight: .bold))
+                            .italic()
+                            .foregroundStyle(t.ink)
+                            .lineLimit(2)
+                    } else {
+                        Text(exceptionLine)
+                            .font(.archivo(12, weight: .bold))
+                            .foregroundStyle(t.ink)
+                            .lineLimit(2)
+                    }
                 }
                 Text(SinceFormatter.clock(entry.date))
                     .font(.archivo(11))
@@ -108,8 +124,11 @@ struct SmallWidgetView: View {
         }
     }
 
+    private var exceptions: [Ramp] {
+        entry.ramps.filter { $0.category != .open }
+    }
+
     private var exceptionLine: String {
-        let exceptions = entry.ramps.filter { $0.category != .open }
         switch exceptions.count {
         case 0: return "All open"
         case 1: return "\(exceptions[0].shortDisplayName) \(statusWord(exceptions[0]).lowercased())"
@@ -167,7 +186,13 @@ struct MediumWidgetView: View {
                     .foregroundStyle(t.ink)
                     .lineLimit(3)
                     .minimumScaleFactor(0.8)
-                if let solo = entry.soloRamp, let since = solo.statusSince {
+                if let hint = entry.outlookHintLine {
+                    Text(hint)
+                        .font(.archivo(11))
+                        .italic()
+                        .foregroundStyle(t.ink2)
+                        .lineLimit(2)
+                } else if let solo = entry.soloRamp, let since = solo.statusSince {
                     Text("since \(SinceFormatter.string(from: since, now: entry.date))")
                         .font(.archivo(11))
                         .foregroundStyle(t.ink2)
@@ -260,12 +285,21 @@ struct LargeWidgetView: View {
                     Rectangle()
                         .fill(verdictColor(entry.verdict.category))
                         .frame(width: 8, height: 30)
-                    Text(entry.verdict.headline)
-                        .font(.archivo(23, weight: .extraBold))
-                        .tracking(23 * ArchivoTracking.headline)
-                        .foregroundStyle(t.ink)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.verdict.headline)
+                            .font(.archivo(23, weight: .extraBold))
+                            .tracking(23 * ArchivoTracking.headline)
+                            .foregroundStyle(t.ink)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                        if let hint = entry.outlookHintLine {
+                            Text(hint)
+                                .font(.archivo(11))
+                                .italic()
+                                .foregroundStyle(t.ink2)
+                                .lineLimit(1)
+                        }
+                    }
                 }
 
                 Rectangle().fill(t.rule).frame(height: 2)
@@ -421,8 +455,12 @@ struct AccessoryRectangularView: View {
     }
 
     private var secondLine: String {
-        exceptions.count == 1 ? "\(entry.openCount) others open"
-                              : "\(exceptions.count) not open"
+        // A quiet board with a predicted closure: the forecast is the news.
+        if exceptions.isEmpty, let hint = entry.outlookCompactLine {
+            return hint
+        }
+        return exceptions.count == 1 ? "\(entry.openCount) others open"
+                                     : "\(exceptions.count) not open"
     }
 
     private var tideLine: String? {

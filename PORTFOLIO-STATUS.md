@@ -50,7 +50,11 @@ last_verified: 2026-08-16 (Prediction feature SHIPPED to main: nightly-trained p
    board tiles/rows show the server's short hints, and the iOS detail status
    band prefers the server line over ClosureProjector, which stays as the
    old-server fallback; both verified in simulators against prod — needs a
-   re-flight to reach devices). REMAINING: TRMNL consumption, retire the
+   re-flight to reach devices). Widgets too: BoardSnapshot carries the outlook,
+   all families show a hint line ("Tide risk on 5 ramps · closure likely
+   ~10am"), verified on the simulator home screen. Live Activity explicitly
+   deferred (Don, 2026-08-16) — widgets cover prediction; pushes wait for the
+   APNs sender. REMAINING: TRMNL consumption, retire the
    duplicated JS/Swift reopen heuristics fully, wave-aware model once
    conditions data matures, APNs Live Activity sender.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent

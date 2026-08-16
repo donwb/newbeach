@@ -327,6 +327,7 @@ final class BeachViewModel {
             tide: tideInfo,
             tideChart: tideChart,
             weather: weather,
+            outlook: outlook,
             fetchedAt: fetchedAt
         ))
         WidgetCenter.shared.reloadAllTimelines()
