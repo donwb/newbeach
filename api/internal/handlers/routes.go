@@ -10,6 +10,7 @@ import (
 
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/predict"
 	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
 )
@@ -17,7 +18,7 @@ import (
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -62,6 +63,8 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/ramps/:id", HandleV2RampByID(pool))
 	v2.GET("/ramps/:id/history", HandleV2RampHistory(pool))
 	v2.GET("/ramps/:id/intervals", HandleV2RampIntervals(pool))
+	v2.GET("/ramps/:id/outlook", HandleV2RampOutlook(outlookSvc))
+	v2.GET("/outlook", HandleV2Outlook(outlookSvc))
 	v2.GET("/activity", HandleV2RecentActivity(pool))
 	v2.GET("/tides", HandleV2Tides(noaaClient))
 	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))
