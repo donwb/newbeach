@@ -16,6 +16,14 @@ export function createRouter({ routes, container }) {
     return { view: routes.board, params: {} };
   }
 
+  // Paths the SPA owns. Anything else (e.g. /county/) is a real server page,
+  // so the click handler must let the browser navigate to it normally.
+  function owns(pathname) {
+    return pathname === '/'
+      || /^\/ramp\/\d+\/?$/.test(pathname)
+      || /^\/(tide|water|wind)\/?$/.test(pathname);
+  }
+
   function render(pathname, { restoreScroll = null, moveFocus = true } = {}) {
     if (current?.view?.unmount) current.view.unmount();
     const { view, params } = match(pathname);
@@ -54,6 +62,7 @@ export function createRouter({ routes, container }) {
       if (!anchor || anchor.origin !== location.origin) return;
       if (anchor.hasAttribute('download') || anchor.target === '_blank') return;
       if (anchor.getAttribute('href').startsWith('#')) return;
+      if (!owns(anchor.pathname)) return;
       event.preventDefault();
       navigate(anchor.pathname);
     });

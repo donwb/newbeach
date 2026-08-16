@@ -111,7 +111,7 @@ header.masthead {
 }
 .hero .dek {
   margin-top: 26px;
-  max-width: 640px;
+  max-width: 920px;
   font-size: 21px;
   line-height: 1.45;
   color: var(--ink2);
@@ -151,7 +151,7 @@ section h2 {
   line-height: 1.1;
 }
 section .body {
-  max-width: 620px;
+  max-width: 920px;
   margin-top: 14px;
   font-size: 17px;
   color: var(--ink2);
