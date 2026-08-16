@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 
+	"github.com/donwb/beach/api/internal/camhealth"
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/models"
@@ -206,9 +207,23 @@ func HandleV2Config(pool *pgxpool.Pool) echo.HandlerFunc {
 	}
 }
 
+// cameraDTO is the public camera roster wire shape. Online and
+// StatusChangedAt are pointers so cameras with no observed health omit the
+// fields entirely — existing clients decode the pre-health JSON unchanged.
+type cameraDTO struct {
+	ID              string     `json:"id"`
+	Name            string     `json:"name"`
+	Location        string     `json:"location"`
+	StreamURL       string     `json:"stream_url"`
+	Online          *bool      `json:"online,omitempty"`
+	StatusChangedAt *time.Time `json:"status_changed_at,omitempty"`
+}
+
 // HandleV2Cameras returns the public camera roster for clients (tvOS cam
 // switcher). Exposes only what a player needs — the rotating HLS stream URL
-// per camera, ordered south-to-north — plus the default camera id.
+// per camera, ordered south-to-north — plus the default camera id. Cameras
+// with observed relay health additionally carry online/status_changed_at
+// (strictly additive; cameras never observed omit both fields).
 // GET /api/v2/cameras
 func HandleV2Cameras(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -220,20 +235,29 @@ func HandleV2Cameras(pool *pgxpool.Pool) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to list cameras"})
 		}
 
-		type cameraDTO struct {
-			ID        string `json:"id"`
-			Name      string `json:"name"`
-			Location  string `json:"location"`
-			StreamURL string `json:"stream_url"`
+		// Health is best-effort decoration: a failed read serves the roster
+		// without it rather than taking the cam switcher down with it.
+		health, err := camhealth.GetAll(ctx, pool)
+		if err != nil {
+			slog.Warn("failed to read camera health for roster", "err", err)
+			health = nil
 		}
+
 		out := make([]cameraDTO, 0, len(cameras))
 		for _, cam := range cameras {
-			out = append(out, cameraDTO{
+			dto := cameraDTO{
 				ID:        cam.ID,
 				Name:      cam.Name,
 				Location:  cam.Location,
 				StreamURL: cam.HLSURL,
-			})
+			}
+			if h, ok := health[cam.ID]; ok {
+				online := h.Online
+				changedAt := h.ChangedAt
+				dto.Online = &online
+				dto.StatusChangedAt = &changedAt
+			}
+			out = append(out, dto)
 		}
 
 		defaultID := ""

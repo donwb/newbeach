@@ -73,7 +73,14 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/health", HandleV2Health(pool, ing))
 	v2.GET("/config", HandleV2Config(pool))
 	v2.GET("/cameras", HandleV2Cameras(pool))
+	v2.GET("/cameras/health", HandleV2CamerasHealth(pool))
 	v2.POST("/video/refresh", HandleV2VideoRefresh(videoRefresher))
+
+	// Relay hooks (hook key protected) — MediaMTX on the cam relay droplet
+	// reports stream up/down transitions here (see docs/CAM-RELAY.md).
+	hooks := v2.Group("/hooks")
+	hooks.Use(hookKeyAuth())
+	hooks.POST("/camera-health", HandleCameraHealthHook(pool))
 
 	// --- Admin endpoints (API key protected) ---
 

@@ -77,3 +77,15 @@ services:
       - key: CONDITIONS_ENABLED
         scope: RUN_AND_BUILD_TIME
         value: "true"
+      - key: CAM_HEALTH_INTERVAL
+        scope: RUN_AND_BUILD_TIME
+        value: "60"
+      - key: CAM_HEALTH_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
+      # Shared secret the relay droplet presents on POST /api/v2/hooks/camera-health.
+      # Set the real value in the platform UI (matches the key baked into
+      # /opt/mediamtx/health-hook.sh on the droplet). Placeholder here.
+      - key: CAM_HOOK_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: "CHANGE_ME_IN_PLATFORM_UI"

@@ -448,6 +448,16 @@ func UpdateCameraHLS(ctx context.Context, pool *pgxpool.Pool, id, hlsURL string)
 	return nil
 }
 
+// CameraExists reports whether a camera id is in the roster.
+func CameraExists(ctx context.Context, pool *pgxpool.Pool, id string) (bool, error) {
+	var exists bool
+	err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM cameras WHERE id = $1)`, id).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking camera %s exists: %w", id, err)
+	}
+	return exists, nil
+}
+
 // --- Settings ---
 
 // GetSetting returns the value for a single settings key.

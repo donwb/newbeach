@@ -67,6 +67,32 @@ Key properties:
 | MediaMTX config (incl. publisher password) | droplet `/opt/mediamtx/mediamtx.yml`, service `mediamtx` |
 | TLS / hostname | droplet `/etc/caddy/Caddyfile`, service `caddy`; serves `cams.donwb.com` + `68-183-149-152.sslip.io` fallback |
 | Camera roster | `cameras` table; `GET /api/v2/cameras` (public), admin endpoints under `/api/v2/admin/cameras` |
+| Health hook script | droplet `/opt/mediamtx/health-hook.sh` (holds the `CAM_HOOK_KEY` value) |
+
+## Health monitoring
+
+Two reconciling sources feed `camera_health` / `camera_health_history` in the
+API's Postgres (added 2026-08-16, after a day of silent flapping):
+
+- **Hooks (instant):** MediaMTX `runOnReady`/`runOnNotReady` on the droplet run
+  `/opt/mediamtx/health-hook.sh`, which POSTs `{id, online}` to
+  `POST /api/v2/hooks/camera-health` with the `X-Hook-Key` header. The key is
+  the `CAM_HOOK_KEY` env var on the API (placeholder in `.do/app.yaml`, real
+  value set in the platform UI) and is baked into the droplet script — a
+  deliberately scoped secret that can only report camera health. Non-roster
+  paths (ad-hoc test publishes) are acknowledged and ignored.
+- **Poller (reconcile):** the API probes each roster camera's `stream_url`
+  every `CAM_HEALTH_INTERVAL` (60s) — with `hlsAlwaysRemux` the manifest is
+  200 exactly when a publisher is connected — establishing state at boot and
+  repairing anything a missed hook left stale. Works even with no hook key
+  configured; hooks only tighten transition latency to ~instant.
+
+Consumers: `GET /api/v2/cameras` now carries `online` + `status_changed_at`
+per camera (omitted until first observation — strictly additive), and
+`GET /api/v2/cameras/health` returns full current state plus recent flap
+history (`?limit=N`). History rows are written only on actual flips, so the
+history table doubles as an uptime/flap log for exactly the kind of "is the
+restreamer flaky?" question that prompted all this.
 
 ## Runbook
 

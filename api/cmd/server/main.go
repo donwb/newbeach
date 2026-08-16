@@ -17,6 +17,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	beachapi "github.com/donwb/beach/api"
+	"github.com/donwb/beach/api/internal/camhealth"
 	"github.com/donwb/beach/api/internal/conditions"
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/handlers"
@@ -91,6 +92,14 @@ func main() {
 		}
 	}
 	conditionsEnabled := os.Getenv("CONDITIONS_ENABLED") != "false"
+
+	camHealthInterval := 60 * time.Second
+	if chi := os.Getenv("CAM_HEALTH_INTERVAL"); chi != "" {
+		if secs, err := strconv.Atoi(chi); err == nil && secs > 0 {
+			camHealthInterval = time.Duration(secs) * time.Second
+		}
+	}
+	camHealthEnabled := os.Getenv("CAM_HEALTH_ENABLED") != "false"
 
 	// Connect to the database.
 	pool, err := database.Connect(databaseURL)
@@ -185,6 +194,15 @@ func main() {
 	if conditionsEnabled {
 		condLogger := conditions.New(pool, noaaClient, weatherClient, ndbcStation, conditionsInterval)
 		go condLogger.Start(ctx)
+	}
+
+	// Camera health poller — reconciles camera_health against the relay by
+	// probing each stream URL. MediaMTX hooks provide instant transitions;
+	// this establishes state at boot and repairs anything a missed hook left
+	// stale.
+	if camHealthEnabled {
+		camPoller := camhealth.NewPoller(pool, camHealthInterval)
+		go camPoller.Start(ctx)
 	}
 
 	// Nightly prediction trainer — learns per-ramp tide-closure thresholds

@@ -194,6 +194,9 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `NDBC_STATION` | Conditions logger | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
 | `CONDITIONS_INTERVAL` | Conditions logger | Minutes between beach_conditions snapshots (default: 30) |
 | `CONDITIONS_ENABLED` | Conditions logger | Set `false` to disable snapshotting |
+| `CAM_HEALTH_INTERVAL` | Cam health poller | Seconds between relay stream probes (default: 60) |
+| `CAM_HEALTH_ENABLED` | Cam health poller | Set `false` to disable the reconcile poller |
+| `CAM_HOOK_KEY` | API | Shared secret for relay hooks (`/api/v2/hooks/*`); matches the key in the droplet's `/opt/mediamtx/health-hook.sh` |
 | `WEB_DIR` | API | Path to web static files (auto-detected in dev, `/web` in Docker) |
 | `ADMIN_API_KEY` | API | Secret key for admin endpoints (`/api/v2/admin/*`) |
 
