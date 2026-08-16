@@ -10,6 +10,9 @@ struct RampGridView: View {
     /// When set, the board is stale: tiles mute to 42% and their since lines
     /// become "as of {time}".
     let staleAsOf: String?
+    /// Server prediction hints keyed by access id ("closure likely ~1:30pm").
+    /// A hint replaces the tile's since line, exactly like the web board.
+    var outlookHints: [String: String] = [:]
 
     private var columns: [GridItem] {
         if ramps.count <= 5 {
@@ -22,7 +25,8 @@ struct RampGridView: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 16) {
             ForEach(Array(ramps.enumerated()), id: \.element.id) { index, ramp in
-                TVRampTile(ramp: ramp, index: index + 1, staleAsOf: staleAsOf)
+                TVRampTile(ramp: ramp, index: index + 1, staleAsOf: staleAsOf,
+                           outlookHint: outlookHints[ramp.accessID])
             }
         }
     }
@@ -33,6 +37,7 @@ struct TVRampTile: View {
     let ramp: Ramp
     let index: Int
     let staleAsOf: String?
+    var outlookHint: String? = nil
 
     @Environment(\.skyPalette) private var sky
 
@@ -65,9 +70,21 @@ struct TVRampTile: View {
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(textColor)
                 }
-                Text(sinceText)
-                    .font(.system(size: 22))
-                    .foregroundStyle(textColor.opacity(0.7))
+                // A prediction hint takes the since line's slot — the tile
+                // stays the same height and the forecast (italic, to read as
+                // a forecast) outranks "since 8:01 AM" for planning.
+                if let outlookHint, staleAsOf == nil {
+                    Text(outlookHint)
+                        .font(.system(size: 22))
+                        .italic()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(textColor.opacity(0.75))
+                } else {
+                    Text(sinceText)
+                        .font(.system(size: 22))
+                        .foregroundStyle(textColor.opacity(0.7))
+                }
             }
         }
         .padding(.vertical, 16)
@@ -165,6 +182,21 @@ struct TVRampTile: View {
         Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
         RampGridView(ramps: PreviewFixtures.openRamps, staleAsOf: "2:09 PM")
             .padding(.horizontal, 60)
+    }
+}
+
+#Preview("Outlook hints") {
+    ZStack {
+        Color(red: 0.05, green: 0.5, blue: 0.66).ignoresSafeArea()
+        RampGridView(
+            ramps: PreviewFixtures.openRamps,
+            staleAsOf: nil,
+            outlookHints: [
+                "NSB-1": "closure likely ~1:30pm",
+                "NSB-3": "could close ~2:30pm",
+            ]
+        )
+        .padding(.horizontal, 60)
     }
 }
 #endif

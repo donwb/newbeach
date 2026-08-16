@@ -124,6 +124,12 @@ public actor APIClient {
         try await get("/api/v2/health")
     }
 
+    /// Fetch the server-side open/close prediction (schedule + per-ramp tide
+    /// outlook). All prose is server-built; render it verbatim.
+    public func fetchOutlook() async throws -> Outlook {
+        try await get("/api/v2/outlook")
+    }
+
     /// Ask the server to re-resolve the YouTube live HLS URL. Called by the
     /// tvOS player when playback fails (the cached URL has rotated). The
     /// server coalesces concurrent calls and applies a cooldown.

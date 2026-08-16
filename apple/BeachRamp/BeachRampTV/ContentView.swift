@@ -194,7 +194,8 @@ struct ContentView: View {
 
             RampGridView(
                 ramps: viewModel.displayedRamps,
-                staleAsOf: staleAsOf
+                staleAsOf: staleAsOf,
+                outlookHints: outlookHints
             )
             .padding(.top, 26)
 
@@ -251,6 +252,15 @@ struct ContentView: View {
     private var staleAsOf: String? {
         guard viewModel.isStale, let last = viewModel.lastSuccessfulRefresh else { return nil }
         return SinceFormatter.string(from: last)
+    }
+
+    /// Server prediction hints for the visible ramps, keyed by access id.
+    private var outlookHints: [String: String] {
+        viewModel.displayedRamps.reduce(into: [:]) { hints, ramp in
+            if let hint = viewModel.outlookHint(for: ramp) {
+                hints[ramp.accessID] = hint
+            }
+        }
     }
 
     private var camOffline: Bool {

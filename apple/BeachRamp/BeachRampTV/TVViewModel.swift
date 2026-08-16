@@ -80,6 +80,9 @@ final class TVViewModel {
     var config: AppConfig?
     /// Recent ramp status changes, newest first (unfiltered server feed).
     var activity: [ActivityEntry] = []
+    /// Server-side open/close prediction. Non-critical: nil (old server or
+    /// failed fetch) simply hides the tile hints.
+    var outlook: Outlook?
 
     // MARK: - Freshness
 
@@ -233,6 +236,7 @@ final class TVViewModel {
             group.addTask { await self.loadConfig() }
             group.addTask { await self.loadCameras() }
             group.addTask { await self.loadActivity() }
+            group.addTask { await self.loadOutlook() }
         }
 
         // Default city on first load
@@ -309,6 +313,22 @@ final class TVViewModel {
     private func loadActivity() async {
         do { activity = try await api.fetchActivity(limit: 100) }
         catch { /* non-critical — the overlay just shows what it has */ }
+    }
+
+    @MainActor
+    private func loadOutlook() async {
+        do { outlook = try await api.fetchOutlook() }
+        catch { /* non-critical — tiles just drop their prediction hints */ }
+    }
+
+    /// The compact prediction hint for a tile ("closure likely ~1:30pm"), or
+    /// nil when there's nothing worth saying. Mirrors the web board: only for
+    /// drivable ramps the server flags, and always the server's own string.
+    func outlookHint(for ramp: Ramp) -> String? {
+        guard ramp.category != .closed,
+              let entry = outlook?.ramp(for: ramp.accessID),
+              entry.flagsRisk else { return nil }
+        return entry.short
     }
 
     @MainActor

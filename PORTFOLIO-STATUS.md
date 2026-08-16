@@ -45,9 +45,12 @@ last_verified: 2026-08-16 (Prediction feature SHIPPED to main: nightly-trained p
    for the surf feature that mid-range accuracy needs. NOTE: a curated
    ramp_metadata.closure_height_ft OVERRIDES the learned threshold — with learned
    values now live, curation (1a) is optional and can even fight the model; clear
-   or verify curated heights against learned ones. REMAINING: Apple + TRMNL
-   consumption of /outlook, retire the duplicated JS/Swift reopen heuristics,
-   wave-aware model once conditions data matures, APNs Live Activity sender.
+   or verify curated heights against learned ones. tvOS consumes /outlook as of
+   2026-08-16 (shared BeachStatus Outlook model + fetchOutlook; tile hints show
+   the server's short strings, verified in the simulator against prod — needs a
+   re-flight to reach devices). REMAINING: iOS + TRMNL consumption, retire the
+   duplicated JS/Swift reopen heuristics, wave-aware model once conditions data
+   matures, APNs Live Activity sender.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
