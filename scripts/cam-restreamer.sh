@@ -22,8 +22,10 @@
 # offline (e.g. Ormond Beach) retries with exponential backoff, RETRY_SECS
 # doubling up to RETRY_MAX — resolving a dead video every 2 minutes is exactly
 # the anonymous-automation pattern that got the home IP bot-checked. A pipeline
-# that was streaming and dropped (the common YouTube session cut) still
-# recovers at a flat RETRY_SECS.
+# that was streaming and dropped (the common YouTube session cut) recovers at
+# a flat RETRY_STREAMED — kept short because every second of it is viewer-
+# visible downtime, and a host that just streamed for minutes is not the
+# bot-check-drawing pattern that dead-video polling is.
 #
 # Requires: yt-dlp, ffmpeg, jq, curl   (brew install yt-dlp ffmpeg jq)
 #
@@ -53,7 +55,8 @@ YTDLP_COOKIES="${YTDLP_COOKIES:-}"
 LOG_DIR="${LOG_DIR:-$HOME/Library/Logs/cam-restreamer}"
 
 STALL_SECS=60        # restart a pipeline if ffmpeg makes no progress this long
-RETRY_SECS=120       # retry after a stream that was up and dropped
+RETRY_STREAMED=30    # retry after a stream that was up and dropped
+RETRY_SECS=120       # base delay for resolve-failure backoff + roster retries
 RETRY_MAX=1800       # backoff cap for streams that fail to resolve at all
 ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
 
@@ -125,7 +128,7 @@ stream_one() {
         # gets a flat fast retry; never-streamed (offline broadcast or
         # bot-checked resolve) doubles its delay up to RETRY_MAX.
         if [ -f "$prog" ]; then
-            delay="$RETRY_SECS"
+            delay="$RETRY_STREAMED"
         else
             delay=$(( delay * 2 ))
             [ "$delay" -gt "$RETRY_MAX" ] && delay="$RETRY_MAX"

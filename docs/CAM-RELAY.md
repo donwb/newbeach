@@ -47,7 +47,7 @@ Key properties:
   yt-dlp 2026.07.04).
 - **Self-healing.** Each camera runs in its own supervised loop: a watchdog
   restarts the pipeline if ffmpeg's progress file goes stale (>60s), YouTube's
-  ~6h URL expiry just triggers a restart (2 min retry after any session that
+  ~6h URL expiry just triggers a restart (30s retry after any session that
   streamed), and the whole roster re-fetches + restarts every 6h (picks up
   roster changes). launchd restarts the supervisor itself if it dies. A camera
   that fails to *resolve* at all (offline broadcast, bot-checked) backs off
@@ -109,6 +109,8 @@ accepts any authenticated path.
 **Rebuild the droplet from scratch:** create droplet → install caddy + ufw (apt)
 and MediaMTX (GitHub release tarball → `/opt/mediamtx/`) → restore
 `/opt/mediamtx/mediamtx.yml` (rtmp on, hls on 127.0.0.1:8888, variant mpegts,
+`hlsAlwaysRemux: yes` — without it the first viewer after an idle spell waits
+5–9s for the muxer to spin up, which reads as "offline" to impatient players —
 publisher auth), systemd unit, `/etc/caddy/Caddyfile` → ufw allow 22/80/443/1935.
 New publisher password goes in the Studio's `~/.cam-restreamer.env`.
 
