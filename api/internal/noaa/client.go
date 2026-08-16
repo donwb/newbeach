@@ -35,6 +35,7 @@ type Client struct {
 	httpClient     *http.Client
 	tideStationID  string
 	tempStationIDs []string
+	predCache      predictionCache
 }
 
 // NewClient creates a NOAA API client.
@@ -73,44 +74,60 @@ type noaaTempResponse struct {
 // FetchTidePredictions retrieves today's high/low tide predictions from the
 // configured NOAA tide station.
 func (c *Client) FetchTidePredictions(ctx context.Context) ([]models.TidePrediction, error) {
-	now := time.Now().In(eastern)
-	today := now.Format("20060102")
+	today := time.Now().In(eastern)
+	return c.FetchTidePredictionsRange(ctx, today, today)
+}
 
+// FetchTidePredictionsRange retrieves high/low tide predictions covering the
+// Eastern calendar days from begin through end (inclusive). Results are
+// served from the prediction cache when fresh.
+func (c *Client) FetchTidePredictionsRange(ctx context.Context, begin, end time.Time) ([]models.TidePrediction, error) {
+	noaaResp, err := c.fetchPredictionsCached(ctx, "hilo", begin, end)
+	if err != nil {
+		return nil, fmt.Errorf("fetching tide predictions from NOAA: %w", err)
+	}
+	return predictionsFromResponse(noaaResp), nil
+}
+
+// fetchPredictions performs the raw predictions request for the given
+// interval ("hilo" or "h") and Eastern date range.
+func (c *Client) fetchPredictions(ctx context.Context, interval string, begin, end time.Time) (noaaPredictionResponse, error) {
 	params := url.Values{
 		"product":    {"predictions"},
 		"datum":      {"MLLW"},
 		"time_zone":  {"lst_ldt"},
 		"units":      {"english"},
 		"format":     {"json"},
-		"interval":   {"hilo"},
+		"interval":   {interval},
 		"station":    {c.tideStationID},
-		"begin_date": {today},
-		"end_date":   {today},
+		"begin_date": {begin.In(eastern).Format("20060102")},
+		"end_date":   {end.In(eastern).Format("20060102")},
 	}
 
 	reqURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
 
+	var noaaResp noaaPredictionResponse
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating tide prediction request: %w", err)
+		return noaaResp, fmt.Errorf("creating predictions request: %w", err)
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching tide predictions from NOAA: %w", err)
+		return noaaResp, fmt.Errorf("requesting predictions: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("NOAA tide predictions returned status %d", resp.StatusCode)
+		return noaaResp, fmt.Errorf("NOAA predictions returned status %d", resp.StatusCode)
 	}
 
-	var noaaResp noaaPredictionResponse
 	if err := json.NewDecoder(resp.Body).Decode(&noaaResp); err != nil {
-		return nil, fmt.Errorf("decoding tide predictions: %w", err)
+		return noaaResp, fmt.Errorf("decoding predictions: %w", err)
 	}
 
-	return predictionsFromResponse(noaaResp), nil
+	return noaaResp, nil
 }
 
 // predictionsFromResponse maps the raw NOAA payload to domain predictions,
@@ -140,41 +157,17 @@ func predictionsFromResponse(noaaResp noaaPredictionResponse) []models.TidePredi
 // the configured NOAA tide station. These provide the granular data points
 // needed to render a smooth tide chart curve.
 func (c *Client) FetchHourlyPredictions(ctx context.Context) ([]models.TidePredictionPoint, error) {
-	now := time.Now().In(eastern)
-	today := now.Format("20060102")
+	today := time.Now().In(eastern)
+	return c.FetchHourlyPredictionsRange(ctx, today, today)
+}
 
-	params := url.Values{
-		"product":    {"predictions"},
-		"datum":      {"MLLW"},
-		"time_zone":  {"lst_ldt"},
-		"units":      {"english"},
-		"format":     {"json"},
-		"interval":   {"h"},
-		"station":    {c.tideStationID},
-		"begin_date": {today},
-		"end_date":   {today},
-	}
-
-	reqURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating hourly prediction request: %w", err)
-	}
-
-	resp, err := c.httpClient.Do(req)
+// FetchHourlyPredictionsRange retrieves hourly tide height predictions
+// covering the Eastern calendar days from begin through end (inclusive).
+// Results are served from the prediction cache when fresh.
+func (c *Client) FetchHourlyPredictionsRange(ctx context.Context, begin, end time.Time) ([]models.TidePredictionPoint, error) {
+	noaaResp, err := c.fetchPredictionsCached(ctx, "h", begin, end)
 	if err != nil {
 		return nil, fmt.Errorf("fetching hourly predictions from NOAA: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("NOAA hourly predictions returned status %d", resp.StatusCode)
-	}
-
-	var noaaResp noaaPredictionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&noaaResp); err != nil {
-		return nil, fmt.Errorf("decoding hourly predictions: %w", err)
 	}
 
 	points := make([]models.TidePredictionPoint, 0, len(noaaResp.Predictions))
