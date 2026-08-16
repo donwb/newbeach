@@ -155,13 +155,13 @@ func buildSchedule(now time.Time) (string, Schedule) {
 // effectiveParams resolves a ramp's parameters: learned when available,
 // county default otherwise, with an operator-set closure height from
 // ramp_metadata overriding the learned threshold.
-func effectiveParams(ramp models.RampStatusWithSince, params Params) (RampParams, bool) {
-	rp, learned := params.Ramps[ramp.AccessID]
+func effectiveParams(accessID string, closureHeightFt *float64, params Params) (RampParams, bool) {
+	rp, learned := params.Ramps[accessID]
 	if !learned {
 		rp = params.Default
 	}
-	if ramp.ClosureHeightFt != nil && *ramp.ClosureHeightFt > 0 {
-		rp.ThresholdFt = *ramp.ClosureHeightFt
+	if closureHeightFt != nil && *closureHeightFt > 0 {
+		rp.ThresholdFt = *closureHeightFt
 		// The operator's threshold is authoritative — don't let the learned
 		// base rate second-guess it via the mid-range rule.
 		rp.CloseRate = 0
@@ -361,7 +361,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 	}
 
 	for _, ramp := range ramps {
-		rp, learned := effectiveParams(ramp, params)
+		rp, learned := effectiveParams(ramp.AccessID, ramp.ClosureHeightFt, params)
 		ro := RampOutlook{
 			AccessID:   ramp.AccessID,
 			RampID:     ramp.ID,

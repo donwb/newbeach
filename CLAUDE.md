@@ -105,7 +105,11 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - `api/internal/predict` learns per-ramp tide-closure behavior from `ramp_status_history`
   joined to NOAA high-tide peaks: a nightly trainer (03:30 ET, plus boot when stale)
   persists per-ramp threshold/lead/lag/close-rate to the `prediction_params` settings key
-  (inspect: `GET /api/v2/admin/prediction/params`). `GET /api/v2/outlook` (bulk, 10-min
+  (inspect: `GET /api/v2/admin/prediction/params`).
+  `GET /api/v2/admin/prediction/scorecard?date=YYYY-MM-DD` (default yesterday ET) grades a
+  past day: each daytime peak replayed through the risk rules vs. actual closures —
+  outcomes hit/covered/miss/false_alarm/hedged/quiet, plus window-hit accuracy. Caveat:
+  it grades with current params, which already include the graded day's history. `GET /api/v2/outlook` (bulk, 10-min
   TTL cache) and `/api/v2/ramps/:id/outlook` serve risk + **server-built casual copy** —
   clients must render the strings verbatim, never compute their own predictions. Copy
   rules: approximate clock times only — rounded to the half hour and hedged with

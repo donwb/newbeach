@@ -92,6 +92,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	admin.POST("/cameras/:id/stream", HandleAdminUpdateCameraStream(pool))
 	admin.PUT("/ramps/:id/metadata", HandleAdminUpsertRampMetadata(pool))
 	admin.GET("/prediction/params", HandleAdminPredictionParams(pool))
+	admin.GET("/prediction/scorecard", HandleAdminPredictionScorecard(pool, noaaClient))
 }
 
 // apiKeyAuth returns middleware that validates the X-Api-Key header
