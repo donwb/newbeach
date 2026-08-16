@@ -473,11 +473,10 @@ func UpsertSetting(ctx context.Context, pool *pgxpool.Pool, key, value string) e
 			value = EXCLUDED.value,
 			updated_at = NOW()
 	`
-	tag, err := pool.Exec(ctx, query, key, value)
+	_, err := pool.Exec(ctx, query, key, value)
 	if err != nil {
 		return fmt.Errorf("upserting setting %s: %w", key, err)
 	}
-	fmt.Printf("[DEBUG] UpsertSetting key=%q value=%q rows_affected=%d\n", key, value, tag.RowsAffected())
 	return nil
 }
 
@@ -501,6 +500,35 @@ func GetAllSettings(ctx context.Context, pool *pgxpool.Pool) (map[string]string,
 		return nil, fmt.Errorf("iterating settings rows: %w", err)
 	}
 	return settings, nil
+}
+
+// GetAllRampHistoryEvents returns every ramp's full status-change history,
+// keyed by access_id, each slice ordered oldest-first. Used by the nightly
+// prediction trainer; the full table is ~tens of thousands of rows.
+func GetAllRampHistoryEvents(ctx context.Context, pool *pgxpool.Pool) (map[string][]models.StatusEvent, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT access_id, access_status, recorded_at
+		FROM ramp_status_history
+		ORDER BY access_id, recorded_at
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("querying full ramp history: %w", err)
+	}
+	defer rows.Close()
+
+	events := make(map[string][]models.StatusEvent)
+	for rows.Next() {
+		var accessID string
+		var e models.StatusEvent
+		if err := rows.Scan(&accessID, &e.AccessStatus, &e.RecordedAt); err != nil {
+			return nil, fmt.Errorf("scanning full history row: %w", err)
+		}
+		events[accessID] = append(events[accessID], e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating full history rows: %w", err)
+	}
+	return events, nil
 }
 
 // --- Beach conditions ---

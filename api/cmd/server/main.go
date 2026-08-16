@@ -22,6 +22,7 @@ import (
 	"github.com/donwb/beach/api/internal/handlers"
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/predict"
 	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
 )
@@ -184,6 +185,11 @@ func main() {
 		condLogger := conditions.New(pool, noaaClient, weatherClient, ndbcStation, conditionsInterval)
 		go condLogger.Start(ctx)
 	}
+
+	// Nightly prediction trainer — learns per-ramp tide-closure thresholds
+	// from ramp_status_history and persists them to the settings table.
+	trainer := predict.NewTrainer(pool, noaaClient)
+	go trainer.Start(ctx)
 
 	// Start the HTTP server in a goroutine.
 	go func() {
