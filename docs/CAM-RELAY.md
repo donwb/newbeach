@@ -82,6 +82,16 @@ Key properties:
 **Restart everything on the Studio:**
 `launchctl kickstart -k gui/$(id -u)/com.donwb.cam-restreamer`
 
+**Cams flapping every few minutes, relay log full of `closed: … i/o timeout`**
+(seen 2026-08-16): the home→droplet RTMP leg stalls for 10–30s at a time and
+MediaMTX kills any publisher silent longer than `readTimeout`. Diagnosis that
+pinned it: ffmpeg's FLV output hit "End of file" *right after* a healthy
+progress line (the relay hung up on a stream that was still pumping), and a
+synthetic 10-min publish from the same home IP ran clean the moment
+`readTimeout` went from the 10s default to 30s while the YouTube download
+leg tested clean throughout. If it recurs, look at upstream/uplink health
+(the stalls are the disease; the timeout only decides whether they're fatal).
+
 **"Sign in to confirm you're not a bot" in a camera's log** (seen Aug 2026):
 YouTube bot-checks anonymous yt-dlp resolves from the home IP — it's IP-level
 (every player client is walled). Running pipelines keep working, but any camera
@@ -111,6 +121,8 @@ and MediaMTX (GitHub release tarball → `/opt/mediamtx/`) → restore
 `/opt/mediamtx/mediamtx.yml` (rtmp on, hls on 127.0.0.1:8888, variant mpegts,
 `hlsAlwaysRemux: yes` — without it the first viewer after an idle spell waits
 5–9s for the muxer to spin up, which reads as "offline" to impatient players —
+`readTimeout`/`writeTimeout: 30s` so publishers ride out brief network stalls
+instead of dying at the 10s default,
 publisher auth), systemd unit, `/etc/caddy/Caddyfile` → ufw allow 22/80/443/1935.
 New publisher password goes in the Studio's `~/.cam-restreamer.env`.
 
