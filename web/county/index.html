@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>For Volusia County — Beach Ramp Status</title>
+  <meta name="description" content="What Beach Ramp Status is, who built it, and what it offers Volusia County: a free real-time ramp board for the web, iPhone, iPad, and Apple TV.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="wordmark">
+      <strong>Beach Ramp Status</strong>
+      <span class="label dim">Volusia County, FL</span>
+    </div>
+    <a class="label" href="/">&larr; Back to the live board</a>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow label accent">For Volusia County &middot; Beach Safety &amp; Coastal Division</div>
+    <h1><span class="tick"></span><span>The beach,<br>answered.</span></h1>
+    <p class="dek">
+      <strong>Can I get on the beach right now?</strong> That's the question this
+      project answers — on the web, on iPhone and iPad, and on the living-room TV.
+      Built in New Smyrna Beach by a county resident, running live today, free,
+      with no ads and no accounts. This page is the tour.
+    </p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="label dim">Coverage</span><b>5 cities</b><span>every driving ramp</span></div>
+    <div class="stat"><span class="label dim">Freshness</span><b>60 seconds</b><span>between status checks</span></div>
+    <div class="stat"><span class="label dim">History</span><b>Since 2024</b><span>thousands of changes logged</span></div>
+    <div class="stat"><span class="label dim">Cost</span><b>Free</b><span>no ads, no sign-in</span></div>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="num">01</span><h2>A live board that reads like a headline</h2></div>
+    <div class="body">
+      <p>
+        Open <strong>beach.donwb.com</strong> on any phone or desktop — nothing to
+        install — and the answer is the biggest thing on the screen. Ramp-by-ramp
+        status comes straight from the county's own data, refreshed every minute,
+        with tide, water temperature, wind, and the NWS forecast alongside.
+      </p>
+    </div>
+    <div class="shot"><img src="web-desktop.jpg" alt="Desktop web board showing four ramps closed for high tide and one open, with tide, water, and wind readings"></div>
+    <p class="caption">The live site during a real high-tide event — August 16, 2026, 12:17&nbsp;PM.</p>
+  </section>
+
+  <section>
+    <div class="split">
+      <div>
+        <div class="sec-head"><span class="num">02</span><h2>It looks ahead, not just down</h2></div>
+        <div class="body">
+          <p>
+            Every card carries a hint about what's next: <em>"often back open around
+            1:30pm"</em> on a closed ramp, <em>"could close ~12:30pm"</em> on an open
+            one. Those lines come from a model that learns each ramp's actual
+            closure behavior from two seasons of logged history joined to NOAA tide
+            data — retrained nightly.
+          </p>
+          <p>
+            The wording is deliberately honest: <strong>"often," "could,"
+            "around."</strong> It never promises a minute-precise time, because the
+            beach doesn't work that way. What it does is save a family the drive to
+            a ramp that won't reopen for two hours.
+          </p>
+        </div>
+      </div>
+      <div class="shot"><img src="web-mobile.jpg" alt="Mobile web board with per-ramp reopen and closure estimates under each status"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">03</span><h2>Native on iPhone and iPad</h2></div>
+    <div class="body">
+      <p>
+        Purpose-built SwiftUI apps, not wrapped web pages: a sun-following board
+        that shifts with the actual sky over Volusia, ramp detail screens, live
+        cams, and <strong>home-screen and Lock Screen widgets</strong> so the answer
+        is visible before the phone is even unlocked.
+      </p>
+    </div>
+    <div class="pair">
+      <div class="shot"><img src="ios-board.jpg" alt="iPhone app showing the New Smyrna Beach board with all five ramps open"></div>
+      <div class="shot"><img src="ipad-board.jpg" alt="iPad app showing the full board with tide chart, forecast, and live cam"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">04</span><h2>The whole coastline on the big screen</h2></div>
+    <div class="body">
+      <p>
+        The Apple TV app puts the county's live beach cams next to ramp status,
+        tide, and daylight — a glanceable picture of the entire coast from
+        Ormond-by-the-Sea to New Smyrna. It's built for the living room, and it
+        would be just as at home on a lobby or visitor-center screen.
+      </p>
+    </div>
+    <div class="shot"><img src="tvos-home.jpg" alt="Apple TV app showing New Smyrna Beach ramps open, tide and weather, daylight timeline, and a live beach cam"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">05</span><h2>The offer, plainly</h2></div>
+    <div class="cards">
+      <div class="card flag">
+        <span class="label">What the county gets</span>
+        <h3>All of it, free, as it stands</h3>
+        <p>
+          The website and apps are yours to point residents at — link them, embed
+          them, or let's talk about making them official. They complement the
+          county's Volusia Beaches app by covering platforms it doesn't reach:
+          Apple TV, iPad, and widgets. No cost, no catch; I built this because I
+          live here and wanted it to exist.
+        </p>
+      </div>
+      <div class="card">
+        <span class="label accent">What would make it bulletproof</span>
+        <h3>Two small things</h3>
+        <ol>
+          <li>
+            <strong>A sanctioned feed for ramp status.</strong> The app reads the
+            county's public GIS server today. Registered, blessed access — a token,
+            a heads-up contact — means it never breaks for residents when
+            infrastructure changes.
+          </li>
+          <li>
+            <strong>Direct access to the beach cam streams.</strong> The cameras are
+            maintained by WeatherBug; YouTube is just the delivery layer, and it has
+            become hostile to third-party viewing. A direct feed URL would make the
+            cams rock-solid on every platform.
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="who">
+      <b>Don Browning</b> <span>&middot; New Smyrna Beach, FL</span><br>
+      <a href="mailto:don.browning@gmail.com">don.browning@gmail.com</a>
+    </div>
+    <a href="/">See the live board &rarr;</a>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+/* County page — static sibling of the live board, same modernist token sheet:
+   Archivo, 2px rules, zero radius, status red reserved for accents. */
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/archivo-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/archivo-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/archivo-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/archivo-800.woff2') format('woff2');
+}
+
+:root {
+  --ink: #201e1d;
+  --ink2: rgba(32, 30, 29, 0.62);
+  --rule: rgba(32, 30, 29, 0.85);
+  --rule2: rgba(32, 30, 29, 0.22);
+  --accent: #ec3013;
+  --ground: #e2ebed;
+  --pad: 40px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Archivo', system-ui, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--pad) 80px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.label.accent { color: var(--accent); }
+.label.dim { color: var(--ink2); }
+
+/* ---------- Masthead ---------- */
+
+header.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 0;
+  border-bottom: 2px solid var(--rule);
+}
+.masthead .wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.masthead .wordmark strong {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.masthead a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.masthead a:hover { text-decoration: underline; }
+
+/* ---------- Hero ---------- */
+
+.hero { padding: 56px 0 44px; border-bottom: 2px solid var(--rule); }
+.hero .eyebrow { margin-bottom: 22px; }
+.hero h1 {
+  display: flex;
+  gap: 20px;
+  font-size: clamp(42px, 7vw, 76px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+}
+.hero h1 .tick {
+  flex: none;
+  width: 18px;
+  background: var(--accent);
+  margin-top: 0.09em;
+  height: 0.86em;
+}
+.hero .dek {
+  margin-top: 26px;
+  max-width: 640px;
+  font-size: 21px;
+  line-height: 1.45;
+  color: var(--ink2);
+}
+.hero .dek strong { color: var(--ink); font-weight: 700; }
+
+/* ---------- Stat strip ---------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  padding: 26px 0;
+  border-bottom: 2px solid var(--rule);
+}
+.stat .label { border-top: 2px solid var(--rule); padding-top: 10px; }
+.stat b {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
+.stat span { display: block; font-size: 13px; color: var(--ink2); margin-top: 2px; }
+
+/* ---------- Sections ---------- */
+
+section { padding: 56px 0; border-bottom: 2px solid var(--rule2); }
+section:last-of-type { border-bottom: none; }
+
+.sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 10px; }
+.sec-head .num { font-size: 13px; font-weight: 700; color: var(--ink2); }
+section h2 {
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+section .body {
+  max-width: 620px;
+  margin-top: 14px;
+  font-size: 17px;
+  color: var(--ink2);
+}
+section .body strong { color: var(--ink); font-weight: 700; }
+section .body p + p { margin-top: 12px; }
+section .body em { font-style: italic; }
+
+.shot {
+  margin-top: 32px;
+  border: 2px solid var(--rule);
+  background: #fff;
+}
+.shot img { display: block; width: 100%; height: auto; }
+.caption {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+/* split layout: text beside a phone-ish shot */
+.split { display: grid; grid-template-columns: 1.25fr 1fr; gap: 48px; align-items: start; }
+.split .shot { margin-top: 32px; }
+
+/* pair of shots */
+.pair { display: grid; grid-template-columns: 1fr 1.55fr; gap: 28px; align-items: start; margin-top: 32px; }
+.pair .shot { margin-top: 0; }
+
+/* ---------- Offer & ask cards ---------- */
+
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 34px; }
+.card { border: 2px solid var(--rule); background: #fff; padding: 26px 28px 30px; }
+.card.flag { background: var(--accent); border-color: var(--accent); color: #fff; }
+.card h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.015em; margin: 12px 0 10px; }
+.card p, .card li { font-size: 15.5px; }
+.card p { color: var(--ink2); }
+.card.flag p { color: rgba(255, 255, 255, 0.88); }
+.card .label { display: block; }
+.card.flag .label { color: rgba(255, 255, 255, 0.85); }
+.card ol { margin: 14px 0 0 18px; }
+.card li + li { margin-top: 10px; }
+.card li strong { font-weight: 700; }
+
+/* ---------- Footer ---------- */
+
+footer {
+  border-top: 2px solid var(--rule);
+  padding: 30px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+footer .who b { font-weight: 800; }
+footer .who span { color: var(--ink2); }
+footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+footer a:hover { text-decoration: underline; }
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 800px) {
+  :root { --pad: 18px; }
+  .stats { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .split, .pair, .cards { grid-template-columns: 1fr; }
+  .hero { padding: 40px 0 34px; }
+  section { padding: 42px 0; }
+}

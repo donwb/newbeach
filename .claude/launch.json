@@ -15,6 +15,12 @@
       "autoPort": true
     },
     {
+      "name": "web-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8767", "--directory", "web"],
+      "port": 8767
+    },
+    {
       "name": "trmnl-preview",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8765", "--directory", "trmnl"],

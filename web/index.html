@@ -15,6 +15,32 @@
 </head>
 <body>
   <div id="ground" aria-hidden="true"></div>
+  <a id="county-note" href="/county/">
+    <span class="cn-q">Here from Volusia County?</span>
+    <span class="cn-a">What this is &amp; who built it &rarr;</span>
+  </a>
+  <style>
+    /* County-visitor note: static strip above the app, tokens from styles.css. */
+    #county-note {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 10px;
+      padding: 9px var(--pad, 40px);
+      font-family: var(--font, system-ui, sans-serif);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--ink, #201e1d);
+      border-bottom: 2px solid var(--rule, #201e1d);
+    }
+    #county-note .cn-a { color: var(--accent, #ec3013); }
+    #county-note:hover .cn-a { text-decoration: underline; }
+  </style>
   <main id="view"></main>
   <noscript>
     <p style="padding: 40px; font-family: system-ui, sans-serif;">
