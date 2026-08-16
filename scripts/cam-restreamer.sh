@@ -124,10 +124,13 @@ stream_one() {
         done
         wait "$pid" 2>/dev/null
 
-        # $prog only exists once ffmpeg moved data, so: streamed-then-dropped
-        # gets a flat fast retry; never-streamed (offline broadcast or
-        # bot-checked resolve) doubles its delay up to RETRY_MAX.
-        if [ -f "$prog" ]; then
+        # ffmpeg CREATES $prog at startup but only WRITES to it once data
+        # moves, so the streamed-vs-never-streamed test must be -s (non-empty),
+        # not -f: with -f a dead camera looks "streamed" on every attempt and
+        # the exponential backoff never engages (this is how ormond-beach spent
+        # days re-resolving every 2 minutes). Streamed-then-dropped gets a flat
+        # fast retry; never-streamed doubles its delay up to RETRY_MAX.
+        if [ -s "$prog" ]; then
             delay="$RETRY_STREAMED"
         else
             delay=$(( delay * 2 ))
