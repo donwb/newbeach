@@ -20,10 +20,25 @@ const (
 	// still be attributed to it.
 	peakMatchWindow = 4 * time.Hour
 
-	// Threshold candidates are scanned over this clamped range (ft MLLW).
+	// Threshold candidates are scanned over this clamped range (ft MLLW,
+	// station-8721147 scale) when the peak distribution can't provide one.
 	minThresholdFt = 1.5
 	maxThresholdFt = 4.5
 )
+
+// peakQuantile returns the q-quantile of the peak heights (nearest rank).
+func peakQuantile(peaks []models.TidePrediction, q float64) float64 {
+	if len(peaks) == 0 {
+		return 0
+	}
+	heights := make([]float64, 0, len(peaks))
+	for _, p := range peaks {
+		heights = append(heights, *p.Height)
+	}
+	sort.Float64s(heights)
+	idx := int(q * float64(len(heights)-1))
+	return heights[idx]
+}
 
 // closureEvent is one contiguous CLOSED FOR HIGH TIDE episode.
 type closureEvent struct {
@@ -110,10 +125,17 @@ func bestThreshold(peaks []models.TidePrediction, labels []bool) (threshold, acc
 		return DefaultParams.ThresholdFt, 0
 	}
 
+	// Scan candidates across the observed peak range so the search adapts
+	// to the configured station's height scale.
+	lo, hi := minThresholdFt, maxThresholdFt
+	if len(peaks) > 0 {
+		lo, hi = peakQuantile(peaks, 0), peakQuantile(peaks, 1)
+	}
+
 	best := DefaultParams.ThresholdFt
 	bestAcc := -1.0
 	total := float64(len(labels))
-	for th := minThresholdFt; th <= maxThresholdFt+1e-9; th += 0.05 {
+	for th := lo; th <= hi+1e-9; th += 0.05 {
 		var correct int
 		for i, p := range peaks {
 			if (*p.Height >= th) == labels[i] {
@@ -182,6 +204,14 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 		ComputedAt: now.UTC(),
 		Default:    DefaultParams,
 		Ramps:      make(map[string]RampParams),
+	}
+
+	// County-wide hard cutoffs from the peak distribution (see Params).
+	// P05/P97 reproduce the original 2.0/3.5 ft analysis on station 8721147
+	// and rescale automatically on any other configured station.
+	if len(peaks) >= 40 {
+		params.HardOpenFt = math.Round(peakQuantile(peaks, 0.05)*100) / 100
+		params.HardCloseFt = math.Round(peakQuantile(peaks, 0.97)*100) / 100
 	}
 
 	var historyStart time.Time

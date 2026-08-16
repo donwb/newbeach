@@ -49,15 +49,39 @@ func TestWindowLabel(t *testing.T) {
 
 func TestRiskForPeak(t *testing.T) {
 	rp := RampParams{ThresholdFt: 2.6, CloseRate: 0.2}
-	assert.Equal(t, RiskLikely, riskForPeak(3.6, rp), "hard close rule")
-	assert.Equal(t, RiskNone, riskForPeak(1.9, rp), "hard open rule")
-	assert.Equal(t, RiskLikely, riskForPeak(2.95, rp), "above threshold band")
-	assert.Equal(t, RiskPossible, riskForPeak(2.5, rp), "inside band")
-	assert.Equal(t, RiskNone, riskForPeak(2.25, rp), "below band, low close rate")
+	assert.Equal(t, RiskLikely, riskForPeak(3.6, rp, hardOpenFt, hardCloseFt), "hard close rule")
+	assert.Equal(t, RiskNone, riskForPeak(1.9, rp, hardOpenFt, hardCloseFt), "hard open rule")
+	assert.Equal(t, RiskLikely, riskForPeak(2.95, rp, hardOpenFt, hardCloseFt), "above threshold band")
+	assert.Equal(t, RiskPossible, riskForPeak(2.5, rp, hardOpenFt, hardCloseFt), "inside band")
+	assert.Equal(t, RiskNone, riskForPeak(2.25, rp, hardOpenFt, hardCloseFt), "below band, low close rate")
 
 	flipper := RampParams{ThresholdFt: 3.85, CloseRate: 0.42}
-	assert.Equal(t, RiskPossible, riskForPeak(2.6, flipper), "mid-range flipper stays possible")
-	assert.Equal(t, RiskNone, riskForPeak(2.2, flipper), "below action zone")
+	assert.Equal(t, RiskPossible, riskForPeak(2.6, flipper, hardOpenFt, hardCloseFt), "mid-range flipper stays possible")
+	assert.Equal(t, RiskNone, riskForPeak(2.2, flipper, hardOpenFt, hardCloseFt), "below action zone")
+}
+
+// A station with lower tidal amplitude (e.g. prod's 8721164 vs the analysis
+// station 8721147) must not have the fallback hard rules squash learned
+// signals — the learned percentile cutoffs take over.
+func TestRiskForPeakScalesToStation(t *testing.T) {
+	rp := RampParams{ThresholdFt: 1.6, CloseRate: 0.6} // learned on a low-amplitude station
+	// With learned cutoffs for that station, a 1.95 peak is decisively above
+	// the threshold band → likely, even though the 8721147-scale fallback
+	// rule (≤2.0 → none) would have wrongly silenced it.
+	assert.Equal(t, RiskLikely, riskForPeak(1.95, rp, 1.2, 2.8))
+	assert.Equal(t, RiskNone, riskForPeak(1.1, rp, 1.2, 2.8), "below learned hard-open")
+	assert.Equal(t, RiskLikely, riskForPeak(2.9, rp, 1.2, 2.8), "above learned hard-close")
+}
+
+func TestTrainLearnsHardCutoffs(t *testing.T) {
+	// 50 peaks spread 1.0..3.45 → P05 ≈ 1.1, P97 ≈ 3.35.
+	var peaks []models.TidePrediction
+	for i := 0; i < 50; i++ {
+		peaks = append(peaks, h(et(1+i%28, 13, 0).Add(time.Duration(i)*time.Minute), 1.0+float64(i)*0.05))
+	}
+	params := Train(map[string][]models.StatusEvent{}, peaks, et(28, 0, 0))
+	assert.InDelta(t, 1.1, params.HardOpenFt, 0.11)
+	assert.InDelta(t, 3.35, params.HardCloseFt, 0.11)
 }
 
 // A turtle-season midafternoon: 3.4 ft peak at 3:30 PM ET.

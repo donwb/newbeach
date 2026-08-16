@@ -170,11 +170,13 @@ func confidence(rp RampParams, learned bool) string {
 }
 
 // riskForPeak classifies one predicted peak against a ramp's parameters.
-func riskForPeak(peakFt float64, rp RampParams) string {
+// hardOpen/hardClose are the county-wide cutoffs (learned percentiles of the
+// peak distribution, so they track the configured station's height scale).
+func riskForPeak(peakFt float64, rp RampParams, hardOpen, hardClose float64) string {
 	switch {
-	case peakFt >= hardCloseFt:
+	case peakFt >= hardClose:
 		return RiskLikely
-	case peakFt <= hardOpenFt:
+	case peakFt <= hardOpen:
 		return RiskNone
 	case peakFt >= rp.ThresholdFt+hysteresisFt:
 		return RiskLikely
@@ -371,7 +373,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		var riskPeak *models.TidePrediction
 		var laterPeakRisky bool
 		for i := range dayPeaks {
-			r := riskForPeak(*dayPeaks[i].Height, rp)
+			r := riskForPeak(*dayPeaks[i].Height, rp, params.hardOpen(), params.hardClose())
 			if riskRank(r) > riskRank(risk) {
 				risk = r
 				riskPeak = &dayPeaks[i]

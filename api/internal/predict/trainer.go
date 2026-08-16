@@ -90,6 +90,11 @@ func (t *Trainer) paramsStale(ctx context.Context) bool {
 		t.logger.Warn("stored params unreadable, retraining", "err", err)
 		return true
 	}
+	// A version bump means the blob schema (or its semantics) changed —
+	// retrain on boot rather than serving a stale shape for up to 48h.
+	if p.Version != paramsVersion {
+		return true
+	}
 	return time.Since(p.ComputedAt) > staleAfter
 }
 

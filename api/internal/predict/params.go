@@ -9,8 +9,9 @@ import "time"
 // SettingsKey is the settings-table key holding the learned parameters blob.
 const SettingsKey = "prediction_params"
 
-// paramsVersion identifies the blob schema for forward compatibility.
-const paramsVersion = 1
+// paramsVersion identifies the blob schema. A stored blob with a different
+// version is treated as stale, so bumping this forces a retrain on deploy.
+const paramsVersion = 2
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {
@@ -37,6 +38,31 @@ type Params struct {
 	HistoryStart string                `json:"history_start"`
 	Default      RampParams            `json:"default"`
 	Ramps        map[string]RampParams `json:"ramps"`
+
+	// HardOpenFt / HardCloseFt are county-wide cutoffs learned as low/high
+	// percentiles of the observed daytime peak distribution: below the
+	// first, nothing closes; at or above the second, everything does. They
+	// are derived from data (not constants) so they stay correct whatever
+	// NOAA station — and height scale — the deployment is configured with.
+	HardOpenFt  float64 `json:"hard_open_ft,omitempty"`
+	HardCloseFt float64 `json:"hard_close_ft,omitempty"`
+}
+
+// hardOpen/hardClose return the learned cutoffs, falling back to the
+// station-8721147-scale constants from the original analysis when the blob
+// predates them (or no training has run).
+func (p Params) hardOpen() float64 {
+	if p.HardOpenFt > 0 {
+		return p.HardOpenFt
+	}
+	return hardOpenFt
+}
+
+func (p Params) hardClose() float64 {
+	if p.HardCloseFt > 0 {
+		return p.HardCloseFt
+	}
+	return hardCloseFt
 }
 
 // DefaultParams are the county-wide fallbacks used before any training run
