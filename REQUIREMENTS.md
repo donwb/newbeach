@@ -924,7 +924,7 @@ These items should be included in the initial rebuild:
 These items are not in scope for the initial rebuild but the architecture should not preclude them:
 
 1. **Multi-region support** — Could this expand beyond Volusia County to other beach areas?
-2. **Surf conditions** — Integration with surf forecast APIs (Surfline, Magic Seaweed)?
+2. **Surf conditions** — Integration with surf forecast APIs (Surfline, Magic Seaweed)? *Update 2026-08-16: free NDBC buoy wave data (station 41113) is now snapshotted to `beach_conditions` every 30 min by the API's conditions logger, as future training input for the tide-closure prediction feature (`/api/v2/outlook`, see CLAUDE.md "Prediction"). No paid surf API planned.*
 3. **User accounts** — Would persistent favorites across devices (via iCloud or API) be valuable?
 4. **Android app** — Is there interest in an Android version, or is Apple-only sufficient?
 5. **Notification backend** — APNs infrastructure for push notifications (requires server-side work)

@@ -189,7 +189,7 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `LOG_LEVEL` | API, Ingester | Logging verbosity (default: info) |
 | `PORT` | API | HTTP listen port (default: 8080) |
 | `WEBCAM_URL` | API | Configurable webcam image URL |
-| `NOAA_TIDE_STATION` | API | NOAA tide station ID (default: 8721147) |
+| `NOAA_TIDE_STATION` | API | NOAA tide station ID (code default: 8721147; **prod runs 8721164** per `.do/app.yaml` — a different height scale, which is why prediction cutoffs are learned, not hard-coded) |
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
 | `NDBC_STATION` | Conditions logger | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
 | `CONDITIONS_INTERVAL` | Conditions logger | Minutes between beach_conditions snapshots (default: 30) |

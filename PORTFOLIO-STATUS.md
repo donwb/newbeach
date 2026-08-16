@@ -107,11 +107,15 @@ last_verified: 2026-08-16 (Prediction feature SHIPPED to main: nightly-trained p
   as: beach_conditions snapshot logger (30-min tide/wind/NDBC-buoy-wave rows,
   migration 009), Go solar port, NOAA range fetches with 6h TTL cache, nightly
   trainer persisting learned params to settings, outlook engine with casual
-  server-built copy (risk levels with hysteresis, hard 2.0/3.5 ft rules, coarse
-  half-hour windows, falling-limb reopen estimates), /api/v2/outlook endpoints,
-  and web integration (detail band prefers server outlook; board cards show italic
-  "tide closure likely" hints; sw v8). Five-month backtest in CI pins recall and
-  calibration floors. All free data sources — zero incremental hosting cost.
+  server-built copy (risk hysteresis, county-wide hard cutoffs learned as P05/P97
+  of the peak distribution — prod's tide station 8721164 has a different height
+  scale than the analysis station 8721147, so nothing is hard-coded — half-hour
+  windows, falling-limb reopen estimates), /api/v2/outlook endpoints, and web
+  integration (detail band prefers server outlook; board cards show italic hints;
+  sw v9). Copy carries approximate clock times by Don's call ("closure likely
+  ~1:30pm · often back open by 5pm") — hedged, half-hour rounded, never
+  minute-precise. Five-month backtest in CI pins recall and calibration floors.
+  All free data sources — zero incremental hosting cost.
 - 2026-08-15: iOS/iPadOS redesign from design-review/design_handoff_ios/ —
   the sixteen-phase SkyPalette moved into BeachStatus (tvOS unchanged) with the
   day/night TokenSet, StatusField colors, GroundModel (dayness/veil/scrim, 30s tick),

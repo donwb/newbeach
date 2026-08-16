@@ -68,3 +68,12 @@ services:
       - key: NOAA_TEMP_STATIONS
         scope: RUN_AND_BUILD_TIME
         value: "8721604,8720218"
+      - key: NDBC_STATION
+        scope: RUN_AND_BUILD_TIME
+        value: "41113"
+      - key: CONDITIONS_INTERVAL
+        scope: RUN_AND_BUILD_TIME
+        value: "30"
+      - key: CONDITIONS_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
