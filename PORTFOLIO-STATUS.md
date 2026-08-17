@@ -92,7 +92,9 @@ last_verified: 2026-08-17 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first su
    deferred (Don, 2026-08-16) — widgets cover prediction; pushes wait for the
    APNs sender. REMAINING: TRMNL consumption, retire the
    duplicated JS/Swift reopen heuristics fully, wave-aware model once
-   conditions data matures, APNs Live Activity sender.
+   conditions data matures, APNs Live Activity sender, and a re-flight so the
+   apps render the 2026-08-17 `scheduled` end-of-day hint (they degrade to the
+   since line until then; the overnight copy already works on build 18).
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
@@ -149,7 +151,24 @@ last_verified: 2026-08-17 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first su
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
-- 2026-08-16 (latest): Beach open/close prediction ("outlook") — validated against
+- 2026-08-17 (latest): Outlook became a real forecast line. Three shipped changes:
+  (a) it decays — a predicted close time the clock has passed is never quoted back at a
+  ramp that is still open, peaks stay in play through their learned lag, then soften and
+  clear (0b9d091); (b) every string names its cause and the line always looks forward, so
+  every hour of the clock has a next-action answer — overnight predicts the morning open,
+  a live tide risk tells the tide story, otherwise the driving day's close (64751ec);
+  (c) tide closures are always "possible", never "likely". New `reason` field
+  (high_tide / end_of_day / overnight) and new `scheduled` risk value — none/possible/
+  likely grade the TIDE ONLY and the backtest + scorecard read them that way, which is
+  how the first cut got caught. **Finding: the county clears the beach ~6:30pm, not the
+  posted turtle-season 7pm** (13 straight days, 6:17–6:47, median 6:32), so the trainer
+  now learns the median offset into `day_close_offset_min` and the schedule applies it
+  (clamped ±90 min); prod learned −30 on deploy and serves "closes for the day ~6:30pm".
+  paramsVersion 2→3 forces the retrain. Web is live; the Apple builds in review show the
+  overnight copy (it reuses closed_now) but need a re-flight for the `scheduled`
+  end-of-day hint. Residual: a ramp closed mid-day for turtles/capacity has no
+  predictable reopen, so that one card still shows a since time.
+- 2026-08-16: Beach open/close prediction ("outlook") — validated against
   13,399 history transitions joined to NOAA tides (per-ramp thresholds 2.1–3.85 ft
   MLLW, closures ~90–120 min before peak, reopens ~60–100 min after), then shipped
   as: beach_conditions snapshot logger (30-min tide/wind/NDBC-buoy-wave rows,
