@@ -54,29 +54,46 @@ func scheduleCopy(sched Schedule) string {
 }
 
 // riskText builds the headline, detail, and short board hint for a ramp
-// that is not currently closed.
-func riskText(risk string, peak *models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
-	switch risk {
-	case RiskLikely:
-		closeAt := roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
-		reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
+// that is not currently closed. The copy is time-aware: a learned close
+// time the clock has already passed is never quoted back — the ramp is
+// visibly still open, so the copy moves to "any time now", and once the
+// peak itself is behind us it moves to the falling-tide voice.
+func riskText(now time.Time, risk string, peak *models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
+	if riskRank(risk) == 0 || peak == nil {
+		return "No tide trouble expected", scheduleCopy(sched), ""
+	}
+
+	closeAt := roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
+	reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
+	reopenCopy := "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
+	if sched.ClosesAt != nil && reopenAt.After(*sched.ClosesAt) {
+		reopenCopy = "Might not reopen before the day's " + sched.ClosesLabel + " close"
+	}
+
+	switch {
+	case !now.Before(peak.Time):
+		// The high is behind us and the ramp is still open — it has beaten
+		// this tide so far, but the county does close late sometimes.
+		headline = "Could still close while the tide drops"
+		detail = "Past the high now · the odds fall with the water"
+		short = "could still close"
+	case risk == RiskLikely && !now.Before(closeAt):
+		// The learned close time came and went with the ramp still open.
+		// Say that, rather than repeating a time already in the past.
+		headline = "High-tide closure likely any time now"
+		detail = reopenCopy
+		short = "closure likely soon"
+	case risk == RiskLikely:
 		headline = "High-tide closure likely around " + fmtClock(closeAt)
-		if sched.ClosesAt != nil && reopenAt.After(*sched.ClosesAt) {
-			detail = "Might not reopen before the day's " + sched.ClosesLabel + " close"
-		} else {
-			detail = "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
-		}
+		detail = reopenCopy
 		short = "closure likely ~" + fmtClock(closeAt)
-	case RiskPossible:
+	default:
 		peakAt := roundNearest30(peak.Time)
 		headline = "Could close around the " + fmtClock(peakAt) + " high tide"
 		detail = "Depends on surf and sand · could just as well stay open"
 		short = "could close ~" + fmtClock(peakAt)
-	default:
-		headline = "No tide trouble expected"
-		detail = scheduleCopy(sched)
 	}
-	if laterPeakRisky && risk != RiskNone {
+	if laterPeakRisky {
 		detail += " · the next high tide could bring another round"
 	}
 	return headline, detail, short

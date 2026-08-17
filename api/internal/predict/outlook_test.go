@@ -221,3 +221,54 @@ func TestReopenEstimateFallsBackToLowTide(t *testing.T) {
 	reopen := reopenEstimate(preds, closedAt, et(16, 10, 30))
 	assert.Equal(t, et(16, 16, 30), reopen.In(eastern), "next low 15:00 + 90m")
 }
+
+// The clock moving past a predicted close time must change the story: the
+// ramp is visibly still open, so the outlook stops quoting a time in the
+// past, softens as the peak goes by, and finally clears.
+func TestBuildOutlookDecaysAsClockPasses(t *testing.T) {
+	_, preds := afternoonScenario()
+	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}
+
+	// Peak 15:30, NS-141 lead 120 / lag 80 → close ~13:30, lag ends 16:50.
+
+	// Before the learned close time: the clock time is a fair thing to quote.
+	ahead := BuildOutlook(et(16, 12, 0), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskLikely, ahead.Risk)
+	assert.Equal(t, "High-tide closure likely around 1:30pm", ahead.Headline)
+	assert.Equal(t, "closure likely ~1:30pm", ahead.Short)
+
+	// Past it, still open: same risk, but no stale clock time in the copy.
+	due := BuildOutlook(et(16, 14, 0), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskLikely, due.Risk, "a late closure is still a closure")
+	assert.Equal(t, "High-tide closure likely any time now", due.Headline)
+	assert.Equal(t, "Often back open by 5pm once the tide drops", due.Detail)
+	assert.Equal(t, "closure likely soon", due.Short)
+
+	// Past the peak: the ramp beat this tide, so likely softens to possible.
+	falling := BuildOutlook(et(16, 16, 0), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskPossible, falling.Risk)
+	assert.Equal(t, "Could still close while the tide drops", falling.Headline)
+	assert.Equal(t, "could still close", falling.Short)
+
+	// Past the learned lag: the peak stops counting.
+	done := BuildOutlook(et(16, 17, 0), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskNone, done.Risk)
+	assert.Equal(t, "No tide trouble expected", done.Headline)
+	assert.Empty(t, done.Short)
+	assert.Nil(t, done.Window)
+}
+
+// A "possible" peak still ahead keeps quoting the high-tide time — that
+// time has not passed, so there is nothing stale about it.
+func TestBuildOutlookPossibleKeepsPeakTimeUntilItPasses(t *testing.T) {
+	_, preds := afternoonScenario()
+	ramps := []models.RampStatusWithSince{ramp(2, "NS-106", "OPEN")}
+
+	ahead := BuildOutlook(et(16, 14, 30), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskPossible, ahead.Risk)
+	assert.Equal(t, "Could close around the 3:30pm high tide", ahead.Headline)
+
+	// NS-106 lag is 53 min → the 15:30 peak stops counting at 16:23.
+	past := BuildOutlook(et(16, 16, 30), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskNone, past.Risk)
+}

@@ -38,6 +38,13 @@ const (
 	// so the window reads as the rough stretch it is.
 	windowPadding = 45 * time.Minute
 
+	// peakLookback is how far behind now a high-tide peak stays in play. A
+	// peak the clock has passed is not automatically harmless — the county
+	// closes late as often as early — so peaks stay in the running until
+	// their learned lag runs out (see decayRisk). Comfortably past the
+	// largest lag we have ever learned.
+	peakLookback = 3 * time.Hour
+
 	// reopenAfterLow is the fallback reopen estimate: the county tends to
 	// reopen roughly this long after the low tide that follows a closure.
 	reopenAfterLow = 90 * time.Minute
@@ -212,6 +219,25 @@ func riskRank(r string) int {
 	}
 }
 
+// decayRisk softens a peak's risk as the clock overtakes it, for a ramp
+// that is still open. The learned lead/lag are medians, so passing the
+// predicted close time means the closure is late, not cancelled — but once
+// the peak itself is behind us the water is falling and the ramp has
+// already beaten this tide, so "likely" drops to "possible". Past the
+// learned lag the peak stops counting altogether.
+func decayRisk(risk string, now time.Time, peak models.TidePrediction, rp RampParams) string {
+	if riskRank(risk) == 0 {
+		return risk
+	}
+	if !now.Before(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute)) {
+		return RiskNone
+	}
+	if risk == RiskLikely && !now.Before(peak.Time) {
+		return RiskPossible
+	}
+	return risk
+}
+
 // roundDown30/roundUp30 snap times to half-hour boundaries in Eastern time.
 func roundDown30(t time.Time) time.Time {
 	et := t.In(eastern)
@@ -347,11 +373,11 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		}
 	}
 
-	// Peaks that could disturb the current driving day: highs between now
-	// and the day's close.
+	// Peaks that could disturb the current driving day: highs from the
+	// recent past (still inside their closure lag) through the day's close.
 	var dayPeaks []models.TidePrediction
 	for _, p := range preds {
-		if p.Type != "H" || p.Height == nil || !p.Time.After(now) {
+		if p.Type != "H" || p.Height == nil || p.Time.Before(now.Add(-peakLookback)) {
 			continue
 		}
 		if sched.ClosesAt != nil && p.Time.After(sched.ClosesAt.Add(time.Hour)) {
@@ -380,16 +406,23 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			continue
 		}
 
-		// Riskiest remaining peak wins; note a second troublesome peak.
+		// Riskiest remaining peak wins; note a later troublesome peak.
 		risk := RiskNone
 		var riskPeak *models.TidePrediction
-		var laterPeakRisky bool
+		riskIdx := -1
+		risks := make([]string, len(dayPeaks))
 		for i := range dayPeaks {
 			r := riskForPeak(*dayPeaks[i].Height, rp, params.hardOpen(), params.hardClose())
-			if riskRank(r) > riskRank(risk) {
-				risk = r
+			risks[i] = decayRisk(r, now, dayPeaks[i], rp)
+			if riskRank(risks[i]) > riskRank(risk) {
+				risk = risks[i]
 				riskPeak = &dayPeaks[i]
-			} else if riskPeak != nil && i > 0 && riskRank(r) >= 1 {
+				riskIdx = i
+			}
+		}
+		var laterPeakRisky bool
+		for i := riskIdx + 1; i > 0 && i < len(dayPeaks); i++ {
+			if riskRank(risks[i]) >= 1 {
 				laterPeakRisky = true
 			}
 		}
@@ -398,7 +431,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		if riskPeak != nil && riskRank(risk) >= 1 {
 			ro.Window = closureWindow(*riskPeak, rp, sched)
 		}
-		ro.Headline, ro.Detail, ro.Short = riskText(risk, riskPeak, rp, sched, laterPeakRisky)
+		ro.Headline, ro.Detail, ro.Short = riskText(now, risk, riskPeak, rp, sched, laterPeakRisky)
 		out.Ramps = append(out.Ramps, ro)
 	}
 
