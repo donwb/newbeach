@@ -8,13 +8,28 @@ import (
 	"github.com/donwb/beach/api/internal/solar"
 )
 
-// Risk levels, mildest first. closed_now is factual: the ramp is tide-closed
-// right now, so the outlook carries a reopen estimate instead of a window.
+// Risk levels, mildest first. none/possible/likely grade one thing only —
+// the chance the tide closes this ramp — and the backtest and scorecard
+// read them that way, so nothing else may borrow them. The other two are
+// factual states, not gambles: closed_now means the ramp is shut right now
+// (tide, or overnight) and carries a reopen estimate; scheduled means the
+// only closure coming is the driving day ending, which is not in doubt.
 const (
 	RiskNone      = "none"
 	RiskPossible  = "possible"
 	RiskLikely    = "likely"
+	RiskScheduled = "scheduled"
 	RiskClosedNow = "closed_now"
+)
+
+// Closure reasons. Every predicted closure has one of exactly two causes:
+// the tide pushing the county off the beach, or the driving day simply
+// ending. The strings are informational — the copy already names the
+// reason — but they let a client branch (icon, color) without parsing prose.
+const (
+	ReasonHighTide  = "high_tide"
+	ReasonEndOfDay  = "end_of_day"
+	ReasonOvernight = "overnight"
 )
 
 // Hard county-wide rules from the historical analysis: peaks at or above
@@ -70,6 +85,7 @@ type RampOutlook struct {
 	AccessID   string  `json:"access_id"`
 	RampID     int64   `json:"ramp_id"`
 	Risk       string  `json:"risk"`
+	Reason     string  `json:"reason,omitempty"`
 	Confidence string  `json:"confidence"`
 	Headline   string  `json:"headline"`
 	Detail     string  `json:"detail,omitempty"`
@@ -109,54 +125,57 @@ func inTurtleSeason(t time.Time) bool {
 	return m >= time.May && m <= time.October
 }
 
-// buildSchedule derives the day's driving-hours frame.
-func buildSchedule(now time.Time) (string, Schedule) {
-	et := now.In(eastern)
+// postedHours returns the county's nominal driving hours for the Eastern
+// calendar day containing t: fixed 8am–7pm in turtle season, sunrise to
+// fifteen minutes before sunset otherwise.
+func postedHours(t time.Time) (opens, closes time.Time, ok bool) {
+	et := t.In(eastern)
+	if inTurtleSeason(t) {
+		opens = time.Date(et.Year(), et.Month(), et.Day(), 8, 0, 0, 0, eastern)
+		closes = time.Date(et.Year(), et.Month(), et.Day(), 19, 0, 0, 0, eastern)
+		return opens, closes, true
+	}
+	sunrise, sunset := solar.Events(t, solar.NSB)
+	if sunrise == nil || sunset == nil {
+		return time.Time{}, time.Time{}, false
+	}
+	return *sunrise, sunset.Add(-15 * time.Minute), true
+}
 
+// buildSchedule derives the day's driving-hours frame, rolling to tomorrow
+// once today's driving is done. The close carries the learned offset: the
+// posted time is policy, but this is a prediction, so it should say when the
+// county actually clears the beach.
+func buildSchedule(now time.Time, params Params) (string, Schedule) {
+	season := "standard"
 	if inTurtleSeason(now) {
-		opens := time.Date(et.Year(), et.Month(), et.Day(), 8, 0, 0, 0, eastern)
-		closes := time.Date(et.Year(), et.Month(), et.Day(), 19, 0, 0, 0, eastern)
-		if et.After(closes) {
-			opens = opens.AddDate(0, 0, 1)
-			closes = closes.AddDate(0, 0, 1)
-		}
-		return "turtle", Schedule{
-			OpensLabel:  "around 8am, once ramps are cleared for turtles",
-			ClosesLabel: "7pm",
-			OpensAt:     &opens,
-			ClosesAt:    &closes,
-		}
+		season = "turtle"
 	}
 
-	sunrise, sunset := solar.Events(now, solar.NSB)
-	sched := Schedule{
-		OpensLabel:  "around sunrise",
-		ClosesLabel: "around sunset",
+	opens, closes, ok := postedHours(now)
+	if !ok {
+		return season, Schedule{OpensLabel: "around sunrise", ClosesLabel: "around sunset"}
 	}
-	if sunrise != nil && sunset != nil {
-		closes := sunset.Add(-15 * time.Minute)
-		if now.After(closes) {
-			nextRise, nextSet := solar.Events(now.AddDate(0, 0, 1), solar.NSB)
-			if nextRise != nil && nextSet != nil {
-				c := nextSet.Add(-15 * time.Minute)
-				sched.OpensAt = nextRise
-				sched.ClosesAt = &c
-			}
-		} else {
-			sched.OpensAt = sunrise
-			sched.ClosesAt = &closes
+	closes = closes.Add(params.dayCloseOffset())
+	if !now.Before(closes) {
+		nextOpens, nextCloses, nextOK := postedHours(now.AddDate(0, 0, 1))
+		if !nextOK {
+			return season, Schedule{OpensLabel: "around sunrise", ClosesLabel: "around sunset"}
 		}
+		opens, closes = nextOpens, nextCloses.Add(params.dayCloseOffset())
 	}
-	// Carry approximate clock times in the labels ("sunset (~5:30pm)") —
-	// same half-hour-rounded voice as the tide copy. The close time already
-	// includes the county's close-a-bit-early buffer.
-	if sched.OpensAt != nil {
-		sched.OpensLabel = "sunrise (~" + fmtClock(roundNearest30(*sched.OpensAt)) + ")"
+
+	sched := Schedule{OpensAt: &opens, ClosesAt: &closes}
+	// Labels carry approximate clock times in the same half-hour-rounded
+	// voice as the rest of the copy.
+	if season == "turtle" {
+		sched.OpensLabel = "around " + fmtClock(roundNearest30(opens)) + ", once ramps are cleared for turtles"
+		sched.ClosesLabel = fmtClock(roundNearest30(closes))
+	} else {
+		sched.OpensLabel = "sunrise (~" + fmtClock(roundNearest30(opens)) + ")"
+		sched.ClosesLabel = "sunset (~" + fmtClock(roundNearest30(closes)) + ")"
 	}
-	if sched.ClosesAt != nil {
-		sched.ClosesLabel = "sunset (~" + fmtClock(roundNearest30(*sched.ClosesAt)) + ")"
-	}
-	return "standard", sched
+	return season, sched
 }
 
 // effectiveParams resolves a ramp's parameters: learned when available,
@@ -354,7 +373,7 @@ func reopenEstimate(preds []models.TidePrediction, closedAt, now time.Time) time
 // covering at least [now-1d, now+2d]; ramps come from
 // GetRampsWithStatusSince. Pure — no I/O, fully testable.
 func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction) Outlook {
-	season, sched := buildSchedule(now)
+	season, sched := buildSchedule(now, params)
 
 	out := Outlook{
 		GeneratedAt: now.UTC(),
@@ -394,8 +413,19 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			Confidence: confidence(rp, learned),
 		}
 
+		// Outside driving hours nothing is open and no tide matters — the
+		// next thing that happens is the morning open, so say that.
+		if sched.OpensAt != nil && now.Before(*sched.OpensAt) {
+			ro.Risk = RiskClosedNow
+			ro.Reason = ReasonOvernight
+			ro.Headline, ro.Detail, ro.Reopen = beforeOpenText(season, sched)
+			out.Ramps = append(out.Ramps, ro)
+			continue
+		}
+
 		if ramp.AccessStatus == tideClosedStatus {
 			ro.Risk = RiskClosedNow
+			ro.Reason = ReasonHighTide
 			closedAt := now
 			if ramp.StatusSince != nil {
 				closedAt = *ramp.StatusSince
@@ -427,11 +457,25 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			}
 		}
 
-		ro.Risk = risk
-		if riskPeak != nil && riskRank(risk) >= 1 {
+		// A live tide risk is the nearer, less certain story, so it wins;
+		// otherwise the end of the driving day is the closure to warn about.
+		switch {
+		case riskPeak != nil && riskRank(risk) >= 1:
+			ro.Risk = risk
+			ro.Reason = ReasonHighTide
 			ro.Window = closureWindow(*riskPeak, rp, sched)
+			ro.Headline, ro.Detail, ro.Short = tideText(now, risk, *riskPeak, rp, sched, laterPeakRisky)
+		case sched.ClosesAt != nil:
+			// No tide story, so the next scheduled thing is the day ending.
+			// This line always looks forward — it is never a place to say
+			// what already happened.
+			ro.Risk = RiskScheduled
+			ro.Reason = ReasonEndOfDay
+			ro.Headline, ro.Detail, ro.Short = endOfDayText(season, sched)
+		default:
+			ro.Risk = RiskNone
+			ro.Headline, ro.Detail = quietText(sched)
 		}
-		ro.Headline, ro.Detail, ro.Short = riskText(now, risk, riskPeak, rp, sched, laterPeakRisky)
 		out.Ramps = append(out.Ramps, ro)
 	}
 

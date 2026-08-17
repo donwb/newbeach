@@ -11,9 +11,13 @@ import (
 // All outlook prose is generated here. The rules: times are approximate —
 // always rounded to the half hour and softened with "around"/"by"/"~",
 // never minute-precise promises (the county is too inconsistent for those);
-// hedged verbs per risk level ("likely" closes, "could" close — never
-// "will"); reopens are always "often back open ...". Clients render these
-// strings verbatim so every platform tells the same story.
+// hedged verbs throughout — a tide closure is always "possible", never
+// "likely" or "will", because the county's call is genuinely theirs to
+// make; reopens are always "often back open ...". Every string names the
+// reason (tide, end of day, overnight) and looks forward: this line is a
+// prediction of the next thing to happen, never a report of the last one.
+// Clients render these strings verbatim so every platform tells the same
+// story.
 
 // fmtClock formats an Eastern instant casually: "1pm", "1:30pm", "11am".
 func fmtClock(t time.Time) string {
@@ -53,16 +57,48 @@ func scheduleCopy(sched Schedule) string {
 	return "Open for driving until " + sched.ClosesLabel
 }
 
-// riskText builds the headline, detail, and short board hint for a ramp
-// that is not currently closed. The copy is time-aware: a learned close
-// time the clock has already passed is never quoted back — the ramp is
-// visibly still open, so the copy moves to "any time now", and once the
-// peak itself is behind us it moves to the falling-tide voice.
-func riskText(now time.Time, risk string, peak *models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
-	if riskRank(risk) == 0 || peak == nil {
-		return "No tide trouble expected", scheduleCopy(sched), ""
-	}
+// quietText is the copy for a ramp with nothing to warn about.
+func quietText(sched Schedule) (headline, detail string) {
+	return "No tide trouble expected", scheduleCopy(sched)
+}
 
+// beforeOpenText is the copy for the hours when the beach is not drivable
+// at all — overnight and the stretch before the morning open. The next
+// thing that happens is the open, so that is what it predicts.
+func beforeOpenText(season string, sched Schedule) (headline, detail string, r *Reopen) {
+	at := fmtClock(roundNearest30(*sched.OpensAt))
+	headline = "Closed until morning"
+	if season == "turtle" {
+		detail = "Beach driving opens around " + at + ", once ramps are cleared for turtles"
+	} else {
+		detail = "Beach driving opens at sunrise, around " + at
+	}
+	return headline, detail, &Reopen{Label: "opens around " + at}
+}
+
+// endOfDayText is the copy for the day's close — the county clearing the
+// beach at dark, which has nothing to do with the tide. The posted time is
+// itself soft (they often start early), so it stays hedged like every other
+// clock time here.
+func endOfDayText(season string, sched Schedule) (headline, detail, short string) {
+	at := fmtClock(roundNearest30(*sched.ClosesAt))
+	if season == "turtle" {
+		headline = "Beach driving closes for the day around " + at
+	} else {
+		headline = "Beach driving closes at sunset, around " + at
+	}
+	detail = "End of the driving day, not the tide · they often start clearing a bit early"
+	short = "closes for the day ~" + at
+	return headline, detail, short
+}
+
+// tideText builds the headline, detail, and short board hint for a ramp the
+// tide might close. The copy is time-aware: a learned close time the clock
+// has already passed is never quoted back — the ramp is visibly still open,
+// so the copy moves to "any time now", and once the peak itself is behind
+// us it moves to the falling-tide voice. Every string names the tide as the
+// cause, so a reader always knows why the closure is coming.
+func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
 	closeAt := roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
 	reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
 	reopenCopy := "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
@@ -76,22 +112,22 @@ func riskText(now time.Time, risk string, peak *models.TidePrediction, rp RampPa
 		// this tide so far, but the county does close late sometimes.
 		headline = "Could still close while the tide drops"
 		detail = "Past the high now · the odds fall with the water"
-		short = "could still close"
+		short = "tide closure still possible"
 	case risk == RiskLikely && !now.Before(closeAt):
 		// The learned close time came and went with the ramp still open.
 		// Say that, rather than repeating a time already in the past.
-		headline = "High-tide closure likely any time now"
+		headline = "High-tide closure possible any time now"
 		detail = reopenCopy
-		short = "closure likely soon"
+		short = "tide closure possible soon"
 	case risk == RiskLikely:
-		headline = "High-tide closure likely around " + fmtClock(closeAt)
+		headline = "High-tide closure possible around " + fmtClock(closeAt)
 		detail = reopenCopy
-		short = "closure likely ~" + fmtClock(closeAt)
+		short = "tide closure possible ~" + fmtClock(closeAt)
 	default:
 		peakAt := roundNearest30(peak.Time)
 		headline = "Could close around the " + fmtClock(peakAt) + " high tide"
 		detail = "Depends on surf and sand · could just as well stay open"
-		short = "could close ~" + fmtClock(peakAt)
+		short = "could close on the ~" + fmtClock(peakAt) + " tide"
 	}
 	if laterPeakRisky {
 		detail += " · the next high tide could bring another round"

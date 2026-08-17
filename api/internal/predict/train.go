@@ -194,6 +194,54 @@ func median(vals []float64) float64 {
 	return (s[mid-1] + s[mid]) / 2
 }
 
+// dayCloseStatus is the plain closed state the county sets when it clears
+// the beach at the end of the driving day (as opposed to the tide- and
+// turtle-specific strings).
+const dayCloseStatus = "CLOSED"
+
+// dayCloseOffsets measures how far each end-of-day close ran from the
+// posted close for that date. One sample per ramp-day: the transition into
+// plain CLOSED that happens in the back half of the day. Negative values
+// mean the county cleared the beach early, which is the observed norm.
+func dayCloseOffsets(historyByRamp map[string][]models.StatusEvent) []float64 {
+	var offsets []float64
+	for _, events := range historyByRamp {
+		seen := map[string]bool{}
+		var prev string
+		for _, e := range events {
+			transition := prev != dayCloseStatus && e.AccessStatus == dayCloseStatus
+			prev = e.AccessStatus
+			if !transition {
+				continue
+			}
+			et := e.RecordedAt.In(eastern)
+			// Only the evening clear-out; a midday CLOSED is something else.
+			if et.Hour() < 12 {
+				continue
+			}
+			day := et.Format("2006-01-02")
+			if seen[day] {
+				continue
+			}
+			_, posted, ok := postedHours(et)
+			if !ok {
+				continue
+			}
+			delta := et.Sub(posted).Minutes()
+			if math.Abs(delta) > maxDayCloseOffsetMin {
+				continue
+			}
+			seen[day] = true
+			offsets = append(offsets, delta)
+		}
+	}
+	return offsets
+}
+
+// minDayCloseSamples is the smallest sample that earns a learned end-of-day
+// offset; below it the posted close stands.
+const minDayCloseSamples = 10
+
 // Train derives Params from full status-event history (per access_id,
 // ascending) and hilo tide predictions covering the same span.
 func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, now time.Time) Params {
@@ -212,6 +260,13 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 	if len(peaks) >= 40 {
 		params.HardOpenFt = math.Round(peakQuantile(peaks, 0.05)*100) / 100
 		params.HardCloseFt = math.Round(peakQuantile(peaks, 0.97)*100) / 100
+	}
+
+	// How early (or late) the county actually clears the beach relative to
+	// the posted close — the outlook predicts what they do, not what is
+	// posted.
+	if offsets := dayCloseOffsets(historyByRamp); len(offsets) >= minDayCloseSamples {
+		params.DayCloseOffsetMin = int(math.Round(median(offsets)))
 	}
 
 	var historyStart time.Time

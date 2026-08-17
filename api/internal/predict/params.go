@@ -11,7 +11,7 @@ const SettingsKey = "prediction_params"
 
 // paramsVersion identifies the blob schema. A stored blob with a different
 // version is treated as stale, so bumping this forces a retrain on deploy.
-const paramsVersion = 2
+const paramsVersion = 3
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {
@@ -46,6 +46,29 @@ type Params struct {
 	// NOAA station — and height scale — the deployment is configured with.
 	HardOpenFt  float64 `json:"hard_open_ft,omitempty"`
 	HardCloseFt float64 `json:"hard_close_ft,omitempty"`
+
+	// DayCloseOffsetMin is the learned median minutes the county's actual
+	// end-of-day close lands relative to the posted close (negative = they
+	// clear early, which is the observed norm — the posted turtle-season
+	// 7pm has been running closer to 6:30). Learned rather than hard-coded
+	// so it tracks whatever the county is actually doing this season.
+	DayCloseOffsetMin int `json:"day_close_offset_min,omitempty"`
+}
+
+// maxDayCloseOffsetMin clamps the learned offset, so a thin or weird sample
+// can never drag the day's close somewhere absurd.
+const maxDayCloseOffsetMin = 90
+
+// dayCloseOffset returns the learned end-of-day offset, clamped.
+func (p Params) dayCloseOffset() time.Duration {
+	m := p.DayCloseOffsetMin
+	if m < -maxDayCloseOffsetMin {
+		m = -maxDayCloseOffsetMin
+	}
+	if m > maxDayCloseOffsetMin {
+		m = maxDayCloseOffsetMin
+	}
+	return time.Duration(m) * time.Minute
 }
 
 // hardOpen/hardClose return the learned cutoffs, falling back to the

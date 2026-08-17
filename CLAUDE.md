@@ -113,8 +113,29 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   TTL cache) and `/api/v2/ramps/:id/outlook` serve risk + **server-built casual copy** —
   clients must render the strings verbatim, never compute their own predictions. Copy
   rules: approximate clock times only — rounded to the half hour and hedged with
-  "around"/"by"/"~" ("likely around 1:30pm"), never minute-precise promises; hedged verbs
-  ("likely"/"could", never "will"). The `short` field is the compact board-card hint.
+  "around"/"by"/"~" ("possible around 1:30pm"), never minute-precise promises; a tide
+  closure is always **"possible"** — never "likely" or "will", the county's call is
+  genuinely theirs; **every string names the reason** (tide / end of day / overnight) so a
+  reader is never told "closure possible" with no cause. The `short` field is the compact
+  board-card hint.
+- **This line always looks forward** — it predicts the next thing that will happen and is
+  never a place to report what already did (the since line does that). Every hour of the
+  clock has an answer: overnight and pre-open → "opens around 8am"; tide risk live → the
+  tide copy; otherwise → the day's close.
+- **`risk` grades the tide and nothing else.** `none`/`possible`/`likely` are read that
+  way by `backtest_test.go` and the scorecard, so no other feature may borrow them.
+  `closed_now` (shut right now — tide or overnight, carries a reopen label) and
+  `scheduled` (the only closure coming is the day ending) are factual states, not
+  gambles. `reason` says which: `high_tide`, `end_of_day`, `overnight`.
+- **The end-of-day close is learned, not posted.** The county clears the beach before the
+  posted time — turtle-season 7pm has been running ~6:30 — so the trainer learns the
+  median offset from history into `day_close_offset_min` and `buildSchedule` applies it
+  (clamped to ±90 min). Never hard-code a close time; the posted hours live in
+  `postedHours` and the offset corrects them.
+- **The copy is time-aware.** Peaks stay in play until their learned lag expires, and a
+  predicted close time the clock has passed is never quoted back at a ramp that is still
+  open ("possible around 11am" at noon): it becomes "any time now", then softens past the
+  peak, then hands off to the day's close. `decayRisk` + the phases in `tideText`.
 - **A non-NULL `ramp_metadata.closure_height_ft` overrides the learned threshold** — only
   curate it deliberately.
 - `api/internal/predict/backtest_test.go` replays five months of checked-in real history

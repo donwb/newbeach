@@ -120,9 +120,10 @@ func TestBuildOutlookTurtleSeasonRisk(t *testing.T) {
 	// peak 15:30 − 120m lead = 13:30; reopen = 15:30 + 80m lag ≈ 17:00.
 	eager := byID["NS-141"]
 	assert.Equal(t, RiskLikely, eager.Risk)
-	assert.Equal(t, "High-tide closure likely around 1:30pm", eager.Headline)
+	assert.Equal(t, "High-tide closure possible around 1:30pm", eager.Headline)
 	assert.Equal(t, "Often back open by 5pm once the tide drops", eager.Detail)
-	assert.Equal(t, "closure likely ~1:30pm", eager.Short)
+	assert.Equal(t, "tide closure possible ~1:30pm", eager.Short)
+	assert.Equal(t, ReasonHighTide, eager.Reason)
 	assert.Equal(t, "high", eager.Confidence)
 	require.NotNil(t, eager.Window)
 	// 120 lead + 45 pad before 15:30 → 12:45 floor → 12:30; 80 lag + 45
@@ -135,7 +136,8 @@ func TestBuildOutlookTurtleSeasonRisk(t *testing.T) {
 	assert.Equal(t, RiskPossible, tough.Risk)
 	assert.Equal(t, "Could close around the 3:30pm high tide", tough.Headline)
 	assert.Equal(t, "Depends on surf and sand · could just as well stay open", tough.Detail)
-	assert.Equal(t, "could close ~3:30pm", tough.Short)
+	assert.Equal(t, "could close on the ~3:30pm tide", tough.Short)
+	assert.Equal(t, ReasonHighTide, tough.Reason)
 
 	// DB-041: 3.4 < 3.85-0.3 but close_rate 0.42 in the action zone — possible.
 	flipper := byID["DB-041"]
@@ -153,9 +155,9 @@ func TestBuildOutlookQuietDay(t *testing.T) {
 
 	out := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds)
 	ro := out.Ramps[0]
-	assert.Equal(t, RiskNone, ro.Risk, "1.8 ft peak closes nothing, even the eager closer")
-	assert.Equal(t, "No tide trouble expected", ro.Headline)
-	assert.Equal(t, "Open for driving until 7pm", ro.Detail)
+	assert.Equal(t, RiskScheduled, ro.Risk, "1.8 ft peak closes nothing, even the eager closer")
+	assert.Equal(t, ReasonEndOfDay, ro.Reason, "with no tide story, the day's close is the next thing")
+	assert.Equal(t, "Beach driving closes for the day around 7pm", ro.Headline)
 	assert.Nil(t, ro.Window)
 }
 
@@ -185,7 +187,8 @@ func TestBuildOutlookMetadataOverride(t *testing.T) {
 	r.ClosureHeightFt = &override
 
 	out := BuildOutlook(now, []models.RampStatusWithSince{r}, testParams(), preds)
-	assert.Equal(t, RiskNone, out.Ramps[0].Risk, "operator override beats learned threshold")
+	assert.Equal(t, RiskScheduled, out.Ramps[0].Risk, "operator override beats learned threshold")
+	assert.Equal(t, ReasonEndOfDay, out.Ramps[0].Reason)
 }
 
 func TestBuildOutlookOffSeason(t *testing.T) {
@@ -205,7 +208,7 @@ func TestBuildOutlookOffSeason(t *testing.T) {
 	assert.Equal(t, 17, out.Schedule.ClosesAt.In(eastern).Hour())
 	assert.Regexp(t, `^sunrise \(~\d{1,2}(:30)?am\)$`, out.Schedule.OpensLabel)
 	assert.Regexp(t, `^sunset \(~\d{1,2}(:30)?pm\)$`, out.Schedule.ClosesLabel)
-	assert.Equal(t, "Open for driving until "+out.Schedule.ClosesLabel, out.Ramps[0].Detail)
+	assert.Equal(t, ReasonEndOfDay, out.Ramps[0].Reason)
 }
 
 func TestReopenEstimateFallsBackToLowTide(t *testing.T) {
@@ -234,27 +237,27 @@ func TestBuildOutlookDecaysAsClockPasses(t *testing.T) {
 	// Before the learned close time: the clock time is a fair thing to quote.
 	ahead := BuildOutlook(et(16, 12, 0), ramps, testParams(), preds).Ramps[0]
 	assert.Equal(t, RiskLikely, ahead.Risk)
-	assert.Equal(t, "High-tide closure likely around 1:30pm", ahead.Headline)
-	assert.Equal(t, "closure likely ~1:30pm", ahead.Short)
+	assert.Equal(t, "High-tide closure possible around 1:30pm", ahead.Headline)
+	assert.Equal(t, "tide closure possible ~1:30pm", ahead.Short)
 
 	// Past it, still open: same risk, but no stale clock time in the copy.
 	due := BuildOutlook(et(16, 14, 0), ramps, testParams(), preds).Ramps[0]
 	assert.Equal(t, RiskLikely, due.Risk, "a late closure is still a closure")
-	assert.Equal(t, "High-tide closure likely any time now", due.Headline)
+	assert.Equal(t, "High-tide closure possible any time now", due.Headline)
 	assert.Equal(t, "Often back open by 5pm once the tide drops", due.Detail)
-	assert.Equal(t, "closure likely soon", due.Short)
+	assert.Equal(t, "tide closure possible soon", due.Short)
 
 	// Past the peak: the ramp beat this tide, so likely softens to possible.
 	falling := BuildOutlook(et(16, 16, 0), ramps, testParams(), preds).Ramps[0]
 	assert.Equal(t, RiskPossible, falling.Risk)
 	assert.Equal(t, "Could still close while the tide drops", falling.Headline)
-	assert.Equal(t, "could still close", falling.Short)
+	assert.Equal(t, "tide closure still possible", falling.Short)
 
-	// Past the learned lag: the peak stops counting.
-	done := BuildOutlook(et(16, 17, 0), ramps, testParams(), preds).Ramps[0]
-	assert.Equal(t, RiskNone, done.Risk)
-	assert.Equal(t, "No tide trouble expected", done.Headline)
-	assert.Empty(t, done.Short)
+	// Past the learned lag (16:50) the peak stops counting, and the line
+	// falls through to the next scheduled thing rather than going blank.
+	done := BuildOutlook(et(16, 16, 55), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskScheduled, done.Risk)
+	assert.Equal(t, ReasonEndOfDay, done.Reason)
 	assert.Nil(t, done.Window)
 }
 
@@ -268,7 +271,111 @@ func TestBuildOutlookPossibleKeepsPeakTimeUntilItPasses(t *testing.T) {
 	assert.Equal(t, RiskPossible, ahead.Risk)
 	assert.Equal(t, "Could close around the 3:30pm high tide", ahead.Headline)
 
-	// NS-106 lag is 53 min → the 15:30 peak stops counting at 16:23.
+	// NS-106 lag is 53 min → the 15:30 peak stops counting at 16:23, and
+	// the day's close becomes the next thing worth saying.
 	past := BuildOutlook(et(16, 16, 30), ramps, testParams(), preds).Ramps[0]
-	assert.Equal(t, RiskNone, past.Risk)
+	assert.Equal(t, RiskScheduled, past.Risk)
+	assert.Equal(t, ReasonEndOfDay, past.Reason)
+}
+
+// Every predicted closure has one of two causes, and the copy has to say
+// which: the tide, or the driving day simply ending.
+func TestBuildOutlookEndOfDay(t *testing.T) {
+	// A quiet tide day in turtle season: with no tide risk to talk about,
+	// the next thing that happens is the 7pm close.
+	low, high := 0.3, 1.8
+	preds := []models.TidePrediction{
+		{Time: et(16, 9, 0), Type: "L", Height: &low},
+		{Time: et(16, 15, 0), Type: "H", Height: &high},
+		{Time: et(16, 21, 0), Type: "L", Height: &low},
+	}
+	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}
+
+	ro := BuildOutlook(et(16, 17, 30), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskScheduled, ro.Risk)
+	assert.Equal(t, ReasonEndOfDay, ro.Reason)
+	assert.Equal(t, "Beach driving closes for the day around 7pm", ro.Headline)
+	assert.Equal(t, "End of the driving day, not the tide · they often start clearing a bit early", ro.Detail)
+	assert.Equal(t, "closes for the day ~7pm", ro.Short)
+	assert.Nil(t, ro.Window, "the day's close is not a tide window")
+}
+
+// Off-season the day ends at sunset, and the copy says so.
+func TestBuildOutlookEndOfDaySunset(t *testing.T) {
+	// Mid-December NSB: driving ends ~5pm, so 4pm is inside the lead.
+	now := time.Date(2026, 12, 16, 16, 0, 0, 0, eastern)
+	low, high := 0.3, 1.8
+	preds := []models.TidePrediction{
+		{Time: now.Add(-3 * time.Hour), Type: "L", Height: &low},
+		{Time: now.Add(4 * time.Hour), Type: "H", Height: &high},
+	}
+
+	ro := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds).Ramps[0]
+	assert.Equal(t, ReasonEndOfDay, ro.Reason)
+	assert.Regexp(t, `^Beach driving closes at sunset, around \d{1,2}(:30)?pm$`, ro.Headline)
+	assert.Regexp(t, `^closes for the day ~\d{1,2}(:30)?pm$`, ro.Short)
+}
+
+// When the tide is about to close a ramp and the day is also winding down,
+// the tide wins — it is the nearer and less certain of the two.
+func TestBuildOutlookTideBeatsEndOfDay(t *testing.T) {
+	// Turtle season, 5:30pm: the day is winding down, but a 3.4 ft peak
+	// lands at 6pm.
+	low, high := 0.4, 3.4
+	preds := []models.TidePrediction{
+		{Time: et(16, 12, 0), Type: "L", Height: &low},
+		{Time: et(16, 18, 0), Type: "H", Height: &high},
+		{Time: et(17, 0, 30), Type: "L", Height: &low},
+	}
+
+	ro := BuildOutlook(et(16, 17, 30), []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskLikely, ro.Risk)
+	assert.Equal(t, ReasonHighTide, ro.Reason)
+	assert.Equal(t, "High-tide closure possible any time now", ro.Headline)
+	assert.Equal(t, "Might not reopen before the day's 7pm close", ro.Detail)
+}
+
+// Outside driving hours the line predicts the morning open — it is never a
+// place to report what happened earlier. Overnight reuses closed_now so the
+// reopen label carries the story to clients unchanged.
+func TestBuildOutlookOvernightLooksForward(t *testing.T) {
+	_, preds := afternoonScenario()
+	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "CLOSED")}
+
+	// 9pm, after the 7pm close: the schedule has rolled to tomorrow.
+	night := BuildOutlook(et(16, 21, 0), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, RiskClosedNow, night.Risk)
+	assert.Equal(t, ReasonOvernight, night.Reason)
+	assert.Equal(t, "Closed until morning", night.Headline)
+	assert.Equal(t, "Beach driving opens around 8am, once ramps are cleared for turtles", night.Detail)
+	require.NotNil(t, night.Reopen)
+	assert.Equal(t, "opens around 8am", night.Reopen.Label)
+
+	// Same story before the morning open.
+	dawn := BuildOutlook(et(16, 6, 30), ramps, testParams(), preds).Ramps[0]
+	assert.Equal(t, ReasonOvernight, dawn.Reason)
+	assert.Equal(t, "opens around 8am", dawn.Reopen.Label)
+}
+
+// The county clears the beach before the posted close, so the day's close is
+// learned from history rather than taken from the posted hours.
+func TestDayCloseOffsetIsLearned(t *testing.T) {
+	// 12 ramp-days of a 6:30pm clear-out against the posted turtle 7pm.
+	history := map[string][]models.StatusEvent{}
+	for d := 1; d <= 12; d++ {
+		history["NS-141"] = append(history["NS-141"],
+			models.StatusEvent{AccessStatus: "OPEN", RecordedAt: et(d, 8, 0)},
+			models.StatusEvent{AccessStatus: "CLOSED", RecordedAt: et(d, 18, 30)})
+	}
+	params := Train(history, nil, et(20, 0, 0))
+	assert.Equal(t, -30, params.DayCloseOffsetMin)
+
+	// And the schedule honors it: the posted 7pm becomes a predicted 6:30pm.
+	_, sched := buildSchedule(et(16, 12, 0), params)
+	require.NotNil(t, sched.ClosesAt)
+	assert.Equal(t, et(16, 18, 30), sched.ClosesAt.In(eastern))
+	assert.Equal(t, "6:30pm", sched.ClosesLabel)
+
+	// A wild offset can never drag the close somewhere absurd.
+	assert.Equal(t, -maxDayCloseOffsetMin*time.Minute, Params{DayCloseOffsetMin: -600}.dayCloseOffset())
 }

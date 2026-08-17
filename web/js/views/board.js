@@ -307,9 +307,11 @@ export function createBoardView(store) {
    * The card's forward-looking hint from the server outlook: the board
    * always looks ahead, so a tide-closed ramp shows its reopen estimate
    * ("often back open around 5pm") instead of a since time, and a drivable
-   * ramp the server flags shows its closure hint ("closure likely ~1:30pm").
-   * Non-tide closures have no prediction and keep the since line. The bare
-   * fallbacks cover older servers during deploy skew.
+   * ramp the server flags shows its closure hint ("tide closure possible
+   * ~1:30pm", or "closes for the day ~6:30pm" when the tide is quiet). This
+   * line only ever looks forward — the since line is the place for history.
+   * Closures we cannot predict (turtles, capacity) keep the since line. The
+   * bare fallbacks cover older servers during deploy skew.
    */
   function riskHint(ramp, s) {
     const ro = (s.outlook?.ramps || []).find((r) => r.access_id === ramp.access_id);
@@ -317,9 +319,9 @@ export function createBoardView(store) {
     if (ro.risk === 'closed_now') return ro.reopen?.label || '';
     const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
     if (cat === 'closed') return '';
-    if (ro.risk !== 'likely' && ro.risk !== 'possible') return '';
+    if (ro.risk !== 'likely' && ro.risk !== 'possible' && ro.risk !== 'scheduled') return '';
     if (ro.short) return ro.short;
-    return ro.risk === 'likely' ? 'tide closure likely' : 'could close on the tide';
+    return ro.risk === 'scheduled' ? 'closes at the end of the day' : 'could close on the tide';
   }
 
   function sinceLine(ramp, s) {

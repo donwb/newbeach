@@ -133,7 +133,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 
 	// The day's schedule, framed from early morning so buildSchedule never
 	// rolls to the next day.
-	season, sched := buildSchedule(dayStart.Add(5 * time.Hour))
+	season, sched := buildSchedule(dayStart.Add(5*time.Hour), params)
 
 	// Daytime peaks on the target date.
 	var dayPeaks []models.TidePrediction

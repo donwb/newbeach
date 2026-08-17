@@ -91,10 +91,16 @@ public struct OutlookTide: Codable, Sendable {
 
 /// One ramp's tide outlook for the rest of the driving day.
 public struct RampOutlook: Codable, Sendable {
-    /// "none", "possible", "likely", or "closed_now". Kept as a raw string
-    /// so new server values degrade gracefully; use `flagsRisk` for the
-    /// "worth showing a hint" check.
+    /// "none", "possible", "likely", "scheduled", or "closed_now". Kept as
+    /// a raw string so new server values degrade gracefully; use `flagsRisk`
+    /// for the "worth showing a hint" check. none/possible/likely grade the
+    /// tide only; "scheduled" means the closure coming is the driving day
+    /// ending, which is not in doubt.
     public let risk: String
+    /// Why the predicted closure is coming: "high_tide" or "end_of_day".
+    /// Optional — older servers omit it. The copy already names the reason;
+    /// this is for clients that want to branch on it (icon, color).
+    public let reason: String?
     public let accessID: String
     public let rampID: Int
     /// "low", "medium", or "high" — how much history backs this ramp.
@@ -106,10 +112,11 @@ public struct RampOutlook: Codable, Sendable {
     public let window: OutlookWindow?
     public let reopen: OutlookReopen?
 
-    public init(risk: String, accessID: String, rampID: Int, confidence: String,
-                headline: String, detail: String?, short: String?,
+    public init(risk: String, reason: String? = nil, accessID: String, rampID: Int,
+                confidence: String, headline: String, detail: String?, short: String?,
                 window: OutlookWindow?, reopen: OutlookReopen?) {
         self.risk = risk
+        self.reason = reason
         self.accessID = accessID
         self.rampID = rampID
         self.confidence = confidence
@@ -120,15 +127,17 @@ public struct RampOutlook: Codable, Sendable {
         self.reopen = reopen
     }
 
-    /// Whether the server predicts a closure worth hinting at ("possible"
-    /// or "likely"). False for "none" and for factual "closed_now" states,
-    /// where the ramp's own status already tells the story.
+    /// Whether the server predicts a closure worth hinting at: a tide
+    /// closure ("possible"/"likely") or the driving day ending
+    /// ("scheduled"). False for "none" and for factual "closed_now" states,
+    /// where the reopen label tells the story instead.
     public var flagsRisk: Bool {
-        risk == "possible" || risk == "likely"
+        risk == "possible" || risk == "likely" || risk == "scheduled"
     }
 
     enum CodingKeys: String, CodingKey {
         case risk
+        case reason
         case accessID = "access_id"
         case rampID = "ramp_id"
         case confidence

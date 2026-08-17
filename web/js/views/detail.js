@@ -199,7 +199,9 @@ export function createDetailView(store) {
   function serverOutlookLine(ramp, s) {
     const ro = (s.outlook?.ramps || []).find((r) => r.access_id === ramp.access_id);
     if (!ro) return '';
-    if (ro.risk === 'likely' || ro.risk === 'possible') return ro.headline || '';
+    if (ro.risk === 'likely' || ro.risk === 'possible' || ro.risk === 'scheduled') {
+      return ro.headline || '';
+    }
     return ro.detail || ro.headline || '';
   }
 

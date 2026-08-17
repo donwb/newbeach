@@ -131,7 +131,9 @@ func TestBacktestAgainstRealHistory(t *testing.T) {
 				if closed {
 					tl.likelyRight++
 				}
-			case RiskNone:
+			// Both mean "no tide closure predicted today" — scheduled only
+			// says the driving day will end, which it always does.
+			case RiskNone, RiskScheduled:
 				tl.noneDays++
 				if !closed {
 					tl.noneRight++

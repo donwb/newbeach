@@ -5,7 +5,7 @@
  * asset — the fetch handler is cache-first for static files, so a stale
  * cache otherwise masks the new code until this constant changes.
  */
-const CACHE_NAME = 'beach-ramps-v14';
+const CACHE_NAME = 'beach-ramps-v15';
 
 const STATIC_ASSETS = [
   '/',
