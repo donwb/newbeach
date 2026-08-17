@@ -48,9 +48,36 @@ self.addEventListener('activate', (event) => {
       .then((keys) => Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
       ))
+      // Let the browser own navigation requests again — see handleNavigation.
+      .then(() => self.registration.navigationPreload?.enable())
       .then(() => self.clients.claim()),
   );
 });
+
+// Navigations: network-first, falling back to the cached shell — this is what
+// makes /ramp/:id and /tide open offline and installed.
+//
+// The network hit comes from navigationPreload rather than a worker-issued
+// fetch(), so the browser owns the request instead of this worker. Chrome was
+// measured to preserve the Referer either way, but a worker-forwarded
+// navigation reaches the server as Sec-Fetch-Dest: empty and leaves referrer
+// handling to each browser's discretion; preload keeps it an ordinary document
+// navigation, which is what the page_views log grades attribution on. It is
+// also the point of the API: the request starts before this worker boots.
+// fetch() remains the fallback for browsers without preload (pre-Safari 15.4).
+async function handleNavigation(event) {
+  try {
+    const preloaded = await event.preloadResponse;
+    if (preloaded) return preloaded;
+  } catch {
+    return (await caches.match('/')) || Response.error();
+  }
+  try {
+    return await fetch(event.request);
+  } catch {
+    return (await caches.match('/')) || Response.error();
+  }
+}
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -75,12 +102,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigations: network-first, falling back to the cached shell — this is
-  // what makes /ramp/:id and /tide open offline and installed.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/')),
-    );
+    event.respondWith(handleNavigation(event));
     return;
   }
 

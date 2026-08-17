@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -29,6 +30,20 @@ func isPageView(path string) bool {
 	return rampPathRe.MatchString(path)
 }
 
+// isNavigationRequest reports whether a request is a real top-level page
+// navigation rather than a script-issued fetch that happens to target a page
+// URL. The service worker precaches "/" at install time, and that fetch would
+// otherwise land in the log as a phantom visit referred by /sw.js.
+//
+// Sec-Fetch-Mode separates them: a navigation stays mode=navigate even when the
+// worker forwards it itself, while the precache fetch arrives as cors. Browsers
+// too old to send Fetch Metadata (before Safari 16.4) omit the header entirely
+// and are trusted — undercounting real visits is worse than a little noise.
+func isNavigationRequest(r *http.Request) bool {
+	mode := r.Header.Get("Sec-Fetch-Mode")
+	return mode == "" || mode == "navigate"
+}
+
 // clip returns s truncated to max bytes — header values are attacker-supplied
 // and must not bloat the table.
 func clip(s string, max int) string {
@@ -36,6 +51,23 @@ func clip(s string, max int) string {
 		return s[:max]
 	}
 	return s
+}
+
+// cleanReferer drops the service worker's own script URL. This site referring
+// to itself is not a real source, and recording it buries genuine attribution.
+//
+// isNavigationRequest already discards the usual culprit — the worker's
+// install-time precache of "/" — so this is the backstop for the cases it
+// cannot see: browsers that send no Fetch Metadata, and any browser that
+// rewrites Referer when the worker forwards a navigation itself.
+func cleanReferer(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	if u, err := url.Parse(raw); err == nil && u.Path == "/sw.js" {
+		return ""
+	}
+	return clip(raw, 500)
 }
 
 // pageViewLogger records successful GET page navigations to the page_views
@@ -51,12 +83,15 @@ func pageViewLogger(pool *pgxpool.Pool) echo.MiddlewareFunc {
 			if status := c.Response().Status; status >= 400 {
 				return err
 			}
+			if !isNavigationRequest(c.Request()) {
+				return err
+			}
 
 			view := models.PageView{
 				Path:      c.Request().URL.Path,
 				IP:        c.RealIP(),
 				UserAgent: clip(c.Request().UserAgent(), 500),
-				Referer:   clip(c.Request().Referer(), 500),
+				Referer:   cleanReferer(c.Request().Referer()),
 			}
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
