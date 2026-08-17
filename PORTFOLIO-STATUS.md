@@ -92,9 +92,13 @@ last_verified: 2026-08-17 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first su
    deferred (Don, 2026-08-16) — widgets cover prediction; pushes wait for the
    APNs sender. REMAINING: TRMNL consumption, retire the
    duplicated JS/Swift reopen heuristics fully, wave-aware model once
-   conditions data matures, APNs Live Activity sender, and a re-flight so the
-   apps render the 2026-08-17 `scheduled` end-of-day hint (they degrade to the
-   since line until then; the overnight copy already works on build 18).
+   conditions data matures, APNs Live Activity sender, and eventually a
+   re-flight so the apps render the 2026-08-17 `scheduled` end-of-day hint.
+   **Re-flight deliberately deferred (Don, 2026-08-17): let build 18 finish
+   App Review first** — do not upload a new build while 18 is pending. The cost
+   of waiting is small: build 18 already shows the overnight "opens around 8am"
+   copy (it reuses the existing closed_now path), and the end-of-day hint simply
+   degrades to the since line until a later build.
 2. One physical-remote pass on the Apple TV — remote navigation (focus order, Recent
    changes button, Menu open/close, overlay focus restore) is now covered by
    BeachRampTVUITests via XCUIRemote in the simulator; a real Siri-remote sanity pass
