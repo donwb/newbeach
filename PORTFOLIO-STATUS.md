@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 18 — flighted and submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -10,12 +10,21 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  iOS: Prepare for Submission, never submitted. Build 1.0 (17) on TestFlight 2026-08-15 — the redesign build, first with the widget extension.
-  tvOS: Prepare for Submission, never submitted. Record "Beach Ramp Status" (Apple ID 6761724123) is the keeper; its bundle ID is frozen at com.donwb.BeachRampTV by upload history reaching build 15. Build 1.0 (17) uploaded 2026-08-15 alongside iOS.
+  IN REVIEW as of 2026-08-17 — build 1.0 (18) flighted and submitted (Don). First
+  submission ever for this app; the record has never carried a released version.
+  Listing name submitted as "Volusia Beach Info" (renamed off the reserved "Beach Ramp
+  Status" the same day; "Volusia Beaches" was rejected as a candidate because it is the
+  county's own Flutter app). Full submitted metadata — subtitle, keywords, descriptions,
+  App Privacy answers, review notes — is checked in at docs/APP-STORE-LISTING.md.
+  Required URLs went live the same day and are verified serving:
+  https://beach.donwb.com/privacy and /support.
+  Record: Apple ID 6761724123, bundle ID com.donwb.BeachRampTV, frozen by upload history
+  reaching build 15; one record carries both iOS and tvOS.
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-17 (App Store submission prep: full ASC metadata sheet written to
+last_verified: 2026-08-17 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission ever.
+  Same day, the prep that made it possible: full ASC metadata sheet written to
   docs/APP-STORE-LISTING.md — name, subtitle, keywords, descriptions, review notes, and
   privacy answers for BOTH platforms, every length-limited field measured. Listing name
   changing from "Beach Ramp Status" to "Volusia Beach Info" (Don, 2026-08-17). Privacy and
@@ -32,15 +41,18 @@ last_verified: 2026-08-17 (App Store submission prep: full ASC metadata sheet wr
 ---
 
 ## Top open items
-0. App Store submission — metadata is READY (docs/APP-STORE-LISTING.md). Remaining, in
-   order: (a) deploy main so /privacy and /support are live, then verify both load —
-   Apple checks the URLs; (b) decide Content Rights for the third-party cam streams;
-   (c) decide whether INFOPLIST_KEY_CFBundleDisplayName follows the name to "Volusia
-   Beaches" or stays "Beach Ramps" (mismatch is common and usually passes, but these
-   share only one word; 15 chars truncates on the Home Screen); (d) flight and submit
-   build 18 — build 17 predates iOS /outlook consumption and the iPad cam chips, so
-   submitting it would ship a listing describing features the binary lacks.
-   Screenshots are done for iPhone 6.9", iPad 13", and Apple TV.
+0. App Store submission — SUBMITTED 2026-08-17, build 1.0 (18), awaiting review.
+   Metadata as submitted is checked in at docs/APP-STORE-LISTING.md; /privacy and
+   /support are live and verified. Screenshots done for iPhone 6.9", iPad 13", and
+   Apple TV (3840x2160, design/app-store-screenshots/appletv/). If review comes back
+   with a rejection, the two most likely fronts are (a) name proximity to the county's
+   own "Volusia Beaches" app (guideline 4.1/2.3.8) — mitigated by the explicit
+   "not affiliated with Volusia County" line in the description and support page, and
+   (b) Content Rights for the beach cams, which are public YouTube live streams from
+   the county's own channel re-broadcast through the cams.donwb.com relay.
+   Still open regardless of outcome: whether INFOPLIST_KEY_CFBundleDisplayName follows
+   the listing to "Volusia Beach Info" (18 chars, truncates on the Home Screen) or
+   stays "Beach Ramps".
 1. DONE 2026-08-15 — iOS/iPadOS redesign shipped to main (commits e6689ce…7ab6210):
    sun-following sky boards on iPhone + iPad, verdict hero, field-carried status,
    ramp detail (push on iPhone, 760×762 panel on iPad), forced-landscape live cam,
