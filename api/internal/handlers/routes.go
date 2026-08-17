@@ -50,6 +50,11 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	// Recover from panics.
 	e.Use(middleware.Recover())
 
+	// First-party page-view log (HTML navigations only, async, best-effort).
+	// Registered before the static middleware in main.go so it sees page
+	// requests like /county/ that no route matches.
+	e.Use(pageViewLogger(pool))
+
 	// --- v1 endpoints (exact backward compatibility for Tidbyt) ---
 
 	e.GET("/rampstatus", HandleV1RampStatus(pool))
@@ -91,6 +96,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	admin.GET("/cameras", HandleAdminGetCameras(pool))
 	admin.POST("/cameras/:id/stream", HandleAdminUpdateCameraStream(pool))
 	admin.PUT("/ramps/:id/metadata", HandleAdminUpsertRampMetadata(pool))
+	admin.GET("/pageviews", HandleAdminPageViews(pool))
 	admin.GET("/prediction/params", HandleAdminPredictionParams(pool))
 	admin.GET("/prediction/scorecard", HandleAdminPredictionScorecard(pool, noaaClient))
 }

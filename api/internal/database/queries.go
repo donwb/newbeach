@@ -646,3 +646,99 @@ func scanSingleRamp(row pgx.Row) (*models.RampStatus, error) {
 
 	return &r, nil
 }
+
+// InsertPageView records one HTML page navigation. Failures are the caller's
+// to log-and-drop — a page view must never fail a user request.
+func InsertPageView(ctx context.Context, pool *pgxpool.Pool, view models.PageView) error {
+	const query = `
+		INSERT INTO page_views (path, ip, user_agent, referer)
+		VALUES ($1, $2, $3, $4)
+	`
+	if _, err := pool.Exec(ctx, query, view.Path, view.IP, view.UserAgent, view.Referer); err != nil {
+		return fmt.Errorf("inserting page view: %w", err)
+	}
+	return nil
+}
+
+// ListPageViews returns page views since the given time, newest first,
+// optionally filtered to one path and excluding the given IPs (the site
+// owner's own addresses).
+func ListPageViews(ctx context.Context, pool *pgxpool.Pool, since time.Time, path string, excludeIPs []string, limit int) ([]models.PageView, error) {
+	query := `
+		SELECT viewed_at, path, ip, user_agent, referer
+		FROM page_views
+		WHERE viewed_at >= $1
+	`
+	args := []interface{}{since}
+	if path != "" {
+		args = append(args, path)
+		query += fmt.Sprintf(" AND path = $%d", len(args))
+	}
+	if len(excludeIPs) > 0 {
+		args = append(args, excludeIPs)
+		query += fmt.Sprintf(" AND ip != ALL($%d)", len(args))
+	}
+	args = append(args, limit)
+	query += fmt.Sprintf(" ORDER BY viewed_at DESC LIMIT $%d", len(args))
+
+	rows, err := pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying page views: %w", err)
+	}
+	defer rows.Close()
+
+	views := []models.PageView{}
+	for rows.Next() {
+		var v models.PageView
+		if err := rows.Scan(&v.ViewedAt, &v.Path, &v.IP, &v.UserAgent, &v.Referer); err != nil {
+			return nil, fmt.Errorf("scanning page view: %w", err)
+		}
+		views = append(views, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating page view rows: %w", err)
+	}
+	return views, nil
+}
+
+// SummarizePageViewIPs groups page views since the given time by visitor IP,
+// most recently seen first, with the distinct paths each IP touched and its
+// latest user agent. excludeIPs removes the site owner's own addresses.
+func SummarizePageViewIPs(ctx context.Context, pool *pgxpool.Pool, since time.Time, excludeIPs []string) ([]models.PageViewIPSummary, error) {
+	query := `
+		SELECT
+			ip,
+			COUNT(*)                                          AS views,
+			MIN(viewed_at)                                    AS first_seen,
+			MAX(viewed_at)                                    AS last_seen,
+			ARRAY(SELECT DISTINCT p FROM unnest(array_agg(path)) AS p ORDER BY p) AS paths,
+			(array_agg(user_agent ORDER BY viewed_at DESC))[1] AS user_agent
+		FROM page_views
+		WHERE viewed_at >= $1
+	`
+	args := []interface{}{since}
+	if len(excludeIPs) > 0 {
+		args = append(args, excludeIPs)
+		query += fmt.Sprintf(" AND ip != ALL($%d)", len(args))
+	}
+	query += " GROUP BY ip ORDER BY last_seen DESC"
+
+	rows, err := pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying page view summary: %w", err)
+	}
+	defer rows.Close()
+
+	summaries := []models.PageViewIPSummary{}
+	for rows.Next() {
+		var s models.PageViewIPSummary
+		if err := rows.Scan(&s.IP, &s.Views, &s.FirstSeen, &s.LastSeen, &s.Paths, &s.UserAgent); err != nil {
+			return nil, fmt.Errorf("scanning page view summary: %w", err)
+		}
+		summaries = append(summaries, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating page view summary rows: %w", err)
+	}
+	return summaries, nil
+}
