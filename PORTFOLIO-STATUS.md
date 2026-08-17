@@ -10,8 +10,10 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  IN REVIEW as of 2026-08-17 — build 1.0 (18) flighted and submitted (Don). First
-  submission ever for this app; the record has never carried a released version.
+  IN REVIEW as of 2026-08-17 — build 1.0 (18) flighted and submitted (Don), BOTH
+  platforms: iOS/iPadOS and tvOS each submitted as their own platform version under
+  the one record. First submission ever for this app; the record has never carried a
+  released version.
   Listing name submitted as "Volusia Beach Info" (renamed off the reserved "Beach Ramp
   Status" the same day; "Volusia Beaches" was rejected as a candidate because it is the
   county's own Flutter app). Full submitted metadata — subtitle, keywords, descriptions,
