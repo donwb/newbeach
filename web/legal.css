@@ -1,0 +1,155 @@
+/* Privacy + support pages — static siblings of the live board, same
+   modernist token sheet as /county: Archivo, 2px rules, zero radius,
+   status red reserved for accents. Prose-width, no JS. */
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/archivo-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/archivo-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/archivo-800.woff2') format('woff2');
+}
+
+:root {
+  --ink: #201e1d;
+  --ink2: rgba(32, 30, 29, 0.62);
+  --rule: rgba(32, 30, 29, 0.85);
+  --rule2: rgba(32, 30, 29, 0.22);
+  --accent: #ec3013;
+  --ground: #e2ebed;
+  --pad: 40px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f2efe9;
+    --ink2: rgba(242, 239, 233, 0.62);
+    --rule: rgba(242, 239, 233, 0.85);
+    --rule2: rgba(242, 239, 233, 0.22);
+    --accent: #ff6a4d;
+    --ground: #1b1f22;
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Archivo', system-ui, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--pad) 80px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.dim { color: var(--ink2); }
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 28px 0 12px;
+  border-bottom: 2px solid var(--rule);
+}
+
+.masthead strong {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.masthead .label { color: var(--ink2); }
+
+a { color: inherit; }
+a:hover { color: var(--accent); }
+
+h1 {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  padding: 48px 0 8px;
+}
+
+h2 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  padding: 40px 0 10px;
+  border-bottom: 2px solid var(--rule2);
+  margin-bottom: 16px;
+}
+
+p { padding-bottom: 14px; }
+
+.lede {
+  font-size: 19px;
+  padding-bottom: 4px;
+}
+
+ul {
+  list-style: none;
+  padding-bottom: 14px;
+}
+
+li {
+  padding: 0 0 12px 20px;
+  position: relative;
+}
+
+li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  width: 9px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 56px;
+  padding-top: 12px;
+  border-top: 2px solid var(--rule);
+  color: var(--ink2);
+}
+
+@media (max-width: 640px) {
+  :root { --pad: 20px; }
+  h1 { font-size: 30px; padding-top: 32px; }
+  .lede { font-size: 17px; }
+}

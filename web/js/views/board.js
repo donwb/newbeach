@@ -146,6 +146,7 @@ export function createBoardView(store) {
 
       <footer class="foot">
         <span id="foot-sources">NOAA · NWS · Volusia County feed</span>
+        <span class="foot-links"><a href="/support">Support</a> · <a href="/privacy">Privacy</a></span>
         <span id="foot-updated" class="tabular"></span>
       </footer>
     `;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# App Store gallery screenshots — iPhone, iPad, watch.
+# App Store gallery screenshots — iPhone, iPad, Apple TV, watch.
 #
 # Builds the Debug app for the simulator, boots the store-size devices,
 # launches with the QA sky hooks (--sky-minutes freezes the ground so the
@@ -9,13 +9,14 @@
 # points at prod), so shoot when the board looks good.
 #
 # Usage:
-#   apple/scripts/screenshots.sh              # all three platforms
+#   apple/scripts/screenshots.sh              # every store platform
 #   apple/scripts/screenshots.sh iphone ipad  # subset
 #   apple/scripts/screenshots.sh --no-build   # reuse the last build
 #
 # Store sizes (verified after capture):
 #   iphone-6.9  1320×2868  iPhone 17 Pro Max
 #   ipad-13     2064×2752 / 2752×2064  iPad Pro 13-inch
+#   appletv     3840×2160  Apple TV 4K (3rd generation)
 #   watch       416×496    Apple Watch Series 11 (46mm)
 #
 # watchOS notes: status_bar override is not supported on watch sims (the
@@ -32,10 +33,14 @@ DERIVED="$REPO_ROOT/apple/BeachRamp/build/shots-ddata"
 OUT_ROOT="$REPO_ROOT/design/app-store-screenshots"
 
 IOS_BUNDLE_ID="com.donwb.BeachRampTV"
+# The tvOS app target deliberately shares the iOS bundle ID — that is what
+# lets one App Store Connect record carry both platforms (see CLAUDE.md).
+TV_BUNDLE_ID="com.donwb.BeachRampTV"
 WATCH_BUNDLE_ID="com.donwb.BeachRampTV.watchkitapp"
 
 IPHONE_SIM="iPhone 17 Pro Max"
 IPAD_SIM="iPad Pro 13-inch (M5)"
+TV_SIM="Apple TV 4K (3rd generation)"
 WATCH_SIM="Apple Watch Series 11 (46mm)"
 
 # Sky phases (minutes past midnight for --sky-minutes). Mid-August Volusia:
@@ -51,11 +56,11 @@ PLATFORMS=()
 for arg in "$@"; do
   case "$arg" in
     --no-build) BUILD=0 ;;
-    iphone|ipad|watch) PLATFORMS+=("$arg") ;;
+    iphone|ipad|tv|watch) PLATFORMS+=("$arg") ;;
     *) echo "unknown arg: $arg" >&2; exit 2 ;;
   esac
 done
-[ ${#PLATFORMS[@]} -eq 0 ] && PLATFORMS=(iphone ipad watch)
+[ ${#PLATFORMS[@]} -eq 0 ] && PLATFORMS=(iphone ipad tv watch)
 
 say() { printf '\n\033[1m== %s ==\033[0m\n' "$*"; }
 
@@ -100,6 +105,13 @@ build_ios() {
     -derivedDataPath "$DERIVED" build -quiet
 }
 
+build_tv() {
+  say "Building BeachRampTV (tvOS Simulator)"
+  xcodebuild -project "$PROJECT" -scheme BeachRampTV -configuration Debug \
+    -destination 'generic/platform=tvOS Simulator' \
+    -derivedDataPath "$DERIVED" build -quiet
+}
+
 build_watch() {
   say "Building BeachRampWatch (watchOS Simulator)"
   xcodebuild -project "$PROJECT" -scheme "BeachRampWatch Watch App" \
@@ -109,6 +121,7 @@ build_watch() {
 }
 
 IOS_APP="$DERIVED/Build/Products/Debug-iphonesimulator/BeachRamp.app"
+TV_APP="$DERIVED/Build/Products/Debug-appletvsimulator/BeachRampTV.app"
 WATCH_APP="$DERIVED/Build/Products/Debug-watchsimulator/BeachRampWatch Watch App.app"
 
 prep_ios_device() { # udid
@@ -177,6 +190,31 @@ shoot_ipad() {
       | awk '/pixelWidth/{w=$2} /pixelHeight/{h=$2} END{print w"x"h}')"
 }
 
+# tvOS has no status bar to override and no rotation to fight, so the TV
+# gallery is the simplest of the three: boot, install, launch with the QA
+# hooks. The camera rail is inline on the board, so the board shot already
+# shows the switcher.
+#
+# NOTE: deliberately no --sky-minutes here. That hook moves the sky, the
+# clock, and the sun ribbon, but NOT the verdict subline — ContentView's
+# verdict is built from a real Date() — so a frozen evening board reads
+# "7:30 PM" next to "9h 1m of light left" and contradicts itself in a store
+# screenshot. Shooting at real wall-clock time keeps every string agreeing.
+# Shoot midday Eastern: the board is mixed and the cams are lit. (If the
+# hook is ever threaded through the verdict, sky phases can come back.)
+shoot_tv() {
+  local udid; udid="$(udid_for "$TV_SIM")"
+  say "Apple TV — $TV_SIM ($udid)"
+  boot "$udid"
+  xcrun simctl install "$udid" "$TV_APP"
+  local out="$OUT_ROOT/appletv"; mkdir -p "$out"
+  rm -f "$out"/*.png
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/01-board.png"
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-tide.png"     --overlay-tide
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/03-activity.png" --overlay-activity
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/04-water.png"    --overlay-temp
+}
+
 paired_phone_for() { # watch udid -> phone udid
   xcrun simctl list pairs -j | python3 -c '
 import json, sys
@@ -220,7 +258,13 @@ shoot_watch() {
 # Build once per platform family. The watch also needs the iOS app — its
 # companion gets installed on the paired phone.
 if [ $BUILD -eq 1 ]; then
-  build_ios
+  # The iOS build is needed for iphone, ipad, and the watch's companion.
+  for p in "${PLATFORMS[@]}"; do
+    case "$p" in iphone|ipad|watch) build_ios; break ;; esac
+  done
+  for p in "${PLATFORMS[@]}"; do
+    if [ "$p" = "tv" ]; then build_tv; break; fi
+  done
   for p in "${PLATFORMS[@]}"; do
     if [ "$p" = "watch" ]; then build_watch; break; fi
   done
@@ -230,6 +274,7 @@ for p in "${PLATFORMS[@]}"; do
   case "$p" in
     iphone) shoot_iphone ;;
     ipad)   shoot_ipad ;;
+    tv)     shoot_tv ;;
     watch)  shoot_watch ;;
   esac
 done

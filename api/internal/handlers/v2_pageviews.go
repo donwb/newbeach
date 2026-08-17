@@ -23,7 +23,7 @@ var rampPathRe = regexp.MustCompile(`^/ramp/\d+/?$`)
 // Assets and API calls never match.
 func isPageView(path string) bool {
 	switch strings.TrimSuffix(path, "/") {
-	case "", "/county", "/tide", "/water", "/wind":
+	case "", "/county", "/tide", "/water", "/wind", "/privacy", "/support":
 		return true
 	}
 	return rampPathRe.MatchString(path)

@@ -15,10 +15,32 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-16 (Cam relay stabilized + health monitoring shipped (a27a28a): root-caused the flapping (10–30s home-uplink stalls fatal under MediaMTX's 10s readTimeout → now 30s; churn stopped), fixed the dead-camera backoff bug that hammered YouTube resolves and drew the day's bot-wall (wall decayed in ~1h, auto-recovered), and added camera_health tracking — relay runOnReady hooks + reconcile poller, online/status_changed_at on /api/v2/cameras, flap history at /api/v2/cameras/health. Don action pending: set CAM_HOOK_KEY in the DO UI to activate the instant-hook path (poller already live). Ormond Beach cam is dead at the county's end, awaiting their restart (new video ID → DB update). Earlier same day: Camera switcher restored on web + iPad board, b3c9817 — web board/detail chip tabs off /api/v2/cameras, iPad inline chips await next flight. Earlier same day: Prediction feature SHIPPED to main: nightly-trained per-ramp tide-closure model, /api/v2/outlook endpoints with casual server-built copy, web detail band + board risk hints, beach_conditions snapshot logger accruing tide/wind/wave training data. Prior 08-15 state: 1.0 (17) flighted, ASC consolidated, cam restreamer pending Studio deploy.)
+last_verified: 2026-08-17 (App Store submission prep: full ASC metadata sheet written to
+  docs/APP-STORE-LISTING.md — name, subtitle, keywords, descriptions, review notes, and
+  privacy answers for BOTH platforms, every length-limited field measured. Listing name
+  changing from "Beach Ramp Status" to "Volusia Beach Info" (Don, 2026-08-17). Privacy and
+  support pages BUILT (web/privacy/, web/support/, web/legal.css, linked from the board
+  footer) — they clear the two required-URL blockers once main deploys. Fresh Apple TV
+  screenshots captured at store size (3840×2160 ×4) into design/app-store-screenshots/appletv/
+  via a new `tv` platform in apple/scripts/screenshots.sh. Content Rights (the cams are
+  third-party YouTube streams re-broadcast through the relay) is Don's open decision.
+  Prior 08-16 state: cam relay stabilized + camera_health tracking shipped (a27a28a);
+  prediction feature shipped with nightly-trained per-ramp model and /api/v2/outlook
+  consumed by web, iOS/iPadOS, tvOS, and widgets; Don action still pending: set
+  CAM_HOOK_KEY in the DO UI to activate the instant-hook path. Ormond Beach cam still
+  dead at the county's end.)
 ---
 
 ## Top open items
+0. App Store submission — metadata is READY (docs/APP-STORE-LISTING.md). Remaining, in
+   order: (a) deploy main so /privacy and /support are live, then verify both load —
+   Apple checks the URLs; (b) decide Content Rights for the third-party cam streams;
+   (c) decide whether INFOPLIST_KEY_CFBundleDisplayName follows the name to "Volusia
+   Beaches" or stays "Beach Ramps" (mismatch is common and usually passes, but these
+   share only one word; 15 chars truncates on the Home Screen); (d) flight and submit
+   build 18 — build 17 predates iOS /outlook consumption and the iPad cam chips, so
+   submitting it would ship a listing describing features the binary lacks.
+   Screenshots are done for iPhone 6.9", iPad 13", and Apple TV.
 1. DONE 2026-08-15 — iOS/iPadOS redesign shipped to main (commits e6689ce…7ab6210):
    sun-following sky boards on iPhone + iPad, verdict hero, field-carried status,
    ramp detail (push on iPhone, 760×762 panel on iPad), forced-landscape live cam,

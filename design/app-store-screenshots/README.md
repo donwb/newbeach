@@ -1,4 +1,4 @@
-# App Store screenshots — Beach Ramps 1.0
+# App Store screenshots — Volusia Beach Info 1.0
 
 Captured 2026-08-15 on simulators against live prod data (beach.donwb.com —
 the sim build points at prod, so ramp statuses, tide, weather, and the live
@@ -51,6 +51,31 @@ header to use the override time.
    with conditions rail, tide curve, forecast, and live cam in one frame.
 2. **02-board-portrait.png** (2064×2752) — two-column card grid, full-width
    cam.
+
+## appletv (3840×2160, Apple TV 4K 3rd gen)
+
+Captured 2026-08-17. The App Store accepts 1920×1080 or 3840×2160 for tvOS;
+the 4K sim writes the larger size, which is what these are.
+
+1. **01-board.png** — the hero: verdict, stat rail, five NSB ramp cards with
+   their outlook hints, sun ribbon, live NSB cam, and the coastline camera
+   rail along the bottom.
+2. **02-tide.png** — tide overlay (`--overlay-tide`): today's curve with the
+   now marker and all four extremes.
+3. **03-activity.png** — recent changes (`--overlay-activity`). Real county
+   data, and the reason this shot is worth including: it shows the morning's
+   "Closed — cleared for turtles" run.
+4. **04-water.png** — water & air (`--overlay-temp`): both NOAA stations,
+   the average the board shows, and the NWS forecast strip.
+
+**No `--sky-minutes` here, on purpose.** The hook moves the sky, the header
+clock, and the sun ribbon, but not the verdict subline — ContentView builds
+the verdict from a real `Date()` (BeachRampTV/ContentView.swift:282). A
+frozen evening board therefore reads "7:30 PM" next to "8h 58m of light
+left" and contradicts itself in a store screenshot. Shooting at real
+wall-clock time keeps every string agreeing; shoot midday Eastern, when the
+board is mixed and the cams are lit. Threading the override into the verdict
+would let sky phases come back.
 
 ## watch (416×496, Apple Watch Series 11 46mm)
 
