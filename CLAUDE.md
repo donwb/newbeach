@@ -152,9 +152,12 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   DigitalOcean egress (verified 2026-08-18 from the cam-relay droplet; residential IPs
   are fine, which is why local dev never sees it). Every NDBC fetch path therefore
   falls back to NOAA CoastWatch's ERDDAP mirror (`cwwcNDBCMet`, `conditions/erddap.go`)
-  — same buoy data, ~30-min lag, full history. In prod the mirror is effectively the
-  primary; don't "simplify" the fallback away, and don't debug missing prod wave data
-  by fetching NDBC from a home machine — it will work there and prove nothing.
+  — same buoy data, ~30-min lag, full history. CoastWatch in turn tarpits the app's
+  own egress IP, so **prod's wave data routes through the cam-relay droplet's Caddy**
+  (`NDBC_ERDDAP_URL` → `cams.donwb.com/erddap/*`) — the prediction model depends on
+  camera infrastructure. Full pipeline, evidence, and runbook: `docs/WAVE-DATA.md`.
+  Don't "simplify" the fallback away, and don't debug missing prod wave data by
+  fetching NDBC from a home machine — it will work there and prove nothing.
 - **The end-of-day close is learned, not posted.** The county clears the beach before the
   posted time — turtle-season 7pm has been running ~6:30 — so the trainer learns the
   median offset from history into `day_close_offset_min` and `buildSchedule` applies it

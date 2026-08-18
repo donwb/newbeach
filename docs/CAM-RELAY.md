@@ -152,6 +152,9 @@ and MediaMTX (GitHub release tarball → `/opt/mediamtx/`) → restore
 instead of dying at the 10s default,
 publisher auth), systemd unit, `/etc/caddy/Caddyfile` → ufw allow 22/80/443/1935.
 New publisher password goes in the Studio's `~/.cam-restreamer.env`.
+**The Caddyfile must keep the `/erddap/*` proxy route** — the beach API's wave
+data rides through it (see `docs/WAVE-DATA.md`); a rebuilt droplet without it
+silently starves the prediction model.
 
 ## Caveats
 
