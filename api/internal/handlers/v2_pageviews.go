@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"regexp"
 	"strings"
@@ -89,7 +91,7 @@ func pageViewLogger(pool *pgxpool.Pool) echo.MiddlewareFunc {
 
 			view := models.PageView{
 				Path:      c.Request().URL.Path,
-				IP:        c.RealIP(),
+				IP:        clip(c.RealIP(), 64),
 				UserAgent: clip(c.Request().UserAgent(), 500),
 				Referer:   cleanReferer(c.Request().Referer()),
 			}
@@ -118,24 +120,54 @@ func parsePageViewSince(raw string, now time.Time) (time.Time, error) {
 	return time.Parse(time.RFC3339, raw)
 }
 
-// splitIPs turns a comma-separated exclude_ip value into a clean slice.
-func splitIPs(raw string) []string {
+// splitIPs turns a comma-separated exclude_ip value into a clean slice of
+// exact addresses and CIDR prefixes, normalised for Postgres inet.
+//
+// Prefixes matter because the owner's own traffic arrives from rotating IPv6
+// privacy addresses that share a /64 — excluding them one at a time is a losing
+// game, and every rotation reappears as a brand new "visitor". A bare address
+// normalises to a full-length prefix, so the query needs only one operator for
+// both forms.
+//
+// Garbage is rejected here rather than passed to the database: exclude_ip is
+// interpolated into an inet[] and an unparseable element would fail the whole
+// query with an opaque error.
+func splitIPs(raw string) ([]string, error) {
 	if raw == "" {
-		return nil
+		return nil, nil
 	}
 	ips := []string{}
-	for _, ip := range strings.Split(raw, ",") {
-		if ip = strings.TrimSpace(ip); ip != "" {
-			ips = append(ips, ip)
+	for _, tok := range strings.Split(raw, ",") {
+		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
 		}
+		if strings.Contains(tok, "/") {
+			prefix, err := netip.ParsePrefix(tok)
+			if err != nil {
+				return nil, fmt.Errorf("exclude_ip %q is not a valid CIDR prefix", tok)
+			}
+			// Masked so a prefix written with host bits set (2606::1/64)
+			// still means the whole network.
+			ips = append(ips, prefix.Masked().String())
+			continue
+		}
+		addr, err := netip.ParseAddr(tok)
+		if err != nil {
+			return nil, fmt.Errorf("exclude_ip %q is not a valid IP address", tok)
+		}
+		ips = append(ips, addr.String())
 	}
-	return ips
+	return ips, nil
 }
 
 // HandleAdminPageViews reports who has been reading the site.
 // GET /api/v2/admin/pageviews?since=2026-08-18&path=/county/&exclude_ip=a,b&group=ip&limit=500
 // Default window is the last 7 days. group=ip returns per-visitor rollups
 // (views, first/last seen, distinct paths, latest user agent) instead of raw rows.
+//
+// exclude_ip accepts exact addresses and CIDR prefixes, comma-separated —
+// exclude_ip=2606:9cc0:100:50e::/64 drops a whole rotating IPv6 range in one go.
 func HandleAdminPageViews(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
@@ -144,7 +176,10 @@ func HandleAdminPageViews(pool *pgxpool.Pool) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "since must be YYYY-MM-DD or RFC 3339"})
 		}
-		excludeIPs := splitIPs(c.QueryParam("exclude_ip"))
+		excludeIPs, err := splitIPs(c.QueryParam("exclude_ip"))
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
 
 		if c.QueryParam("group") == "ip" {
 			summaries, err := database.SummarizePageViewIPs(ctx, pool, since, excludeIPs)

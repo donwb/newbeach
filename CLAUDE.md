@@ -91,7 +91,8 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 
 ## Database
 
-- PostgreSQL 15+
+- PostgreSQL 16+ (raised from 15 on 2026-08-18: the page_views exclude_ip filter
+  uses `pg_input_is_valid`, which is 16+. Dev docker runs 16, prod RDS runs 17.)
 - Migrations in `api/migrations/` as numbered SQL files (e.g., `001_create_ramp_status.up.sql`)
 - Always provide both up and down migrations
 - Primary table: `ramp_status` — upsert on `access_id`

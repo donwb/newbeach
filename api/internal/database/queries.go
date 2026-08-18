@@ -663,6 +663,21 @@ func InsertPageView(ctx context.Context, pool *pgxpool.Pool, view models.PageVie
 // ListPageViews returns page views since the given time, newest first,
 // optionally filtered to one path and excluding the given IPs (the site
 // owner's own addresses).
+// excludeIPClause drops rows whose IP falls inside any excluded address or
+// CIDR prefix. inet's <<= ("is contained within or equals") covers both forms,
+// since splitIPs normalises a bare address to a full-length prefix.
+//
+// The CASE is not decoration. page_views.ip is TEXT and is filled from Echo's
+// RealIP(), which trusts X-Forwarded-For — so a crafted header can put a
+// non-address into the column. A bare ip::inet cast would then fail the whole
+// query. CASE is the one construct Postgres guarantees evaluates in order, so
+// the cast is only ever reached for values pg_input_is_valid has cleared
+// (needs PostgreSQL 16+, and both dev and prod run 16/17).
+const excludeIPClause = ` AND NOT CASE
+		WHEN pg_input_is_valid(ip, 'inet') THEN ip::inet <<= ANY($%d::inet[])
+		ELSE false
+	END`
+
 func ListPageViews(ctx context.Context, pool *pgxpool.Pool, since time.Time, path string, excludeIPs []string, limit int) ([]models.PageView, error) {
 	query := `
 		SELECT viewed_at, path, ip, user_agent, referer
@@ -676,7 +691,7 @@ func ListPageViews(ctx context.Context, pool *pgxpool.Pool, since time.Time, pat
 	}
 	if len(excludeIPs) > 0 {
 		args = append(args, excludeIPs)
-		query += fmt.Sprintf(" AND ip != ALL($%d)", len(args))
+		query += fmt.Sprintf(excludeIPClause, len(args))
 	}
 	args = append(args, limit)
 	query += fmt.Sprintf(" ORDER BY viewed_at DESC LIMIT $%d", len(args))
@@ -719,7 +734,7 @@ func SummarizePageViewIPs(ctx context.Context, pool *pgxpool.Pool, since time.Ti
 	args := []interface{}{since}
 	if len(excludeIPs) > 0 {
 		args = append(args, excludeIPs)
-		query += fmt.Sprintf(" AND ip != ALL($%d)", len(args))
+		query += fmt.Sprintf(excludeIPClause, len(args))
 	}
 	query += " GROUP BY ip ORDER BY last_seen DESC"
 

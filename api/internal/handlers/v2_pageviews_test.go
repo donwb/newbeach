@@ -83,7 +83,9 @@ func TestParsePageViewSince(t *testing.T) {
 }
 
 // TestSplitIPs pins exclude_ip parsing: comma-separated, whitespace-tolerant,
-// empties dropped.
+// empties dropped, and both exact addresses and CIDR prefixes accepted. The
+// prefix form is what makes excluding the owner practical — his own traffic
+// arrives from rotating IPv6 privacy addresses sharing one /64.
 func TestSplitIPs(t *testing.T) {
 	tests := []struct {
 		name string
@@ -94,11 +96,38 @@ func TestSplitIPs(t *testing.T) {
 		{"single", "1.2.3.4", []string{"1.2.3.4"}},
 		{"multiple with spaces", " 1.2.3.4 , 5.6.7.8 ", []string{"1.2.3.4", "5.6.7.8"}},
 		{"trailing comma", "1.2.3.4,", []string{"1.2.3.4"}},
+
+		{"ipv6 address", "2606:9cc0:100:50e:b848:e296:4fc:189c", []string{"2606:9cc0:100:50e:b848:e296:4fc:189c"}},
+		{"ipv6 /64 prefix", "2606:9cc0:100:50e::/64", []string{"2606:9cc0:100:50e::/64"}},
+		{"prefix with host bits is masked", "2606:9cc0:100:50e::1/64", []string{"2606:9cc0:100:50e::/64"}},
+		{"ipv4 cidr", "74.191.71.0/24", []string{"74.191.71.0/24"}},
+		{"mixed exact and prefix", "1.2.3.4, 2606:9cc0:100:50e::/64", []string{"1.2.3.4", "2606:9cc0:100:50e::/64"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, splitIPs(tt.raw))
+			got, err := splitIPs(tt.raw)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestSplitIPsRejectsGarbage keeps unparseable input out of the inet[] the
+// query interpolates it into, where it would fail the whole statement with an
+// opaque database error instead of a 400.
+func TestSplitIPsRejectsGarbage(t *testing.T) {
+	for _, raw := range []string{
+		"not-an-ip",
+		"1.2.3.4/33",
+		"2606:9cc0::/129",
+		"1.2.3.4, garbage",
+		"1.2.3.256",
+		"'; DROP TABLE page_views; --",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			_, err := splitIPs(raw)
+			require.Error(t, err)
 		})
 	}
 }
