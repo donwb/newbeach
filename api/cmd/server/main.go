@@ -207,7 +207,7 @@ func main() {
 
 	// Nightly prediction trainer — learns per-ramp tide-closure thresholds
 	// from ramp_status_history and persists them to the settings table.
-	trainer := predict.NewTrainer(pool, noaaClient)
+	trainer := predict.NewTrainer(pool, noaaClient, ndbcStation)
 	go trainer.Start(ctx)
 
 	// Start the HTTP server in a goroutine.

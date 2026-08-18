@@ -6,6 +6,15 @@ import "time"
 // county-wide ramp state, persisted to the beach_conditions table. All
 // condition fields are pointers: a nil means the upstream source was
 // unavailable at snapshot time, and the row is written anyway.
+// WaveSample is one buoy wave observation — the unit shared by the NDBC
+// fetchers, the wave_observations table, the trainer, and the predict engine.
+// It lives in models so predict never has to import conditions.
+type WaveSample struct {
+	Time            time.Time `json:"t"`
+	HeightFt        float64   `json:"wvht_ft"`
+	DominantPeriodS *float64  `json:"dpd_s,omitempty"`
+}
+
 type BeachConditions struct {
 	ID               int64      `json:"id"`
 	RecordedAt       time.Time  `json:"recorded_at"`

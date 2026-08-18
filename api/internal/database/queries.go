@@ -569,6 +569,103 @@ func InsertBeachConditions(ctx context.Context, pool *pgxpool.Pool, c models.Bea
 	return nil
 }
 
+// UpsertWaveObservations batch-inserts buoy wave samples, silently skipping
+// (station_id, observed_at) pairs already present — every writer (logger,
+// backfill, nightly self-heal) is idempotent. Returns how many rows were
+// actually inserted.
+func UpsertWaveObservations(ctx context.Context, pool *pgxpool.Pool, station string, samples []models.WaveSample) (int64, error) {
+	const query = `
+		INSERT INTO wave_observations (station_id, observed_at, wave_height_ft, dominant_period_s)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (station_id, observed_at) DO NOTHING
+	`
+
+	batch := &pgx.Batch{}
+	for _, s := range samples {
+		batch.Queue(query, station, s.Time, s.HeightFt, s.DominantPeriodS)
+	}
+
+	results := pool.SendBatch(ctx, batch)
+	defer results.Close()
+
+	var inserted int64
+	for range samples {
+		tag, err := results.Exec()
+		if err != nil {
+			return inserted, fmt.Errorf("upserting wave observation: %w", err)
+		}
+		inserted += tag.RowsAffected()
+	}
+	return inserted, nil
+}
+
+// GetLatestWaveObservation returns the station's newest wave sample, however
+// old — the caller judges staleness. Nil when the table has no rows for the
+// station.
+func GetLatestWaveObservation(ctx context.Context, pool *pgxpool.Pool, station string) (*models.WaveSample, error) {
+	const query = `
+		SELECT observed_at, wave_height_ft, dominant_period_s
+		FROM wave_observations
+		WHERE station_id = $1
+		ORDER BY observed_at DESC
+		LIMIT 1
+	`
+
+	var s models.WaveSample
+	err := pool.QueryRow(ctx, query, station).Scan(&s.Time, &s.HeightFt, &s.DominantPeriodS)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying latest wave observation: %w", err)
+	}
+	return &s, nil
+}
+
+// GetWaveObservationsRange returns the station's wave samples in [start, end),
+// ascending.
+func GetWaveObservationsRange(ctx context.Context, pool *pgxpool.Pool, station string, start, end time.Time) ([]models.WaveSample, error) {
+	const query = `
+		SELECT observed_at, wave_height_ft, dominant_period_s
+		FROM wave_observations
+		WHERE station_id = $1 AND observed_at >= $2 AND observed_at < $3
+		ORDER BY observed_at
+	`
+
+	rows, err := pool.Query(ctx, query, station, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("querying wave observations: %w", err)
+	}
+	defer rows.Close()
+
+	var samples []models.WaveSample
+	for rows.Next() {
+		var s models.WaveSample
+		if err := rows.Scan(&s.Time, &s.HeightFt, &s.DominantPeriodS); err != nil {
+			return nil, fmt.Errorf("scanning wave observation: %w", err)
+		}
+		samples = append(samples, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating wave observation rows: %w", err)
+	}
+	return samples, nil
+}
+
+// CountWaveObservations returns how many samples the station has in
+// [start, end) — used by the backfill to decide whether a month needs
+// fetching.
+func CountWaveObservations(ctx context.Context, pool *pgxpool.Pool, station string, start, end time.Time) (int, error) {
+	var n int
+	err := pool.QueryRow(ctx,
+		`SELECT count(*) FROM wave_observations WHERE station_id = $1 AND observed_at >= $2 AND observed_at < $3`,
+		station, start, end).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("counting wave observations: %w", err)
+	}
+	return n, nil
+}
+
 // ListRampStatuses returns the current access_status of every ramp. Category
 // mapping stays in Go (models.StatusToCategory) so callers count without
 // duplicating the status taxonomy in SQL.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/donwb/beach/api/internal/conditions"
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/noaa"
 )
@@ -29,17 +30,19 @@ const (
 // and the settings upsert is idempotent so overlapping instances are
 // harmless.
 type Trainer struct {
-	pool   *pgxpool.Pool
-	noaa   *noaa.Client
-	logger *slog.Logger
+	pool    *pgxpool.Pool
+	noaa    *noaa.Client
+	station string // NDBC buoy for the wave series; empty disables wave upkeep
+	logger  *slog.Logger
 }
 
 // NewTrainer creates a Trainer.
-func NewTrainer(pool *pgxpool.Pool, noaaClient *noaa.Client) *Trainer {
+func NewTrainer(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string) *Trainer {
 	return &Trainer{
-		pool:   pool,
-		noaa:   noaaClient,
-		logger: slog.Default().With("component", "trainer"),
+		pool:    pool,
+		noaa:    noaaClient,
+		station: ndbcStation,
+		logger:  slog.Default().With("component", "trainer"),
 	}
 }
 
@@ -98,9 +101,11 @@ func (t *Trainer) paramsStale(ctx context.Context) bool {
 	return time.Since(p.ComputedAt) > staleAfter
 }
 
-// train runs one full training pass and persists the result.
+// train runs one full training pass and persists the result. The timeout
+// allows for the first-boot wave backfill, which walks months of NDBC
+// archives; steady-state runs finish in seconds.
 func (t *Trainer) train(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	start := time.Now()
@@ -126,6 +131,16 @@ func (t *Trainer) train(ctx context.Context) {
 	if err != nil {
 		t.logger.Error("training: fetching tide predictions", "err", err)
 		return
+	}
+
+	// Keep the canonical wave series covering the whole history span: the
+	// nightly realtime2 fetch heals logger gaps, and the archive walk
+	// backfills anything older (a no-op once populated). Wave failures never
+	// block tide training.
+	if t.station != "" {
+		if err := conditions.BackfillWaves(ctx, t.pool, t.station, histStart); err != nil {
+			t.logger.Warn("training: wave backfill", "err", err)
+		}
 	}
 
 	params := Train(history, preds, time.Now())

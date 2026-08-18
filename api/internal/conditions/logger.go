@@ -100,12 +100,24 @@ func (l *Logger) snapshot(ctx context.Context) {
 		}
 	}
 
-	// Waves from the NDBC buoy.
+	// Waves from the NDBC buoy. The observation also lands in the canonical
+	// wave_observations series (keyed by the buoy's own timestamp) that the
+	// prediction model trains and serves from.
 	if waves, err := l.ndbc.FetchLatestWaves(ctx); err != nil {
 		l.logger.Warn("snapshot: NDBC waves unavailable", "err", err)
 	} else {
 		c.WaveHeightFt = &waves.WaveHeightFt
 		c.DominantPeriodS = waves.DominantPeriodS
+		if !waves.ObservedAt.IsZero() {
+			sample := models.WaveSample{
+				Time:            waves.ObservedAt,
+				HeightFt:        waves.WaveHeightFt,
+				DominantPeriodS: waves.DominantPeriodS,
+			}
+			if _, err := database.UpsertWaveObservations(ctx, l.pool, l.ndbc.stationID, []models.WaveSample{sample}); err != nil {
+				l.logger.Warn("snapshot: wave observation upsert failed", "err", err)
+			}
+		}
 	}
 
 	// County-wide ramp counts. "Open" counts anything drivable (open or
