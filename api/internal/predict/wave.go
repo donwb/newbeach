@@ -12,6 +12,44 @@ import (
 // every 30 minutes, so 3 hours only comes into play across outage gaps.
 const maxWaveMatchGap = 3 * time.Hour
 
+// maxWaveAge is the serve-time staleness cutoff: an observation older than
+// this (buoy adrift, feed down) is treated as no wave data at all, and the
+// outlook falls back to tide-only behavior.
+const maxWaveAge = 6 * time.Hour
+
+// maxWaveShiftFt clamps each learned regime shift. The whole point of the
+// wave modifier is a nudge across the threshold band, never a rewrite of
+// the tide model.
+const maxWaveShiftFt = 0.8
+
+// waveShift maps a current wave height to the effective-threshold shift:
+// positive on calm water (more tide needed to close), negative under a real
+// swell. Nil height or unlearned Waves → 0 → exactly the tide-only model.
+func (p Params) waveShift(waveFt *float64) float64 {
+	if waveFt == nil || p.Waves == nil {
+		return 0
+	}
+	w := p.Waves
+	switch {
+	case *waveFt <= w.CalmMaxFt:
+		return clampShift(w.CalmRaiseFt)
+	case *waveFt >= w.RoughMinFt:
+		return -clampShift(w.RoughDropFt)
+	default:
+		return 0
+	}
+}
+
+func clampShift(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > maxWaveShiftFt {
+		return maxWaveShiftFt
+	}
+	return v
+}
+
 // waveNearTime returns the sample nearest t within maxWaveMatchGap, or nil.
 // samples must be ascending by time (sortWaveSamples arranges that).
 func waveNearTime(samples []models.WaveSample, t time.Time) *models.WaveSample {

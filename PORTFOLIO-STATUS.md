@@ -25,7 +25,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-17 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission ever.
+last_verified: 2026-08-18 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission ever.
   Same day, the prep that made it possible: full ASC metadata sheet written to
   docs/APP-STORE-LISTING.md — name, subtitle, keywords, descriptions, review notes, and
   privacy answers for BOTH platforms, every length-limited field measured. Listing name
@@ -90,9 +90,21 @@ last_verified: 2026-08-17 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first su
    all families show a hint line ("Tide risk on 5 ramps · closure likely
    ~10am"), verified on the simulator home screen. Live Activity explicitly
    deferred (Don, 2026-08-16) — widgets cover prediction; pushes wait for the
-   APNs sender. REMAINING: TRMNL consumption, retire the
-   duplicated JS/Swift reopen heuristics fully, wave-aware model once
-   conditions data matures, APNs Live Activity sender, and eventually a
+   APNs sender. WAVE-AWARE MODEL SHIPPED 2026-08-18 (prompted by Aug 17-18
+   false alarms: "likely" on 3.3 ft peaks over a 0.5 m swell, zero closures):
+   new wave_observations series (NDBC 41113, logger dual-write + trainer
+   self-heal + archive backfill to March), county-wide calm/rough regime
+   split learned jointly (boundary + threshold shift, misses weighted double)
+   layered on the tide thresholds — calm raises the bar, swell widens
+   "possible" downward but never promotes to "likely", hard cutoffs immune.
+   Backtest vs tide-only: mid-band recall way up (PI-097 0.16→0.58, DB-041
+   0.78→0.90, DBS-075 0.81→0.90), "likely" precision up everywhere, Aug 17
+   false alarms 7→3 on replay. Outlook now carries a `surf` block; scorecard
+   grades carry WVHT/DPD; PREDICT_WAVES_ENABLED=false is the serve-side kill
+   switch; params v4 retrains on deploy. REMAINING: TRMNL consumption, retire
+   the duplicated JS/Swift reopen heuristics fully, period-aware runup
+   refinement (11s groundswell > its height suggests; DPD now recorded on
+   every grade), APNs Live Activity sender, and eventually a
    re-flight so the apps render the 2026-08-17 `scheduled` end-of-day hint.
    **Re-flight deliberately deferred (Don, 2026-08-17): let build 18 finish
    App Review first** — do not upload a new build while 18 is pending. The cost

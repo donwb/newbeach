@@ -80,7 +80,7 @@ func TestTrainLearnsSeparableThreshold(t *testing.T) {
 		"NS-999": buildSeparableHistory(peaks, 2.8),
 	}
 
-	params := Train(history, peaks, et(15, 0, 0))
+	params := Train(history, peaks, nil, et(15, 0, 0))
 
 	rp, ok := params.Ramps["NS-999"]
 	require.True(t, ok, "ramp should earn learned params")
@@ -98,7 +98,7 @@ func TestTrainSkipsSmallSamples(t *testing.T) {
 		"PI-001": buildSeparableHistory(peaks, 2.8), // only 2 closures
 	}
 
-	params := Train(history, peaks, et(3, 0, 0))
+	params := Train(history, peaks, nil, et(3, 0, 0))
 	_, ok := params.Ramps["PI-001"]
 	assert.False(t, ok, "under-sampled ramp falls back to default")
 	assert.Equal(t, DefaultParams, params.Default, "defaults survive with <3 learned ramps")
@@ -122,7 +122,7 @@ func TestTrainNoisyDataStillReasonable(t *testing.T) {
 		models.StatusEvent{AccessStatus: "OPEN", RecordedAt: et(1, 14, 30)},
 	)
 
-	params := Train(map[string][]models.StatusEvent{"DB-001": events}, peaks, et(21, 0, 0))
+	params := Train(map[string][]models.StatusEvent{"DB-001": events}, peaks, nil, et(21, 0, 0))
 	rp, ok := params.Ramps["DB-001"]
 	require.True(t, ok)
 	assert.Greater(t, rp.Accuracy, 0.85, "one flipped label barely dents balanced accuracy")

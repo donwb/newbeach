@@ -45,15 +45,24 @@ func TestClockRange(t *testing.T) {
 
 func TestRiskForPeak(t *testing.T) {
 	rp := RampParams{ThresholdFt: 2.6, CloseRate: 0.2}
-	assert.Equal(t, RiskLikely, riskForPeak(3.6, rp, hardOpenFt, hardCloseFt), "hard close rule")
-	assert.Equal(t, RiskNone, riskForPeak(1.9, rp, hardOpenFt, hardCloseFt), "hard open rule")
-	assert.Equal(t, RiskLikely, riskForPeak(2.95, rp, hardOpenFt, hardCloseFt), "above threshold band")
-	assert.Equal(t, RiskPossible, riskForPeak(2.5, rp, hardOpenFt, hardCloseFt), "inside band")
-	assert.Equal(t, RiskNone, riskForPeak(2.25, rp, hardOpenFt, hardCloseFt), "below band, low close rate")
+	assert.Equal(t, RiskLikely, riskForPeak(3.6, 0, rp, hardOpenFt, hardCloseFt), "hard close rule")
+	assert.Equal(t, RiskNone, riskForPeak(1.9, 0, rp, hardOpenFt, hardCloseFt), "hard open rule")
+	assert.Equal(t, RiskLikely, riskForPeak(2.95, 0, rp, hardOpenFt, hardCloseFt), "above threshold band")
+	assert.Equal(t, RiskPossible, riskForPeak(2.5, 0, rp, hardOpenFt, hardCloseFt), "inside band")
+	assert.Equal(t, RiskNone, riskForPeak(2.25, 0, rp, hardOpenFt, hardCloseFt), "below band, low close rate")
 
 	flipper := RampParams{ThresholdFt: 3.85, CloseRate: 0.42}
-	assert.Equal(t, RiskPossible, riskForPeak(2.6, flipper, hardOpenFt, hardCloseFt), "mid-range flipper stays possible")
-	assert.Equal(t, RiskNone, riskForPeak(2.2, flipper, hardOpenFt, hardCloseFt), "below action zone")
+	assert.Equal(t, RiskPossible, riskForPeak(2.6, 0, flipper, hardOpenFt, hardCloseFt), "mid-range flipper stays possible")
+	assert.Equal(t, RiskNone, riskForPeak(2.2, 0, flipper, hardOpenFt, hardCloseFt), "below action zone")
+
+	// The wave shift moves the learnable band, never the hard cutoffs.
+	assert.Equal(t, RiskPossible, riskForPeak(2.95, 0.5, rp, hardOpenFt, hardCloseFt), "calm raise demotes likely to possible")
+	assert.Equal(t, RiskNone, riskForPeak(2.5, 0.5, rp, hardOpenFt, hardCloseFt), "calm raise silences the band call")
+	assert.Equal(t, RiskPossible, riskForPeak(2.5, -0.4, rp, hardOpenFt, hardCloseFt), "swell never raises to likely — the possible band widens instead")
+	assert.Equal(t, RiskPossible, riskForPeak(2.0, -0.4, rp, 1.5, hardCloseFt), "swell widens the possible band downward")
+	assert.Equal(t, RiskLikely, riskForPeak(3.6, 0.8, rp, hardOpenFt, hardCloseFt), "hard close is immune to calm")
+	assert.Equal(t, RiskNone, riskForPeak(1.9, -0.8, rp, hardOpenFt, hardCloseFt), "hard open is immune to swell")
+	assert.Equal(t, RiskNone, riskForPeak(2.6, 0.5, flipper, hardOpenFt, hardCloseFt), "calm raise lifts the mid-range floor too")
 }
 
 // A station with lower tidal amplitude (e.g. prod's 8721164 vs the analysis
@@ -64,9 +73,9 @@ func TestRiskForPeakScalesToStation(t *testing.T) {
 	// With learned cutoffs for that station, a 1.95 peak is decisively above
 	// the threshold band → likely, even though the 8721147-scale fallback
 	// rule (≤2.0 → none) would have wrongly silenced it.
-	assert.Equal(t, RiskLikely, riskForPeak(1.95, rp, 1.2, 2.8))
-	assert.Equal(t, RiskNone, riskForPeak(1.1, rp, 1.2, 2.8), "below learned hard-open")
-	assert.Equal(t, RiskLikely, riskForPeak(2.9, rp, 1.2, 2.8), "above learned hard-close")
+	assert.Equal(t, RiskLikely, riskForPeak(1.95, 0, rp, 1.2, 2.8))
+	assert.Equal(t, RiskNone, riskForPeak(1.1, 0, rp, 1.2, 2.8), "below learned hard-open")
+	assert.Equal(t, RiskLikely, riskForPeak(2.9, 0, rp, 1.2, 2.8), "above learned hard-close")
 }
 
 func TestTrainLearnsHardCutoffs(t *testing.T) {
@@ -75,7 +84,7 @@ func TestTrainLearnsHardCutoffs(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		peaks = append(peaks, h(et(1+i%28, 13, 0).Add(time.Duration(i)*time.Minute), 1.0+float64(i)*0.05))
 	}
-	params := Train(map[string][]models.StatusEvent{}, peaks, et(28, 0, 0))
+	params := Train(map[string][]models.StatusEvent{}, peaks, nil, et(28, 0, 0))
 	assert.InDelta(t, 1.1, params.HardOpenFt, 0.11)
 	assert.InDelta(t, 3.35, params.HardCloseFt, 0.11)
 }
@@ -103,7 +112,7 @@ func TestBuildOutlookTurtleSeasonRisk(t *testing.T) {
 		ramp(3, "DB-041", "OPEN"),
 	}
 
-	out := BuildOutlook(now, ramps, testParams(), preds)
+	out := BuildOutlook(now, ramps, testParams(), preds, nil)
 
 	assert.Equal(t, "turtle", out.Season)
 	assert.Equal(t, "7pm", out.Schedule.ClosesLabel)
@@ -153,7 +162,7 @@ func TestBuildOutlookQuietDay(t *testing.T) {
 		{Time: et(16, 21, 0), Type: "L", Height: &low},
 	}
 
-	out := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds)
+	out := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds, nil)
 	ro := out.Ramps[0]
 	assert.Equal(t, RiskScheduled, ro.Risk, "1.8 ft peak closes nothing, even the eager closer")
 	assert.Equal(t, ReasonEndOfDay, ro.Reason, "with no tide story, the day's close is the next thing")
@@ -168,7 +177,7 @@ func TestBuildOutlookClosedNow(t *testing.T) {
 	since := et(16, 14, 0)
 	closedRamp.StatusSince = &since
 
-	out := BuildOutlook(et(16, 14, 30), []models.RampStatusWithSince{closedRamp}, testParams(), preds)
+	out := BuildOutlook(et(16, 14, 30), []models.RampStatusWithSince{closedRamp}, testParams(), preds, nil)
 	ro := out.Ramps[0]
 	assert.Equal(t, RiskClosedNow, ro.Risk)
 	assert.Equal(t, "Closed for high tide", ro.Headline)
@@ -186,7 +195,7 @@ func TestBuildOutlookMetadataOverride(t *testing.T) {
 	override := 4.2 // operator says this ramp basically never closes
 	r.ClosureHeightFt = &override
 
-	out := BuildOutlook(now, []models.RampStatusWithSince{r}, testParams(), preds)
+	out := BuildOutlook(now, []models.RampStatusWithSince{r}, testParams(), preds, nil)
 	assert.Equal(t, RiskScheduled, out.Ramps[0].Risk, "operator override beats learned threshold")
 	assert.Equal(t, ReasonEndOfDay, out.Ramps[0].Reason)
 }
@@ -200,7 +209,7 @@ func TestBuildOutlookOffSeason(t *testing.T) {
 		{Time: now.Add(3 * time.Hour), Type: "H", Height: &high},
 	}
 
-	out := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds)
+	out := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds, nil)
 	assert.Equal(t, "standard", out.Season)
 	require.NotNil(t, out.Schedule.ClosesAt)
 	// Mid-December NSB sunset ~5:30 PM ET; schedule closes 15 min early and
@@ -235,27 +244,27 @@ func TestBuildOutlookDecaysAsClockPasses(t *testing.T) {
 	// Peak 15:30, NS-141 lead 120 / lag 80 → close ~13:30, lag ends 16:50.
 
 	// Before the learned close time: the clock time is a fair thing to quote.
-	ahead := BuildOutlook(et(16, 12, 0), ramps, testParams(), preds).Ramps[0]
+	ahead := BuildOutlook(et(16, 12, 0), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskLikely, ahead.Risk)
 	assert.Equal(t, "High-tide closure possible around 1:30pm", ahead.Headline)
 	assert.Equal(t, "tide closure possible ~1:30pm", ahead.Short)
 
 	// Past it, still open: same risk, but no stale clock time in the copy.
-	due := BuildOutlook(et(16, 14, 0), ramps, testParams(), preds).Ramps[0]
+	due := BuildOutlook(et(16, 14, 0), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskLikely, due.Risk, "a late closure is still a closure")
 	assert.Equal(t, "High-tide closure possible any time now", due.Headline)
 	assert.Equal(t, "Often back open by 5pm once the tide drops", due.Detail)
 	assert.Equal(t, "tide closure possible soon", due.Short)
 
 	// Past the peak: the ramp beat this tide, so likely softens to possible.
-	falling := BuildOutlook(et(16, 16, 0), ramps, testParams(), preds).Ramps[0]
+	falling := BuildOutlook(et(16, 16, 0), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskPossible, falling.Risk)
 	assert.Equal(t, "Could still close while the tide drops", falling.Headline)
 	assert.Equal(t, "tide closure still possible", falling.Short)
 
 	// Past the learned lag (16:50) the peak stops counting, and the line
 	// falls through to the next scheduled thing rather than going blank.
-	done := BuildOutlook(et(16, 16, 55), ramps, testParams(), preds).Ramps[0]
+	done := BuildOutlook(et(16, 16, 55), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskScheduled, done.Risk)
 	assert.Equal(t, ReasonEndOfDay, done.Reason)
 	assert.Nil(t, done.Window)
@@ -267,13 +276,13 @@ func TestBuildOutlookPossibleKeepsPeakTimeUntilItPasses(t *testing.T) {
 	_, preds := afternoonScenario()
 	ramps := []models.RampStatusWithSince{ramp(2, "NS-106", "OPEN")}
 
-	ahead := BuildOutlook(et(16, 14, 30), ramps, testParams(), preds).Ramps[0]
+	ahead := BuildOutlook(et(16, 14, 30), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskPossible, ahead.Risk)
 	assert.Equal(t, "Could close around the 3:30pm high tide", ahead.Headline)
 
 	// NS-106 lag is 53 min → the 15:30 peak stops counting at 16:23, and
 	// the day's close becomes the next thing worth saying.
-	past := BuildOutlook(et(16, 16, 30), ramps, testParams(), preds).Ramps[0]
+	past := BuildOutlook(et(16, 16, 30), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskScheduled, past.Risk)
 	assert.Equal(t, ReasonEndOfDay, past.Reason)
 }
@@ -291,7 +300,7 @@ func TestBuildOutlookEndOfDay(t *testing.T) {
 	}
 	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}
 
-	ro := BuildOutlook(et(16, 17, 30), ramps, testParams(), preds).Ramps[0]
+	ro := BuildOutlook(et(16, 17, 30), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskScheduled, ro.Risk)
 	assert.Equal(t, ReasonEndOfDay, ro.Reason)
 	assert.Equal(t, "Beach driving closes for the day around 7pm", ro.Headline)
@@ -310,7 +319,7 @@ func TestBuildOutlookEndOfDaySunset(t *testing.T) {
 		{Time: now.Add(4 * time.Hour), Type: "H", Height: &high},
 	}
 
-	ro := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds).Ramps[0]
+	ro := BuildOutlook(now, []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, ReasonEndOfDay, ro.Reason)
 	assert.Regexp(t, `^Beach driving closes at sunset, around \d{1,2}(:30)?pm$`, ro.Headline)
 	assert.Regexp(t, `^closes for the day ~\d{1,2}(:30)?pm$`, ro.Short)
@@ -328,7 +337,7 @@ func TestBuildOutlookTideBeatsEndOfDay(t *testing.T) {
 		{Time: et(17, 0, 30), Type: "L", Height: &low},
 	}
 
-	ro := BuildOutlook(et(16, 17, 30), []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds).Ramps[0]
+	ro := BuildOutlook(et(16, 17, 30), []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskLikely, ro.Risk)
 	assert.Equal(t, ReasonHighTide, ro.Reason)
 	assert.Equal(t, "High-tide closure possible any time now", ro.Headline)
@@ -343,7 +352,7 @@ func TestBuildOutlookOvernightLooksForward(t *testing.T) {
 	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "CLOSED")}
 
 	// 9pm, after the 7pm close: the schedule has rolled to tomorrow.
-	night := BuildOutlook(et(16, 21, 0), ramps, testParams(), preds).Ramps[0]
+	night := BuildOutlook(et(16, 21, 0), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, RiskClosedNow, night.Risk)
 	assert.Equal(t, ReasonOvernight, night.Reason)
 	assert.Equal(t, "Closed until morning", night.Headline)
@@ -352,7 +361,7 @@ func TestBuildOutlookOvernightLooksForward(t *testing.T) {
 	assert.Equal(t, "opens around 8am", night.Reopen.Label)
 
 	// Same story before the morning open.
-	dawn := BuildOutlook(et(16, 6, 30), ramps, testParams(), preds).Ramps[0]
+	dawn := BuildOutlook(et(16, 6, 30), ramps, testParams(), preds, nil).Ramps[0]
 	assert.Equal(t, ReasonOvernight, dawn.Reason)
 	assert.Equal(t, "opens around 8am", dawn.Reopen.Label)
 }
@@ -367,7 +376,7 @@ func TestDayCloseOffsetIsLearned(t *testing.T) {
 			models.StatusEvent{AccessStatus: "OPEN", RecordedAt: et(d, 8, 0)},
 			models.StatusEvent{AccessStatus: "CLOSED", RecordedAt: et(d, 18, 30)})
 	}
-	params := Train(history, nil, et(20, 0, 0))
+	params := Train(history, nil, nil, et(20, 0, 0))
 	assert.Equal(t, -30, params.DayCloseOffsetMin)
 
 	// And the schedule honors it: the posted 7pm becomes a predicted 6:30pm.

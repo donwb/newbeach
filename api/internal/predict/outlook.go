@@ -109,12 +109,24 @@ type TideContext struct {
 	NextPeakAt *time.Time `json:"next_peak_at,omitempty"`
 }
 
+// SurfContext is the sea state the outlook was computed under — present only
+// when a fresh buoy observation informed the risk calls, so an operator can
+// always see what the model saw. Regime names which learned wave regime
+// applied (calm/neutral/rough), empty when no wave params are trained yet.
+type SurfContext struct {
+	WaveHeightFt    float64   `json:"wave_height_ft"`
+	DominantPeriodS *float64  `json:"dominant_period_s,omitempty"`
+	ObservedAt      time.Time `json:"observed_at"`
+	Regime          string    `json:"regime,omitempty"`
+}
+
 // Outlook is the full response served at /api/v2/outlook.
 type Outlook struct {
 	GeneratedAt time.Time     `json:"generated_at"`
 	Season      string        `json:"season"`
 	Schedule    Schedule      `json:"schedule"`
 	Tide        TideContext   `json:"tide"`
+	Surf        *SurfContext  `json:"surf,omitempty"`
 	Ramps       []RampOutlook `json:"ramps"`
 }
 
@@ -210,17 +222,26 @@ func confidence(rp RampParams, learned bool) string {
 // riskForPeak classifies one predicted peak against a ramp's parameters.
 // hardOpen/hardClose are the county-wide cutoffs (learned percentiles of the
 // peak distribution, so they track the configured station's height scale).
-func riskForPeak(peakFt float64, rp RampParams, hardOpen, hardClose float64) string {
+//
+// waveShiftFt moves the learnable band with the current sea state — positive
+// on calm water, negative under a swell, 0 when wave data is missing. The
+// asymmetry is deliberate: surf evidence can silence a call or hedge it, but
+// only tide evidence promotes to "likely" (a swell never lowers the likely
+// bar — it widens the possible band downward instead), and the hard cutoffs
+// don't move at all: extreme tides close ramps regardless of surf, so recall
+// at the top end never depends on the buoy.
+func riskForPeak(peakFt, waveShiftFt float64, rp RampParams, hardOpen, hardClose float64) string {
+	likelyShift := math.Max(waveShiftFt, 0)
 	switch {
 	case peakFt >= hardClose:
 		return RiskLikely
 	case peakFt <= hardOpen:
 		return RiskNone
-	case peakFt >= rp.ThresholdFt+hysteresisFt:
+	case peakFt >= rp.ThresholdFt+likelyShift+hysteresisFt:
 		return RiskLikely
-	case peakFt >= rp.ThresholdFt-hysteresisFt:
+	case peakFt >= rp.ThresholdFt+waveShiftFt-hysteresisFt:
 		return RiskPossible
-	case peakFt >= midRangeFt && rp.CloseRate >= midRangeCloseRate:
+	case peakFt >= midRangeFt+waveShiftFt && rp.CloseRate >= midRangeCloseRate:
 		return RiskPossible
 	default:
 		return RiskNone
@@ -371,8 +392,11 @@ func reopenEstimate(preds []models.TidePrediction, closedAt, now time.Time) time
 
 // BuildOutlook computes the full outlook. preds are hilo predictions
 // covering at least [now-1d, now+2d]; ramps come from
-// GetRampsWithStatusSince. Pure — no I/O, fully testable.
-func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction) Outlook {
+// GetRampsWithStatusSince. wave is the latest buoy observation, nil when
+// unavailable; an observation older than maxWaveAge is ignored, so a drifting
+// or silent buoy degrades cleanly to tide-only behavior. Pure — no I/O,
+// fully testable.
+func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample) Outlook {
 	season, sched := buildSchedule(now, params)
 
 	out := Outlook{
@@ -380,6 +404,34 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		Season:      season,
 		Schedule:    sched,
 		Ramps:       make([]RampOutlook, 0, len(ramps)),
+	}
+
+	// One shift for the whole response: the sea state is county-wide.
+	waveShiftFt := 0.0
+	if wave != nil {
+		age := now.Sub(wave.Time)
+		if age < 0 {
+			age = -age
+		}
+		if age <= maxWaveAge {
+			waveShiftFt = params.waveShift(&wave.HeightFt)
+			surf := SurfContext{
+				WaveHeightFt:    wave.HeightFt,
+				DominantPeriodS: wave.DominantPeriodS,
+				ObservedAt:      wave.Time,
+			}
+			if w := params.Waves; w != nil {
+				switch {
+				case wave.HeightFt <= w.CalmMaxFt:
+					surf.Regime = "calm"
+				case wave.HeightFt >= w.RoughMinFt:
+					surf.Regime = "rough"
+				default:
+					surf.Regime = "neutral"
+				}
+			}
+			out.Surf = &surf
+		}
 	}
 
 	// Shared tide context: the next high-tide peak from now.
@@ -442,7 +494,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		riskIdx := -1
 		risks := make([]string, len(dayPeaks))
 		for i := range dayPeaks {
-			r := riskForPeak(*dayPeaks[i].Height, rp, params.hardOpen(), params.hardClose())
+			r := riskForPeak(*dayPeaks[i].Height, waveShiftFt, rp, params.hardOpen(), params.hardClose())
 			risks[i] = decayRisk(r, now, dayPeaks[i], rp)
 			if riskRank(risks[i]) > riskRank(risk) {
 				risk = risks[i]

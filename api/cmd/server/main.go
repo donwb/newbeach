@@ -93,6 +93,10 @@ func main() {
 	}
 	conditionsEnabled := os.Getenv("CONDITIONS_ENABLED") != "false"
 
+	// Kill switch for wave-conditioned predictions: serving falls back to
+	// tide-only without touching the learned params or the wave series.
+	predictWavesEnabled := os.Getenv("PREDICT_WAVES_ENABLED") != "false"
+
 	camHealthInterval := 60 * time.Second
 	if chi := os.Getenv("CAM_HEALTH_INTERVAL"); chi != "" {
 		if secs, err := strconv.Atoi(chi); err == nil && secs > 0 {
@@ -147,7 +151,11 @@ func main() {
 
 	// Register API routes.
 	ing := ingester.New(pool, gisHost, pollInterval)
-	outlookSvc := predict.NewService(pool, noaaClient)
+	outlookStation := ndbcStation
+	if !predictWavesEnabled {
+		outlookStation = ""
+	}
+	outlookSvc := predict.NewService(pool, noaaClient, outlookStation)
 	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, ndbcStation)
 
 	// Serve static website files from the filesystem, after API routes so the

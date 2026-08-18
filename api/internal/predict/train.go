@@ -24,6 +24,16 @@ const (
 	// station-8721147 scale) when the peak distribution can't provide one.
 	minThresholdFt = 1.5
 	maxThresholdFt = 4.5
+
+	// Wave-regime learning guards: the pool must be at least this big to
+	// learn anything, each regime needs this many labeled peaks to earn a
+	// shift, and a nonzero shift must beat shift-0 accuracy within its
+	// regime by at least minWaveGain — otherwise the shift stays 0 and the
+	// model behaves exactly tide-only.
+	minWavePoolSamples   = 30
+	minWaveRegimeSamples = 15
+	minWaveGain          = 0.02
+	waveShiftStepFt      = 0.05
 )
 
 // peakQuantile returns the q-quantile of the peak heights (nearest rank).
@@ -242,10 +252,168 @@ func dayCloseOffsets(historyByRamp map[string][]models.StatusEvent) []float64 {
 // offset; below it the posted close stands.
 const minDayCloseSamples = 10
 
+// wavePeakSample is one labeled daytime peak with its ramp's learned tide
+// threshold and the sea state nearest the peak — the unit the county-wide
+// wave regime split trains on.
+type wavePeakSample struct {
+	peakFt      float64
+	thresholdFt float64
+	label       bool
+	waveFt      float64
+}
+
+// closedPeakWeight makes a correctly-called closure worth this many
+// correctly-called quiet peaks in the wave scan. The outcome taxonomy is
+// asymmetric on purpose — a hedge that doesn't fire costs nothing, a missed
+// closure is the worst outcome — so the learner that can *suppress* risk
+// must price a new miss higher than a saved false alarm. (bestThreshold
+// stays plain-accuracy: per-ramp base rates are signal there.)
+const closedPeakWeight = 2.0
+
+// weightedAccuracy scores "closed when peakFt >= thresholdFt + shift" over
+// the samples, weighting closure peaks by closedPeakWeight.
+func weightedAccuracy(samples []wavePeakSample, shift float64) float64 {
+	var correct, total float64
+	for _, s := range samples {
+		w := 1.0
+		if s.label {
+			w = closedPeakWeight
+		}
+		total += w
+		if (s.peakFt >= s.thresholdFt+shift) == s.label {
+			correct += w
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return correct / total
+}
+
+// waveQuantile returns the q-quantile of the pool's wave heights.
+func waveQuantile(sortedHeights []float64, q float64) float64 {
+	return sortedHeights[int(q*float64(len(sortedHeights)-1))]
+}
+
+// bestRegime jointly scans boundary candidates (wave-height quantiles, so
+// they rescale with any buoy) and shift magnitudes. sign is +1 for the calm
+// raise, -1 for the rough drop; the returned shift is a magnitude.
+//
+// A candidate qualifies only when its shift beats shift-0 by minWaveGain
+// *within its own regime* — the shift touches nothing else, and a
+// regime-local bar stays meaningful whatever the pool size. Among
+// qualifying candidates, the winner is the one fixing the most weighted
+// pool error (regime improvement × regime weight). No qualifier → the
+// fallback-quantile boundary and shift 0, i.e. tide-only behavior.
+func bestRegime(pooled []wavePeakSample, sortedHeights []float64, quantiles []float64, fallbackQ, sign float64) (boundary, shift float64) {
+	calmSide := sign > 0
+	boundary = waveQuantile(sortedHeights, fallbackQ)
+	bestShift, bestFixed := 0.0, 0.0
+
+	for _, q := range quantiles {
+		b := waveQuantile(sortedHeights, q)
+		var regime []wavePeakSample
+		var regimeWeight float64
+		for _, s := range pooled {
+			if (calmSide && s.waveFt <= b) || (!calmSide && s.waveFt >= b) {
+				regime = append(regime, s)
+				if s.label {
+					regimeWeight += closedPeakWeight
+				} else {
+					regimeWeight++
+				}
+			}
+		}
+		if len(regime) < minWaveRegimeSamples {
+			continue
+		}
+		base := weightedAccuracy(regime, 0)
+		for mag := waveShiftStepFt; mag <= maxWaveShiftFt+1e-9; mag += waveShiftStepFt {
+			gain := weightedAccuracy(regime, sign*mag) - base
+			if gain < minWaveGain {
+				continue
+			}
+			if fixed := gain * regimeWeight; fixed > bestFixed {
+				bestFixed = fixed
+				boundary, bestShift = b, mag
+			}
+		}
+	}
+	if bestShift == 0 {
+		return waveQuantile(sortedHeights, fallbackQ), 0
+	}
+	return boundary, math.Round(bestShift*100) / 100
+}
+
+// trainWaveParams learns the county-wide calm/rough regime split from the
+// pooled wave-matched peaks: for each side, the boundary (scanned over
+// wave-height quantiles) and the threshold shift are chosen jointly to
+// maximize whole-pool label accuracy — the same closed-form idiom as
+// bestThreshold. Returns nil when the pool is too thin to trust, which
+// downstream reads as "tide-only".
+func trainWaveParams(pooled []wavePeakSample) *WaveParams {
+	if len(pooled) < minWavePoolSamples {
+		return nil
+	}
+
+	heights := make([]float64, len(pooled))
+	for i, s := range pooled {
+		heights[i] = s.waveFt
+	}
+	sort.Float64s(heights)
+
+	// Candidate quantiles keep each regime a real minority share of days —
+	// a "calm" that covers most of the summer stops meaning anything.
+	calmQs := []float64{0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50}
+	roughQs := []float64{0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90}
+
+	calmMax, calmRaise := bestRegime(pooled, heights, calmQs, 0.30, 1)
+	roughMin, roughDrop := bestRegime(pooled, heights, roughQs, 0.75, -1)
+
+	// The regimes may not cross: an overlapping pick would double-shift
+	// nothing (waveShift checks calm first) but read as nonsense in the
+	// admin view. Keep the calm side — suppression is the better-evidenced
+	// signal — and disable the rough shift.
+	if roughMin <= calmMax {
+		roughMin = waveQuantile(heights, 0.75)
+		roughDrop = 0
+	}
+
+	// Boundaries round outward (calm up, rough down) so the observations
+	// that defined each quantile stay inside their own regime.
+	wp := &WaveParams{
+		CalmMaxFt:   math.Ceil(calmMax*100) / 100,
+		RoughMinFt:  math.Floor(roughMin*100) / 100,
+		CalmRaiseFt: calmRaise,
+		RoughDropFt: roughDrop,
+		NSamples:    len(pooled),
+	}
+
+	// Pooled accuracy with both learned shifts applied, for the admin view.
+	var correct int
+	for _, s := range pooled {
+		var shift float64
+		switch {
+		case s.waveFt <= calmMax:
+			shift = wp.CalmRaiseFt
+		case s.waveFt >= roughMin:
+			shift = -wp.RoughDropFt
+		}
+		if (s.peakFt >= s.thresholdFt+shift) == s.label {
+			correct++
+		}
+	}
+	wp.Accuracy = math.Round(float64(correct)/float64(len(pooled))*1000) / 1000
+
+	return wp
+}
+
 // Train derives Params from full status-event history (per access_id,
-// ascending) and hilo tide predictions covering the same span.
-func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, now time.Time) Params {
+// ascending), hilo tide predictions covering the same span, and the buoy
+// wave series (any order; nil trains tide-only).
+func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, waves []models.WaveSample, now time.Time) Params {
 	peaks := tidePeaks(preds)
+	sortWaveSamples(waves)
 
 	params := Params{
 		Version:    paramsVersion,
@@ -271,6 +439,7 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 
 	var historyStart time.Time
 	var thresholds, leads, lags []float64
+	var wavePool []wavePeakSample
 
 	for accessID, events := range historyByRamp {
 		if len(events) == 0 {
@@ -326,6 +495,20 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 		thresholds = append(thresholds, threshold)
 		leads = append(leads, float64(lead))
 		lags = append(lags, float64(lag))
+
+		// Pool this ramp's peaks for the county-wide wave regime split —
+		// only peaks with a nearby buoy observation; outage gaps still train
+		// the tide thresholds above.
+		for i, p := range rampPeaks {
+			if w := waveNearTime(waves, p.Time); w != nil {
+				wavePool = append(wavePool, wavePeakSample{
+					peakFt:      *p.Height,
+					thresholdFt: threshold,
+					label:       labels[i],
+					waveFt:      w.HeightFt,
+				})
+			}
+		}
 	}
 
 	if !historyStart.IsZero() {
@@ -340,6 +523,8 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 			LagMin:      int(math.Round(median(lags))),
 		}
 	}
+
+	params.Waves = trainWaveParams(wavePool)
 
 	return params
 }

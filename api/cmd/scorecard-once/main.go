@@ -78,19 +78,40 @@ func main() {
 		fail("fetching tides: %v", err)
 	}
 
-	// Waves straight from the buoy's realtime2 feed — the prod DB (and its
-	// wave_observations table) is unreachable off-network, and the 45-day
-	// window covers any date this harness realistically grades.
+	// Waves straight from NDBC — the prod DB (and its wave_observations
+	// table) is unreachable off-network. Training needs the same full-span
+	// series the prod trainer reads, so walk the archive months back to the
+	// start of history plus the realtime2 window for the recent weeks.
 	ndbcStation := os.Getenv("NDBC_STATION")
 	if ndbcStation == "" {
 		ndbcStation = "41113"
 	}
-	waves, err := conditions.NewNDBCClient(ndbcStation).FetchRealtimeWindow(ctx)
+	ndbc := conditions.NewNDBCClient(ndbcStation)
+	waves, err := ndbc.FetchRealtimeWindow(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: fetching waves: %v (grading without sea state)\n", err)
 	}
+	month := time.Date(histStart.Year(), histStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	for ; month.Before(thisMonth); month = month.AddDate(0, 1, 0) {
+		samples, found, err := ndbc.FetchArchiveMonth(ctx, month.Year(), month.Month())
+		if err != nil || !found {
+			fmt.Fprintf(os.Stderr, "warning: no wave archive for %s (err=%v)\n", month.Format("2006-01"), err)
+			continue
+		}
+		waves = append(waves, samples...)
+	}
+	seen := make(map[time.Time]bool, len(waves))
+	deduped := waves[:0]
+	for _, s := range waves {
+		if !seen[s.Time] {
+			seen[s.Time] = true
+			deduped = append(deduped, s)
+		}
+	}
+	waves = deduped
 
-	params := predict.Train(history, preds, time.Now())
+	params := predict.Train(history, preds, waves, time.Now())
 	sc := predict.BuildScorecard(date, history, closureHeights, params, preds, waves)
 	out, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {

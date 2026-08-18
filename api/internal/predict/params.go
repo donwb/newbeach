@@ -11,7 +11,8 @@ const SettingsKey = "prediction_params"
 
 // paramsVersion identifies the blob schema. A stored blob with a different
 // version is treated as stale, so bumping this forces a retrain on deploy.
-const paramsVersion = 3
+// v4 added the county-wide wave regime params (Waves).
+const paramsVersion = 4
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {
@@ -53,6 +54,35 @@ type Params struct {
 	// 7pm has been running closer to 6:30). Learned rather than hard-coded
 	// so it tracks whatever the county is actually doing this season.
 	DayCloseOffsetMin int `json:"day_close_offset_min,omitempty"`
+
+	// Waves is the county-wide wave-energy modifier: the same tide peak
+	// closes ramps under a wind swell and passes quietly over a flat ocean,
+	// so the current significant wave height shifts every ramp's effective
+	// threshold. Nil until training has enough wave-matched peaks — and nil
+	// always means "behave exactly as the tide-only model".
+	Waves *WaveParams `json:"waves,omitempty"`
+}
+
+// WaveParams is the learned calm/rough wave regime split. Regime boundaries
+// are quantiles of the observed wave heights at labeled daytime peaks (so
+// they rescale with whatever buoy is configured); the two shifts are learned
+// by the same closed-form accuracy scan the tide thresholds use.
+type WaveParams struct {
+	// CalmMaxFt / RoughMinFt bound the regimes: WVHT <= CalmMaxFt is calm,
+	// >= RoughMinFt is rough, between is neutral (shift 0).
+	CalmMaxFt  float64 `json:"calm_max_ft"`
+	RoughMinFt float64 `json:"rough_min_ft"`
+
+	// CalmRaiseFt raises the effective tide threshold on calm days (a flat
+	// ocean needs more tide to close a ramp); RoughDropFt lowers it under a
+	// real swell. Both are >= 0 and clamped to maxWaveShiftFt.
+	CalmRaiseFt float64 `json:"calm_raise_ft"`
+	RoughDropFt float64 `json:"rough_drop_ft"`
+
+	// NSamples is how many wave-matched labeled peaks trained the split;
+	// Accuracy is pooled label accuracy with the shifts applied.
+	NSamples int     `json:"n_samples"`
+	Accuracy float64 `json:"accuracy"`
 }
 
 // maxDayCloseOffsetMin clamps the learned offset, so a thin or weird sample

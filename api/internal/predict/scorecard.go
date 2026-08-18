@@ -83,6 +83,10 @@ type Scorecard struct {
 	// scorecard is a mildly optimistic view of what was served live that day.
 	ParamsComputedAt time.Time `json:"params_computed_at,omitzero"`
 
+	// WaveParams echoes the wave regime split the grades were computed
+	// under, nil when the graded params were tide-only.
+	WaveParams *WaveParams `json:"wave_params,omitempty"`
+
 	Peaks   []models.TidePrediction `json:"peaks"`
 	Ramps   []RampGrade             `json:"ramps"`
 	Summary ScorecardSummary        `json:"summary"`
@@ -157,6 +161,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		Date:             dayStart.Format("2006-01-02"),
 		Season:           season,
 		ParamsComputedAt: params.ComputedAt,
+		WaveParams:       params.Waves,
 		Peaks:            dayPeaks,
 		Ramps:            []RampGrade{},
 	}
@@ -189,7 +194,14 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		}
 
 		for i, peak := range dayPeaks {
-			risk := riskForPeak(*peak.Height, rp, params.hardOpen(), params.hardClose())
+			// Grade with the same wave shift the live model would have used
+			// at this peak — grading and serving stay one decision surface.
+			var waveFt *float64
+			w := waveNearTime(waves, peak.Time)
+			if w != nil {
+				waveFt = &w.HeightFt
+			}
+			risk := riskForPeak(*peak.Height, params.waveShift(waveFt), rp, params.hardOpen(), params.hardClose())
 			closed := labels[i]
 			pg := PeakGrade{
 				PeakTime: peak.Time,
@@ -198,7 +210,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 				Closed:   closed,
 				Outcome:  outcomeFor(risk, closed),
 			}
-			if w := waveNearTime(waves, peak.Time); w != nil {
+			if w != nil {
 				h := w.HeightFt
 				at := w.Time
 				pg.WaveHeightFt = &h

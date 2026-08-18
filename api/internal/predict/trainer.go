@@ -10,6 +10,7 @@ import (
 
 	"github.com/donwb/beach/api/internal/conditions"
 	"github.com/donwb/beach/api/internal/database"
+	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/noaa"
 )
 
@@ -137,13 +138,19 @@ func (t *Trainer) train(ctx context.Context) {
 	// nightly realtime2 fetch heals logger gaps, and the archive walk
 	// backfills anything older (a no-op once populated). Wave failures never
 	// block tide training.
+	var waves []models.WaveSample
 	if t.station != "" {
 		if err := conditions.BackfillWaves(ctx, t.pool, t.station, histStart); err != nil {
 			t.logger.Warn("training: wave backfill", "err", err)
 		}
+		waves, err = database.GetWaveObservationsRange(ctx, t.pool, t.station, histStart, time.Now())
+		if err != nil {
+			t.logger.Warn("training: loading wave observations", "err", err)
+			waves = nil
+		}
 	}
 
-	params := Train(history, preds, time.Now())
+	params := Train(history, preds, waves, time.Now())
 
 	blob, err := json.Marshal(params)
 	if err != nil {
@@ -159,5 +166,6 @@ func (t *Trainer) train(ctx context.Context) {
 		"duration", time.Since(start),
 		"ramps_learned", len(params.Ramps),
 		"default_threshold_ft", params.Default.ThresholdFt,
+		"wave_params_learned", params.Waves != nil,
 	)
 }

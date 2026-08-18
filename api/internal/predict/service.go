@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/donwb/beach/api/internal/database"
+	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/noaa"
 )
 
@@ -22,8 +23,9 @@ const outlookTTL = 10 * time.Minute
 
 // Service computes and caches the outlook on demand.
 type Service struct {
-	pool *pgxpool.Pool
-	noaa *noaa.Client
+	pool    *pgxpool.Pool
+	noaa    *noaa.Client
+	station string // NDBC buoy for serve-time sea state; empty = tide-only
 
 	mu       sync.Mutex
 	cached   *Outlook
@@ -31,9 +33,11 @@ type Service struct {
 	group    singleflight.Group
 }
 
-// NewService creates an outlook Service.
-func NewService(pool *pgxpool.Pool, noaaClient *noaa.Client) *Service {
-	return &Service{pool: pool, noaa: noaaClient}
+// NewService creates an outlook Service. ndbcStation names the buoy whose
+// latest wave_observations row conditions the risk calls; pass "" to serve
+// tide-only (the PREDICT_WAVES_ENABLED kill switch).
+func NewService(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string) *Service {
+	return &Service{pool: pool, noaa: noaaClient, station: ndbcStation}
 }
 
 // Get returns the current outlook, recomputing at most every outlookTTL.
@@ -96,6 +100,18 @@ func (s *Service) build(ctx context.Context) (*Outlook, error) {
 		return nil, fmt.Errorf("fetching tide predictions: %w", err)
 	}
 
-	out := BuildOutlook(now, ramps, params, preds)
+	// Latest sea state, best-effort: the outlook must never fail because the
+	// buoy or its table is unavailable — BuildOutlook treats nil (and stale
+	// observations) as tide-only.
+	var wave *models.WaveSample
+	if s.station != "" {
+		wave, err = database.GetLatestWaveObservation(ctx, s.pool, s.station)
+		if err != nil {
+			slog.Warn("outlook: reading latest wave observation", "err", err)
+			wave = nil
+		}
+	}
+
+	out := BuildOutlook(now, ramps, params, preds, wave)
 	return &out, nil
 }
