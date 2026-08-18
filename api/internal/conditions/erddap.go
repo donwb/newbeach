@@ -17,6 +17,10 @@ import (
 // 2026-08-18), so in production every direct NDBC fetch fails and this
 // mirror is the path that actually works. It lags the buoy by roughly one
 // 30-minute observation cycle and carries the full multi-year history.
+//
+// NDBC_ERDDAP_URL overrides it: coastwatch ALSO tarpits the app's own egress
+// IP (headers never arrive), so prod points at the cam-relay droplet's Caddy,
+// which proxies /erddap/* through an IP coastwatch still likes.
 const erddapBaseURL = "https://coastwatch.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.json"
 
 // fetchERDDAPWaves returns the station's wave observations in [start, end]

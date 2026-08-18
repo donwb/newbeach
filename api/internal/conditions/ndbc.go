@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -53,15 +54,21 @@ type NDBCClient struct {
 	now func() time.Time
 }
 
-// NewNDBCClient creates a client for the given NDBC station ID.
+// NewNDBCClient creates a client for the given NDBC station ID. The ERDDAP
+// mirror URL honors NDBC_ERDDAP_URL so deployments whose egress IP NOAA
+// dislikes can route through a proxy (see erddapBaseURL).
 func NewNDBCClient(stationID string) *NDBCClient {
+	erddap := os.Getenv("NDBC_ERDDAP_URL")
+	if erddap == "" {
+		erddap = erddapBaseURL
+	}
 	return &NDBCClient{
 		httpClient:    &http.Client{Timeout: 30 * time.Second},
 		stationID:     stationID,
 		realtimeURL:   ndbcRealtimeURL,
 		stdmetURL:     ndbcStdmetURL,
 		historicalURL: ndbcHistoricalURL,
-		erddapURL:     erddapBaseURL,
+		erddapURL:     erddap,
 		now:           time.Now,
 	}
 }

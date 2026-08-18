@@ -71,6 +71,13 @@ services:
       - key: NDBC_STATION
         scope: RUN_AND_BUILD_TIME
         value: "41113"
+      # ERDDAP wave fetches route through the cam-relay droplet's Caddy:
+      # NOAA tarpits the app's egress IP (and NDBC 403s it outright), while
+      # the droplet's IP is still in NOAA's good graces. Applied to the live
+      # spec 2026-08-18.
+      - key: NDBC_ERDDAP_URL
+        scope: RUN_AND_BUILD_TIME
+        value: "https://cams.donwb.com/erddap/tabledap/cwwcNDBCMet.json"
       - key: CONDITIONS_INTERVAL
         scope: RUN_AND_BUILD_TIME
         value: "30"

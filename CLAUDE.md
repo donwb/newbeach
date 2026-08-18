@@ -248,6 +248,7 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
 | `NDBC_STATION` | Conditions logger, prediction | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
 | `PREDICT_WAVES_ENABLED` | API | Set `false` to serve tide-only outlooks (wave series keeps accumulating) |
+| `NDBC_ERDDAP_URL` | Conditions logger, prediction | ERDDAP mirror base URL; **prod points at the cam-relay droplet's `/erddap/*` Caddy proxy** because NOAA tarpits the app's egress IP |
 | `CONDITIONS_INTERVAL` | Conditions logger | Minutes between beach_conditions snapshots (default: 30) |
 | `CONDITIONS_ENABLED` | Conditions logger | Set `false` to disable snapshotting |
 | `CAM_HEALTH_INTERVAL` | Cam health poller | Seconds between relay stream probes (default: 60) |

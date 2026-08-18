@@ -66,6 +66,7 @@ Key properties:
 | Relay droplet | `beach-cam-relay`, DO nyc3, 68.183.149.152 (ssh root@, ProMax key) |
 | MediaMTX config (incl. publisher password) | droplet `/opt/mediamtx/mediamtx.yml`, service `mediamtx` |
 | TLS / hostname | droplet `/etc/caddy/Caddyfile`, service `caddy`; serves `cams.donwb.com` + `68-183-149-152.sslip.io` fallback |
+| ERDDAP wave proxy | same Caddyfile, `handle /erddap/*` → `coastwatch.pfeg.noaa.gov` (added 2026-08-18) — the beach API fetches NDBC buoy wave data through it because NOAA tarpits the app's DO egress IP; see `NDBC_ERDDAP_URL` in the main CLAUDE.md. Removing this route silently starves the wave-aware prediction model. |
 | Camera roster | `cameras` table; `GET /api/v2/cameras` (public), admin endpoints under `/api/v2/admin/cameras` |
 | Health hook script | droplet `/opt/mediamtx/health-hook.sh` (holds the `CAM_HOOK_KEY` value) |
 
