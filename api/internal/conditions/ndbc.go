@@ -47,6 +47,10 @@ type NDBCClient struct {
 	realtimeURL   string
 	stdmetURL     string
 	historicalURL string
+	erddapURL     string
+
+	// now stubs time.Now for tests exercising the ERDDAP fallback windows.
+	now func() time.Time
 }
 
 // NewNDBCClient creates a client for the given NDBC station ID.
@@ -57,17 +61,31 @@ func NewNDBCClient(stationID string) *NDBCClient {
 		realtimeURL:   ndbcRealtimeURL,
 		stdmetURL:     ndbcStdmetURL,
 		historicalURL: ndbcHistoricalURL,
+		erddapURL:     erddapBaseURL,
+		now:           time.Now,
 	}
 }
 
 // FetchLatestWaves retrieves the most recent observation row that includes
 // wave height. Buoys report "MM" for missing fields, so rows are scanned
-// newest-first until one carries a wave height.
+// newest-first until one carries a wave height. When NDBC itself is
+// unreachable (it 403s datacenter IPs), the ERDDAP mirror answers instead —
+// its ~30-minute lag is one observation cycle.
 func (c *NDBCClient) FetchLatestWaves(ctx context.Context) (*WaveObservation, error) {
 	url := fmt.Sprintf("%s/%s.txt", c.realtimeURL, c.stationID)
 	samples, err := c.fetchTable(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("fetching NDBC data for station %s: %w", c.stationID, err)
+		now := c.now()
+		mirror, merr := c.fetchERDDAPWaves(ctx, now.Add(-24*time.Hour), now)
+		if merr != nil || len(mirror) == 0 {
+			return nil, fmt.Errorf("fetching NDBC data for station %s: %w (ERDDAP mirror: %v)", c.stationID, err, merr)
+		}
+		latest := mirror[len(mirror)-1]
+		return &WaveObservation{
+			WaveHeightFt:    latest.HeightFt,
+			DominantPeriodS: latest.DominantPeriodS,
+			ObservedAt:      latest.Time,
+		}, nil
 	}
 	obs, err := firstWaveSample(samples)
 	if err != nil {
@@ -76,13 +94,19 @@ func (c *NDBCClient) FetchLatestWaves(ctx context.Context) (*WaveObservation, er
 	return obs, nil
 }
 
-// FetchRealtimeWindow returns every wave-bearing observation in the station's
-// realtime2 file — the buoy's last ~45 days — in file order (newest first).
+// FetchRealtimeWindow returns every wave-bearing observation from the
+// station's last ~45 days: the realtime2 file when NDBC answers (newest
+// first), the ERDDAP mirror otherwise (ascending).
 func (c *NDBCClient) FetchRealtimeWindow(ctx context.Context) ([]models.WaveSample, error) {
 	url := fmt.Sprintf("%s/%s.txt", c.realtimeURL, c.stationID)
 	samples, err := c.fetchTable(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("fetching NDBC realtime window for station %s: %w", c.stationID, err)
+		now := c.now()
+		mirror, merr := c.fetchERDDAPWaves(ctx, now.Add(-45*24*time.Hour), now)
+		if merr != nil {
+			return nil, fmt.Errorf("fetching NDBC realtime window for station %s: %w (ERDDAP mirror: %v)", c.stationID, err, merr)
+		}
+		return mirror, nil
 	}
 	return samples, nil
 }
@@ -111,6 +135,11 @@ func (c *NDBCClient) FetchArchiveMonth(ctx context.Context, year int, month time
 			continue
 		}
 		if err != nil {
+			// NDBC blocks datacenter IPs outright; the ERDDAP mirror carries
+			// the same history, so a hard failure falls through to it.
+			if mirror, merr := c.fetchERDDAPWaves(ctx, start, end); merr == nil && len(mirror) > 0 {
+				return mirror, true, nil
+			}
 			return nil, false, fmt.Errorf("fetching NDBC archive for station %s: %w", c.stationID, err)
 		}
 		// The plain month file and the year archive can carry other months;
@@ -127,6 +156,12 @@ func (c *NDBCClient) FetchArchiveMonth(ctx context.Context, year int, month time
 			continue
 		}
 		return monthly, true, nil
+	}
+
+	// Nothing in NDBC's own archives — the mirror sometimes has months the
+	// archive shuffle has misplaced.
+	if mirror, merr := c.fetchERDDAPWaves(ctx, start, end); merr == nil && len(mirror) > 0 {
+		return mirror, true, nil
 	}
 	return nil, false, nil
 }

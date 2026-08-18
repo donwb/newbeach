@@ -73,8 +73,10 @@ func gzipBytes(t *testing.T, s string) []byte {
 func TestFetchArchiveMonth(t *testing.T) {
 	newClient := func(srv *httptest.Server) *NDBCClient {
 		c := NewNDBCClient("41113")
+		c.realtimeURL = srv.URL + "/data/realtime2"
 		c.stdmetURL = srv.URL + "/data/stdmet"
 		c.historicalURL = srv.URL + "/data/historical/stdmet"
+		c.erddapURL = srv.URL + "/erddap/tabledap/cwwcNDBCMet.json"
 		return c
 	}
 
@@ -152,5 +154,50 @@ func TestFetchArchiveMonth(t *testing.T) {
 		_, found, err := newClient(srv).FetchArchiveMonth(context.Background(), 2026, time.March)
 		require.NoError(t, err)
 		assert.False(t, found)
+	})
+
+	// NDBC hard-blocks datacenter IPs with 403s; the ERDDAP mirror must
+	// answer for every fetch path in that world.
+	erddapFixture := `{"table":{"columnNames":["station","time","wvht","dpd"],
+		"columnTypes":["String","String","float","float"],
+		"rows":[["41113","2026-03-01T00:26:00Z",1.1,9.09],
+		        ["41113","2026-03-01T00:56:00Z",null,null],
+		        ["41113","2026-03-01T01:26:00Z",1.2,8.33]]}}`
+
+	blocked := func(t *testing.T) *NDBCClient {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/erddap/") {
+				w.Write([]byte(erddapFixture))
+				return
+			}
+			w.WriteHeader(http.StatusForbidden)
+		}))
+		t.Cleanup(srv.Close)
+		c := newClient(srv)
+		c.now = func() time.Time { return time.Date(2026, 3, 1, 2, 0, 0, 0, time.UTC) }
+		return c
+	}
+
+	t.Run("erddap fallback for archive month", func(t *testing.T) {
+		samples, found, err := blocked(t).FetchArchiveMonth(context.Background(), 2026, time.March)
+		require.NoError(t, err)
+		assert.True(t, found)
+		require.Len(t, samples, 2, "null-wvht row skipped")
+		assert.InDelta(t, 1.1*3.28084, samples[0].HeightFt, 0.001)
+		require.NotNil(t, samples[0].DominantPeriodS)
+		assert.InDelta(t, 9.09, *samples[0].DominantPeriodS, 0.001)
+	})
+
+	t.Run("erddap fallback for realtime window", func(t *testing.T) {
+		samples, err := blocked(t).FetchRealtimeWindow(context.Background())
+		require.NoError(t, err)
+		assert.Len(t, samples, 2)
+	})
+
+	t.Run("erddap fallback for latest waves", func(t *testing.T) {
+		obs, err := blocked(t).FetchLatestWaves(context.Background())
+		require.NoError(t, err)
+		assert.InDelta(t, 1.2*3.28084, obs.WaveHeightFt, 0.001, "latest = last ascending row")
+		assert.Equal(t, time.Date(2026, 3, 1, 1, 26, 0, 0, time.UTC), obs.ObservedAt)
 	})
 }
