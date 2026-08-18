@@ -18,7 +18,7 @@ import (
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, ndbcStation string) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -98,7 +98,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	admin.PUT("/ramps/:id/metadata", HandleAdminUpsertRampMetadata(pool))
 	admin.GET("/pageviews", HandleAdminPageViews(pool))
 	admin.GET("/prediction/params", HandleAdminPredictionParams(pool))
-	admin.GET("/prediction/scorecard", HandleAdminPredictionScorecard(pool, noaaClient))
+	admin.GET("/prediction/scorecard", HandleAdminPredictionScorecard(pool, noaaClient, ndbcStation))
 }
 
 // apiKeyAuth returns middleware that validates the X-Api-Key header

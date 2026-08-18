@@ -148,7 +148,7 @@ func main() {
 	// Register API routes.
 	ing := ingester.New(pool, gisHost, pollInterval)
 	outlookSvc := predict.NewService(pool, noaaClient)
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc)
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, ndbcStation)
 
 	// Serve static website files from the filesystem, after API routes so the
 	// CORS and logging middleware registered there wrap static responses too.

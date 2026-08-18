@@ -28,6 +28,13 @@ type PeakGrade struct {
 	Closed   bool      `json:"closed"`
 	Outcome  string    `json:"outcome"`
 
+	// Sea state nearest the peak (within maxWaveMatchGap), when the wave
+	// series has it — so misses and false alarms can be read against the
+	// surf that day, not just the tide.
+	WaveHeightFt    *float64   `json:"wave_height_ft,omitempty"`
+	DominantPeriodS *float64   `json:"dominant_period_s,omitempty"`
+	WaveObservedAt  *time.Time `json:"wave_observed_at,omitempty"`
+
 	// Window grading, present only when the model would have drawn a window
 	// (risk possible/likely) and the ramp actually closed.
 	Window     *Window    `json:"window,omitempty"`
@@ -125,8 +132,11 @@ func matchClosure(peak models.TidePrediction, closures []closureEvent) *closureE
 // rules and grades each call against the recorded closure history. date is
 // interpreted as an Eastern calendar day. closureHeights carries any
 // operator-set ramp_metadata overrides keyed by access_id, so grading uses
-// the same effective threshold the live outlook would. Pure — no I/O.
-func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEvent, closureHeights map[string]*float64, params Params, preds []models.TidePrediction) Scorecard {
+// the same effective threshold the live outlook would. waves is the buoy
+// series covering the day (any order; nil is fine) — it annotates each grade
+// with the sea state nearest the peak. Pure — no I/O.
+func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEvent, closureHeights map[string]*float64, params Params, preds []models.TidePrediction, waves []models.WaveSample) Scorecard {
+	sortWaveSamples(waves)
 	et := date.In(eastern)
 	dayStart := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern)
 	dayEnd := dayStart.AddDate(0, 0, 1)
@@ -187,6 +197,13 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 				Risk:     risk,
 				Closed:   closed,
 				Outcome:  outcomeFor(risk, closed),
+			}
+			if w := waveNearTime(waves, peak.Time); w != nil {
+				h := w.HeightFt
+				at := w.Time
+				pg.WaveHeightFt = &h
+				pg.DominantPeriodS = w.DominantPeriodS
+				pg.WaveObservedAt = &at
 			}
 
 			if closed && riskRank(risk) >= 1 {

@@ -101,7 +101,7 @@ func HandleAdminPredictionParams(pool *pgxpool.Pool) echo.HandlerFunc {
 // and compared with the closure history. Defaults to yesterday (Eastern);
 // ?date=YYYY-MM-DD grades any past day inside the recorded history.
 // GET /api/v2/admin/prediction/scorecard
-func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client) echo.HandlerFunc {
+func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
@@ -162,6 +162,13 @@ func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client)
 			})
 		}
 
-		return c.JSON(http.StatusOK, predict.BuildScorecard(date, history, closureHeights, params, preds))
+		// Sea-state context for the grades — best-effort, the scorecard reads
+		// fine without it.
+		waves, err := database.GetWaveObservationsRange(ctx, pool, ndbcStation, date.AddDate(0, 0, -1), date.AddDate(0, 0, 1))
+		if err != nil {
+			slog.Warn("scorecard: loading wave observations", "err", err)
+		}
+
+		return c.JSON(http.StatusOK, predict.BuildScorecard(date, history, closureHeights, params, preds, waves))
 	}
 }
