@@ -3,7 +3,7 @@ import BeachStatus
 
 /// Which detail overlay is open. `.none` means the board is showing.
 enum DetailPanel {
-    case none, tide, temp, wind
+    case none, tide, temp, wind, weekend
 }
 
 /// One stat tile's display strings.
@@ -12,6 +12,9 @@ struct StatTileModel {
     let value: String
     let detail: String
     let panel: DetailPanel
+    /// Tint for the value line — the Weekend tile carries its verdict color.
+    /// Nil means the standard white.
+    var valueColor: Color? = nil
 }
 
 /// The verdict band: headline + subline on the left, three focusable stat
@@ -37,7 +40,9 @@ struct VerdictBand: View {
                     StatTile(stat: stat, focusedStat: $focusedStat, onSelect: onSelect)
                 }
             }
-            .frame(width: 687)
+            // Equal-width tiles at the spec's 687 for three; a fourth
+            // (Weekend) widens the group and the headline cedes the room.
+            .frame(width: stats.count > 3 ? 920 : 687)
         }
         // Focus section across the whole band (headline included) so Down
         // from the far-left city chip enters the stat tiles instead of
@@ -97,7 +102,7 @@ private struct StatTile: View {
                     .font(.system(size: 40, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(stat.valueColor ?? .white)
                 Text(stat.detail)
                     .font(.system(size: 24))
                     .lineLimit(1)

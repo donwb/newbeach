@@ -107,6 +107,60 @@ enum PreviewFixtures {
                       recordedAt: at(16, 11, dayOffset: -1), rampName: "27TH AV", city: "NEW SMYRNA BEACH"),
     ]
 
+    /// A mid-week six-day weekend outlook: a heat-capped Saturday, a clean
+    /// Sunday, and a too-far-out Monday exercising the no_call look.
+    static let weekend = WeekendOutlook(
+        generatedAt: Date(),
+        headline: "Sunday's the day this weekend — Saturday's a scorcher",
+        days: [
+            WeekendDay(date: "2026-08-19", weekday: "Wednesday", isWeekend: false,
+                       verdict: "good", basis: ["tide", "weather", "marine"],
+                       headline: "Open all day, no tide trouble",
+                       closurePressure: "none",
+                       highTempF: 91, rainChancePct: 20, windLabel: "ENE 9 mph"),
+            WeekendDay(date: "2026-08-20", weekday: "Thursday", isWeekend: false,
+                       verdict: "mixed", drivers: ["tide"],
+                       basis: ["tide", "weather", "marine"],
+                       headline: "Closure possible around the ~1:30pm high tide",
+                       why: "around the ~1:30pm high tide",
+                       bestWindow: OutlookWindow(label: "~8–11am",
+                                                 start: at(8, 0, dayOffset: 1),
+                                                 end: at(11, 0, dayOffset: 1)),
+                       closurePressure: "some",
+                       highTempF: 92, rainChancePct: 30, windLabel: "E 11 mph"),
+            WeekendDay(date: "2026-08-21", weekday: "Friday", isWeekend: false,
+                       verdict: "tough", drivers: ["storms"],
+                       basis: ["tide", "weather", "marine"],
+                       headline: "Storms most of the afternoon",
+                       why: "storms, ~70% coverage",
+                       closurePressure: "some",
+                       highTempF: 88, rainChancePct: 70, windLabel: "SE 14 mph"),
+            WeekendDay(date: "2026-08-22", weekday: "Saturday", isWeekend: true,
+                       verdict: "mixed", drivers: ["heat"],
+                       basis: ["tide", "weather", "marine"],
+                       headline: "Doable, but the heat's the story",
+                       why: "the heat, feels like ~108° by midday",
+                       bestWindow: OutlookWindow(label: "~8–11am",
+                                                 start: at(8, 0, dayOffset: 3),
+                                                 end: at(11, 0, dayOffset: 3)),
+                       closurePressure: "none",
+                       highTempF: 94, feelsLikeF: 108, rainChancePct: 20,
+                       windLabel: "SSW 8 mph"),
+            WeekendDay(date: "2026-08-23", weekday: "Sunday", isWeekend: true,
+                       verdict: "great", basis: ["tide", "weather", "marine"],
+                       headline: "Wide open all day",
+                       bestWindow: OutlookWindow(label: "~9am–1pm",
+                                                 start: at(9, 0, dayOffset: 4),
+                                                 end: at(13, 0, dayOffset: 4)),
+                       closurePressure: "none",
+                       highTempF: 90, rainChancePct: 10, windLabel: "ENE 12 mph"),
+            WeekendDay(date: "2026-08-24", weekday: "Monday", isWeekend: false,
+                       verdict: "no_call", basis: ["tide"],
+                       headline: "Too far out to call",
+                       closurePressure: "none"),
+        ]
+    )
+
     static var sunTimeline: SunTimeline {
         SunTimeline(day: Date(), solar: .newSmyrnaBeach,
                     calendar: easternCalendar, zone: eastern)

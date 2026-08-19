@@ -130,6 +130,14 @@ public actor APIClient {
         try await get("/api/v2/outlook")
     }
 
+    /// Fetch the six-day weekend outlook. The route is unregistered when the
+    /// server runs with WEEKEND_OUTLOOK_ENABLED=false, so a 404 is an
+    /// expected "feature off" signal — callers treat any failure as "hide
+    /// the weekend UI", never as an error state.
+    public func fetchWeekendOutlook() async throws -> WeekendOutlook {
+        try await get("/api/v2/outlook/weekend")
+    }
+
     /// Ask the server to re-resolve the YouTube live HLS URL. Called by the
     /// tvOS player when playback fails (the cached URL has rotated). The
     /// server coalesces concurrent calls and applies a cooldown.

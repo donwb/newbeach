@@ -83,6 +83,9 @@ final class TVViewModel {
     /// Server-side open/close prediction. Non-critical: nil (old server or
     /// failed fetch) simply hides the tile hints.
     var outlook: Outlook?
+    /// Six-day weekend outlook. Non-critical: nil (route disabled, old
+    /// server, or failed fetch) hides the Weekend tile entirely.
+    var weekend: WeekendOutlook?
 
     // MARK: - Freshness
 
@@ -237,6 +240,7 @@ final class TVViewModel {
             group.addTask { await self.loadCameras() }
             group.addTask { await self.loadActivity() }
             group.addTask { await self.loadOutlook() }
+            group.addTask { await self.loadWeekend() }
         }
 
         // Default city on first load
@@ -319,6 +323,24 @@ final class TVViewModel {
     private func loadOutlook() async {
         do { outlook = try await api.fetchOutlook() }
         catch { /* non-critical — tiles just drop their prediction hints */ }
+    }
+
+    @MainActor
+    private func loadWeekend() async {
+        do { weekend = try await api.fetchWeekendOutlook() }
+        catch APIError.httpError(statusCode: 404) {
+            // The WEEKEND_OUTLOOK_ENABLED kill switch unregisters the route —
+            // this is "feature off", so drop the tile rather than keep stale days.
+            weekend = nil
+        }
+        catch { /* transient failure — keep last-good data, tile stays */ }
+    }
+
+    /// The beach-wide casual surf line ("Clean chest-high — worth a paddle").
+    /// Server-built, rendered verbatim; nil when the buoy is silent or the
+    /// SURF_REPORT_ENABLED kill switch is off.
+    var surfLine: String? {
+        outlook?.surfReport?.line
     }
 
     /// The compact prediction hint for a tile: a coming closure for drivable

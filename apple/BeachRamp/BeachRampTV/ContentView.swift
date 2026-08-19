@@ -70,6 +70,7 @@ struct ContentView: View {
         if args.contains("--overlay-tide") { _detailPanel = State(initialValue: .tide) }
         if args.contains("--overlay-temp") { _detailPanel = State(initialValue: .temp) }
         if args.contains("--overlay-wind") { _detailPanel = State(initialValue: .wind) }
+        if args.contains("--overlay-weekend") { _detailPanel = State(initialValue: .weekend) }
         if args.contains("--overlay-activity") { _showActivity = State(initialValue: true) }
         #endif
     }
@@ -169,6 +170,13 @@ struct ContentView: View {
                     weather: viewModel.weather,
                     onClose: { detailPanel = .none }
                 )
+            case .weekend:
+                if let weekend = viewModel.weekend {
+                    WeekendOverlay(
+                        weekend: weekend,
+                        onClose: { detailPanel = .none }
+                    )
+                }
             }
         }
     }
@@ -185,7 +193,7 @@ struct ContentView: View {
             )
 
             VerdictBand(
-                verdict: viewModel.verdict,
+                verdict: displayVerdict,
                 stats: statTiles,
                 focusedStat: $focusedStat,
                 onSelect: { detailPanel = $0 }
@@ -271,8 +279,52 @@ struct ContentView: View {
         viewModel.cameras.filter { $0.id != viewModel.selectedCameraID && $0.url != nil }.count
     }
 
+    /// The verdict, with the surf line standing in for the all-open subline.
+    /// The open-state subline (tide direction + light left) is fully redundant
+    /// with the Tide tile and SunRibbon, so the surf read earns that slot.
+    /// Closed/limited/stale sublines carry safety copy (reopen estimates,
+    /// "do not trust this board") and always pass through untouched.
+    private var displayVerdict: Verdict {
+        let verdict = viewModel.verdict
+        guard verdict.category == .open, !viewModel.isStale,
+              let surfLine = viewModel.surfLine else { return verdict }
+        return Verdict(category: verdict.category,
+                       headline: verdict.headline,
+                       subline: surfLine)
+    }
+
     private var statTiles: [StatTileModel] {
-        [tideStat, waterAirStat, windStat]
+        var tiles = [tideStat, waterAirStat, windStat]
+        if let weekendTile = weekendStat {
+            tiles.append(weekendTile)
+        }
+        return tiles
+    }
+
+    /// The Weekend tile: the next weekend day's verdict as the value
+    /// ("Sat · Great"), the other weekend day as the detail. Absent entirely
+    /// when the weekend outlook isn't available (old server, kill switch,
+    /// fetch failure) — the band renders its original three tiles. Also
+    /// absent on a stale board: predictions step back like the grid hints
+    /// do, and the "Last known" headline gets its full width back.
+    private var weekendStat: StatTileModel? {
+        guard !viewModel.isStale, let weekend = viewModel.weekend else { return nil }
+        let days = weekend.weekendDays
+        guard let first = days.first else { return nil }
+
+        var detail = " "
+        if days.count > 1 {
+            detail = "\(days[1].weekdayShort) · \(days[1].verdictLabel)"
+        } else if let window = first.bestWindow {
+            detail = "Best \(window.label)"
+        }
+        return StatTileModel(
+            label: "Weekend",
+            value: "\(first.weekdayShort) · \(first.verdictLabel)",
+            detail: detail,
+            panel: .weekend,
+            valueColor: first.verdictCategory.map { palette.statusColor(for: $0) }
+        )
     }
 
     private var tideStat: StatTileModel {
