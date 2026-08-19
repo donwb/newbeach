@@ -149,7 +149,14 @@
       "Bash(grep -iA8 'tvOS')",
       "Bash(curl -s https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/cameras)",
       "Bash(:)",
-      "Bash(curl -s https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps)"
+      "Bash(curl -s https://beach-ramp-status-kff7g.ondigitalocean.app/api/v2/ramps)",
+      "WebFetch(domain:www.volusia.org)",
+      "Bash(perl -pi -e 's/\\\\?v=5/?v=6/g' web/index.html)",
+      "Bash(perl -pi -e \"s/beach-ramps-v10/beach-ramps-v11/; s/\\\\\\\\?v=5/?v=6/g\" web/sw.js)",
+      "Bash(awk '{print $6, $7, $9, $10, $11}')",
+      "Bash(npx -y playwright screenshot --browser chromium --channel chrome --viewport-size=\"1440,1250\" --wait-for-timeout=15000 \"https://beach.donwb.com\" shots/web-desktop2.png)",
+      "Bash(npx -y playwright screenshot --browser chromium --channel chrome --device=\"iPhone 13\" --wait-for-timeout=15000 --full-page \"https://beach.donwb.com\" shots/web-mobile2.png)",
+      "Bash(npx -y playwright screenshot --channel chrome --device=\"Pixel 7\" --wait-for-timeout=15000 --full-page \"https://beach.donwb.com\" shots/web-mobile2.png)"
     ]
   }
 }
