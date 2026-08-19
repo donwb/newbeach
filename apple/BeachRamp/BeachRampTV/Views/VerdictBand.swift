@@ -11,7 +11,9 @@ enum DetailPanel {
 struct StatTileColumn {
     let label: String
     let value: String
-    /// Verdict tint for the value; nil means the standard white.
+    /// Verdict accent, rendered as a small solid square beside the value —
+    /// the ramp-tile grammar. Color arrives as a block, never as thin
+    /// colored text, which washes out against the bright midday skies.
     var color: Color? = nil
 }
 
@@ -21,6 +23,9 @@ struct StatTileModel {
     let label: String
     let columns: [StatTileColumn]
     let detail: String
+    /// Micro-label naming the detail line ("SURF") when the line's subject
+    /// isn't in its own words; nil when it is ("Tide rising · …").
+    var detailLabel: String? = nil
     let panel: DetailPanel
 }
 
@@ -114,20 +119,35 @@ private struct StatTile: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .tracking(15 * 0.08)
                                 .foregroundStyle(.white.opacity(0.55))
-                            Text(column.value)
-                                .font(.system(size: 32, weight: .bold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                                .foregroundStyle(column.color ?? .white)
+                            HStack(spacing: 8) {
+                                if let color = column.color {
+                                    Rectangle()
+                                        .fill(color)
+                                        .frame(width: 12, height: 24)
+                                }
+                                Text(column.value)
+                                    .font(.system(size: 32, weight: .bold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                                    .foregroundStyle(.white)
+                            }
                         }
                     }
                     Spacer(minLength: 0)
                 }
-                Text(stat.detail)
-                    .font(.system(size: 24))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-                    .foregroundStyle(.white.opacity(0.75))
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    if let detailLabel = stat.detailLabel {
+                        Text(detailLabel)
+                            .font(.system(size: 15, weight: .semibold))
+                            .tracking(15 * 0.08)
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                    Text(stat.detail)
+                        .font(.system(size: 24))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                        .foregroundStyle(.white.opacity(0.75))
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -156,7 +176,8 @@ private struct StatTile: View {
                     StatTileModel(label: "Outlook",
                                   columns: [StatTileColumn(label: "SAT", value: "Good", color: .green),
                                             StatTileColumn(label: "SUN", value: "Mixed", color: .orange)],
-                                  detail: "Clean chest-high — worth a paddle", panel: .outlook),
+                                  detail: "Clean chest-high — worth a paddle",
+                                  detailLabel: "SURF", panel: .outlook),
                     StatTileModel(label: "Weather",
                                   columns: [StatTileColumn(label: "WATER", value: "82°"),
                                             StatTileColumn(label: "AIR", value: "89°"),
@@ -188,7 +209,8 @@ private struct StatTile: View {
                     StatTileModel(label: "Outlook",
                                   columns: [StatTileColumn(label: "SAT", value: "Mixed", color: .orange),
                                             StatTileColumn(label: "SUN", value: "Tough", color: .red)],
-                                  detail: "Blown out — choppy and messy", panel: .outlook),
+                                  detail: "Blown out — choppy and messy",
+                                  detailLabel: "SURF", panel: .outlook),
                     StatTileModel(label: "Weather",
                                   columns: [StatTileColumn(label: "WATER", value: "82°"),
                                             StatTileColumn(label: "AIR", value: "89°"),

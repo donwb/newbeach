@@ -301,6 +301,7 @@ struct ContentView: View {
                 )
             },
             detail: viewModel.surfLine ?? " ",
+            detailLabel: viewModel.surfLine == nil ? nil : "SURF",
             panel: .outlook
         )
     }
