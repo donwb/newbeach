@@ -33,7 +33,11 @@ last_verified: 2026-08-19 (TWO NEW FEATURES SHIPPED to main → prod (web): (1) 
   from buoy + NWS wind + KMLB Surf Zone Forecast rip risk (relayed verbatim), shown
   beside the weekend outlook on web and in the iOS detail band in-tree. iOS surf line
   needs a re-flight to reach TestFlight; tvOS/TRMNL deferred. Next up: a /county/
-  showcase section for the weekend outlook. Prior state below.)
+  showcase section for the weekend outlook. Prior state below. Same-day refinement
+  2026-08-19 pm: weekend verdicts now justify themselves — dayVerdict reports binding
+  drivers, a `why` line renders when the headline doesn't name the cause (e.g. MIXED
+  from a 108° heat index), and day cards show feels-like temps; live on web + county
+  page.)
 prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission ever.
   Same day, the prep that made it possible: full ASC metadata sheet written to
   docs/APP-STORE-LISTING.md — name, subtitle, keywords, descriptions, review notes, and
