@@ -8,10 +8,11 @@
 import SwiftUI
 import BeachStatus
 
-/// tvOS ambient board. Root composition only: sky gradient, board content,
-/// night scrim. The board answers "can I get on the beach right now?" in the
-/// verdict band before the grid is read; the background tracks the real sun
-/// for New Smyrna Beach through sixteen phases.
+/// tvOS board, design v3: panorama header, inline selectors. The cam holds
+/// the top 405pt at its true aspect and carries the verdict; cam switching
+/// is a caption strip on the video's own bottom edge; ramp-city switching
+/// is the heading above the ramp cards. The recovered space below goes to
+/// surf and the weekend, with the daylight band closing the screen.
 struct ContentView: View {
     @State private var viewModel = TVViewModel()
     @FocusState private var focusedCamera: String?
@@ -19,24 +20,26 @@ struct ContentView: View {
     @State private var sunAltitude: Double = 30
     @State private var sunRising = true
     /// The day's sun timeline, recomputed when the calendar day rolls over.
-    /// Drives the sun ribbon.
+    /// Drives the daylight band.
     @State private var sunTimeline: SunTimeline?
     /// The current instant as a fraction (0…1) of the local day — the position
-    /// of the "now" marker on the ribbon. Updated every tick.
+    /// of the "now" marker on the band. Updated every tick.
     @State private var nowFraction: Double = 0
     @State private var solarDay: Date?
     @State private var timeTimer: Timer?
-    /// Which stat detail overlay is open.
-    @State private var detailPanel: DetailPanel = .none
-    /// The Recent-changes overlay (Menu from the board).
+    /// The beach forecast overlay (opens from the weekend panels).
+    @State private var showForecast = false
+    /// The Recent-changes overlay (Menu from the board, or the heading button).
     @State private var showActivity = false
-    /// Which stat tile has focus. Owned here so closing a detail overlay can
-    /// hand focus back to the tile that opened it.
-    @FocusState private var focusedStat: DetailPanel?
-    /// True while the Recent-changes overlay was opened from the rail button
-    /// (vs. the Menu shortcut) — focus returns to the button on close.
+    /// Which weekend day panel has focus — owned here so closing the
+    /// forecast overlay can hand focus back to the panel that opened it.
+    @FocusState private var focusedDay: String?
+    @State private var forecastOpenedFrom: String?
+    /// True while Recent changes was opened from the heading button (vs. the
+    /// Menu shortcut) — focus returns to the button on close.
     @State private var activityOpenedFromButton = false
     @FocusState private var recentChangesButtonFocused: Bool
+    @FocusState private var cityFocused: Bool
 
     private let solar = SolarCalculator.newSmyrnaBeach
 
@@ -67,8 +70,7 @@ struct ContentView: View {
     init() {
         #if DEBUG
         let args = Self.launchArgs
-        if args.contains("--overlay-outlook") { _detailPanel = State(initialValue: .outlook) }
-        if args.contains("--overlay-weather") { _detailPanel = State(initialValue: .weather) }
+        if args.contains("--overlay-outlook") { _showForecast = State(initialValue: true) }
         if args.contains("--overlay-activity") { _showActivity = State(initialValue: true) }
         #endif
     }
@@ -101,7 +103,7 @@ struct ContentView: View {
         .onExitCommand {
             // Menu on the board opens Recent changes (an open overlay's own
             // handler wins while it has focus). Home still exits the app.
-            if detailPanel == .none && !showActivity {
+            if !showForecast && !showActivity {
                 showActivity = true
             }
         }
@@ -117,17 +119,18 @@ struct ContentView: View {
             #endif
         }
         .onChange(of: focusedCamera) { _, id in
-            // Channel-flip feel: moving focus across the rail switches the
-            // active stream live. selectCamera is a no-op when the id is
-            // unchanged or the camera's URL isn't resolved yet.
+            // Channel-flip feel: moving focus across the caption strip
+            // switches the active stream live. selectCamera is a no-op when
+            // the id is unchanged or the camera's URL isn't resolved yet.
             if let id { viewModel.selectCamera(id) }
         }
-        .onChange(of: detailPanel) { old, new in
-            // Hand focus back to the tile that opened the overlay. Deferred a
-            // runloop so the tile is back in the focus hierarchy after the
-            // overlay (which grabbed focus on appear) tears down.
-            if new == .none && old != .none {
-                DispatchQueue.main.async { focusedStat = old }
+        .onChange(of: showForecast) { _, open in
+            // Hand focus back to the day panel that opened the overlay,
+            // deferred a runloop so the panel is back in the focus hierarchy
+            // after the overlay (which grabbed focus on appear) tears down.
+            if !open, let slot = forecastOpenedFrom {
+                forecastOpenedFrom = nil
+                DispatchQueue.main.async { focusedDay = slot }
             }
         }
         .onChange(of: showActivity) { _, open in
@@ -147,26 +150,12 @@ struct ContentView: View {
                 entries: viewModel.todaysActivity,
                 onClose: { showActivity = false }
             )
-        } else {
-            switch detailPanel {
-            case .none:
-                EmptyView()
-            case .outlook:
-                if let weekend = viewModel.weekend {
-                    OutlookOverlay(
-                        weekend: weekend,
-                        surfLine: viewModel.surfLine,
-                        onClose: { detailPanel = .none }
-                    )
-                }
-            case .weather:
-                WeatherOverlay(
-                    tide: viewModel.tideInfo,
-                    weather: viewModel.weather,
-                    stationID: viewModel.config?.tideStation ?? "8721147",
-                    onClose: { detailPanel = .none }
-                )
-            }
+        } else if showForecast, let weekend = viewModel.weekend {
+            ForecastOverlay(
+                city: viewModel.currentCity,
+                weekend: weekend,
+                onClose: { showForecast = false }
+            )
         }
     }
 
@@ -174,142 +163,115 @@ struct ContentView: View {
 
     private var boardContent: some View {
         VStack(spacing: 0) {
-            TopBar(
-                city: viewModel.currentCity,
+            CamBand(
+                streamURL: viewModel.videoStreamURL,
+                rebuildToken: viewModel.videoStreamGeneration,
+                isPlaying: $viewModel.isVideoPlaying,
+                cameras: viewModel.cameras,
+                selectedID: viewModel.selectedCameraID,
+                offlineSince: viewModel.cameraOfflineSince,
+                isNight: sunAltitude < -0.8,
+                verdict: verdictDisplay,
+                weatherCells: weatherCells,
                 time: currentTime,
-                freshness: freshness,
-                onNextCity: { viewModel.nextCity() }
+                staleMinutes: staleMinutes,
+                focusedCamera: $focusedCamera,
+                onSelectCamera: { viewModel.selectCamera($0) },
+                onPlaybackFailure: { viewModel.refreshVideoStream() }
             )
 
-            VerdictBand(
-                verdict: viewModel.verdict,
-                stats: statTiles,
-                focusedStat: $focusedStat,
-                onSelect: { detailPanel = $0 }
-            )
-            .padding(.top, 22)
+            lowerArea
+        }
+        .ignoresSafeArea()
+    }
 
-            RampGridView(
-                ramps: viewModel.displayedRamps,
-                staleAsOf: staleAsOf,
-                outlookHints: outlookHints
+    private var lowerArea: some View {
+        VStack(spacing: 0) {
+            RampHeading(
+                city: viewModel.currentCity,
+                summary: viewModel.rampSummary,
+                cityFocused: $cityFocused,
+                recentChangesFocused: $recentChangesButtonFocused,
+                onNextCity: { viewModel.nextCity() },
+                onRecentChanges: {
+                    activityOpenedFromButton = true
+                    showActivity = true
+                }
             )
-            .padding(.top, 26)
+
+            RampGridView(cards: rampCards, staleAsOf: staleAsOf)
+                .padding(.top, 18)
+
+            AheadBand(
+                surf: surfPanel,
+                days: dayPanels,
+                focusedDay: $focusedDay,
+                onOpenForecast: {
+                    forecastOpenedFrom = focusedDay
+                    showForecast = true
+                }
+            )
+            .padding(.top, 20)
+
+            // A single spacer absorbs slack above the daylight band — no
+            // band is ever centered into a shrinkable track.
+            Spacer(minLength: 0)
 
             SunRibbon(
                 timeline: sunTimeline,
                 nowFraction: nowFraction,
                 isStale: viewModel.isStale
             )
-            .padding(.top, 22)
-
-            // The cam takes whatever height remains: growing any block above
-            // shortens the cam rather than overflowing.
-            TVVideoPlayerView(
-                url: viewModel.videoStreamURL,
-                rebuildToken: viewModel.videoStreamGeneration,
-                isPlaying: $viewModel.isVideoPlaying,
-                cameraName: viewModel.selectedCamera?.name ?? "Beach",
-                isOffline: camOffline,
-                otherLiveCount: otherLiveCameraCount,
-                onPlaybackFailure: { viewModel.refreshVideoStream() }
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
-            .padding(.top, 20)
-
-            if !viewModel.cameras.isEmpty {
-                CoastlineRail(
-                    cameras: viewModel.cameras,
-                    selectedID: viewModel.selectedCameraID,
-                    focusedCamera: $focusedCamera,
-                    recentChangesFocused: $recentChangesButtonFocused,
-                    onSelect: { viewModel.selectCamera($0) },
-                    onRecentChanges: {
-                        activityOpenedFromButton = true
-                        showActivity = true
-                    }
-                )
-                .padding(.top, 16)
-            }
         }
-        .padding(.horizontal, 60)
-        .padding(.top, 56)
-        .padding(.bottom, 52)
+        .padding(.top, 24)
+        .padding(.horizontal, 64)
+        .padding(.bottom, 44)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Derived Display Data
 
-    private var freshness: Freshness {
-        guard viewModel.isStale, let age = viewModel.dataAge else { return .live }
-        return .stale(minutes: max(1, Int((age / 60).rounded())))
+    private var staleMinutes: Int? {
+        guard viewModel.isStale, let age = viewModel.dataAge else { return nil }
+        return max(1, Int((age / 60).rounded()))
     }
 
-    /// "as of" time for muted tiles when the board is stale.
+    /// "as of" time for muted cards when the board is stale.
     private var staleAsOf: String? {
         guard viewModel.isStale, let last = viewModel.lastSuccessfulRefresh else { return nil }
         return SinceFormatter.string(from: last)
     }
 
-    /// Server prediction hints for the visible ramps, keyed by access id.
-    private var outlookHints: [String: String] {
-        viewModel.displayedRamps.reduce(into: [:]) { hints, ramp in
-            if let hint = viewModel.outlookHint(for: ramp) {
-                hints[ramp.accessID] = hint
-            }
+    /// The verdict block: overnight is a factual neutral state with the
+    /// server's own reopen copy; everything else comes from VerdictBuilder.
+    private var verdictDisplay: TVVerdictDisplay {
+        if !viewModel.isStale, let overnight = viewModel.overnightOutlook {
+            return TVVerdictDisplay(
+                headline: "Driving is done for today",
+                subline: overnight.detail ?? overnight.headline,
+                barColor: .white.opacity(0.55)
+            )
+        }
+        let verdict = viewModel.verdict
+        let bar: Color = switch verdict.category {
+        case .open: BoardColor.verdictGood
+        case .limited: BoardColor.verdictMixed
+        case .closed: Color(boardHex: 0xC9301C)
+        }
+        return TVVerdictDisplay(headline: verdict.headline, subline: verdict.subline, barColor: bar)
+    }
+
+    private var rampCards: [TVRampCardModel] {
+        viewModel.displayedRamps.map { ramp in
+            TVRampCardModel(
+                ramp: ramp,
+                state: viewModel.rampState(for: ramp),
+                shortLine: viewModel.outlookHint(for: ramp)
+            )
         }
     }
 
-    private var camOffline: Bool {
-        viewModel.selectedCamera.map { $0.url == nil } ?? false
-    }
-
-    private var otherLiveCameraCount: Int {
-        viewModel.cameras.filter { $0.id != viewModel.selectedCameraID && $0.url != nil }.count
-    }
-
-    /// The two band tiles: outlook (predictions) leads, weather follows.
-    /// The outlook tile drops out when the weekend feature is off; weather
-    /// is always there.
-    private var statTiles: [StatTileModel] {
-        var tiles: [StatTileModel] = []
-        if let outlookStat {
-            tiles.append(outlookStat)
-        }
-        tiles.append(weatherStat)
-        return tiles
-    }
-
-    /// The Outlook tile — the predictive lead: one labeled column per
-    /// weekend day with the verdict word in its color, today's surf line as
-    /// the detail (the overlay carries the untruncated version). Absent when
-    /// the weekend outlook isn't available (old server, kill switch) — its
-    /// overlay is the multi-day view, so surf alone isn't enough to earn
-    /// the tile.
-    private var outlookStat: StatTileModel? {
-        guard let weekend = viewModel.weekend else { return nil }
-        let days = weekend.weekendDays.prefix(2)
-        guard !days.isEmpty else { return nil }
-
-        return StatTileModel(
-            label: "Outlook",
-            columns: days.map { day in
-                StatTileColumn(
-                    label: day.weekdayShort.uppercased(),
-                    value: day.verdictLabel,
-                    color: day.verdictCategory.map { palette.statusColor(for: $0) }
-                )
-            },
-            detail: viewModel.surfLine ?? " ",
-            detailLabel: viewModel.surfLine == nil ? nil : "SURF",
-            panel: .outlook
-        )
-    }
-
-    /// The Weather tile — the old tide / water·air / wind tiles folded into
-    /// one: labeled spot values up top, the tide's direction and next
-    /// extreme below.
-    private var weatherStat: StatTileModel {
+    private var weatherCells: [WeatherCell] {
         var wind = "—"
         if let current = viewModel.weather?.current {
             let direction = current.windDirection ?? ""
@@ -317,26 +279,103 @@ struct ContentView: View {
             let joined = "\(direction) \(speed)".trimmingCharacters(in: .whitespaces)
             if !joined.isEmpty { wind = joined }
         }
+        return [
+            WeatherCell(label: "Water",
+                        value: viewModel.tideInfo?.waterTempAvg.map { "\(Int($0))°" } ?? "—"),
+            WeatherCell(label: "Air",
+                        value: viewModel.weather?.current.temperatureF.map { "\(Int($0))°" } ?? "—"),
+            WeatherCell(label: "Wind", value: wind),
+        ]
+    }
 
-        var detail = " "
-        if let tide = viewModel.tideInfo {
-            detail = tide.isRising ? "Tide rising" : "Tide dropping"
-            if let next = VerdictBuilder.nextExtreme(in: tide, after: Date()) {
-                detail += " · \(next.label.lowercased()) \(SinceFormatter.clock(next.time))"
+    /// The surf panel: the server's line and rip risk verbatim, the buoy
+    /// facts underneath. No report = the honest "no read" state.
+    private var surfPanel: SurfPanelModel {
+        let context = viewModel.outlook?.surf
+        if let report = viewModel.outlook?.surfReport {
+            var ripLabel: String?
+            var elevated = false
+            if let rip = report.ripRisk {
+                ripLabel = "Rip risk \(rip.lowercased())"
+                elevated = rip.lowercased() != "low"
             }
+            var parts: [String] = []
+            if let height = report.heightLabel, !height.isEmpty {
+                parts.append(height.prefix(1).uppercased() + height.dropFirst())
+            }
+            if let period = context?.dominantPeriodS {
+                parts.append("\(Int(period.rounded()))s")
+            }
+            if let at = report.observedAt ?? context?.observedAt {
+                parts.append("buoy read \(agoText(at))")
+            }
+            return SurfPanelModel(
+                line: report.line,
+                ripLabel: ripLabel,
+                ripElevated: elevated,
+                detail: parts.isEmpty ? " " : parts.joined(separator: " · "),
+                hasRead: true
+            )
         }
-        return StatTileModel(
-            label: "Weather",
-            columns: [
-                StatTileColumn(label: "WATER",
-                               value: viewModel.tideInfo?.waterTempAvg.map { "\(Int($0))°" } ?? "—"),
-                StatTileColumn(label: "AIR",
-                               value: viewModel.weather?.current.temperatureF.map { "\(Int($0))°" } ?? "—"),
-                StatTileColumn(label: "WIND", value: wind),
-            ],
+
+        var detail = "Buoy is quiet — no recent report"
+        if let at = context?.observedAt {
+            detail = "Buoy last reported \(agoText(at))"
+        }
+        return SurfPanelModel(
+            line: "No surf read right now",
+            ripLabel: "No read",
+            ripElevated: false,
             detail: detail,
-            panel: .weather
+            hasRead: false
         )
+    }
+
+    /// The two weekend slots. Positions never move — on a Saturday the slot
+    /// keeps its place and takes the label "Today · Saturday".
+    private var dayPanels: [DayPanelModel] {
+        guard let weekend = viewModel.weekend else { return [] }
+        var days = Array(weekend.weekendDays.prefix(2))
+        if days.isEmpty { days = Array(weekend.days.prefix(2)) }
+        let today = Self.todayDateLabel()
+        return days.enumerated().map { index, day in
+            DayPanelModel(
+                id: day.date,
+                label: day.date == today ? "Today · \(day.weekday)" : day.weekday,
+                verdict: day.verdict,
+                headline: day.headline,
+                metrics: metricsLine(for: day),
+                cta: index == days.count - 1 ? "All 7 days ›" : nil
+            )
+        }
+    }
+
+    /// "93° · rain 20% · SW 8"
+    private func metricsLine(for day: WeekendDay) -> String {
+        var parts: [String] = []
+        if let high = day.highTempF { parts.append("\(Int(high.rounded()))°") }
+        if let rain = day.rainChancePct { parts.append("rain \(Int(rain.rounded()))%") }
+        if let wind = day.windLabel {
+            parts.append(wind.replacingOccurrences(of: " mph", with: ""))
+        }
+        return parts.isEmpty ? " " : parts.joined(separator: " · ")
+    }
+
+    /// Today's Eastern date in the server's "2026-08-22" label format.
+    private static func todayDateLabel() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = easternZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+
+    /// "40 min ago" / "7 hours ago"
+    private func agoText(_ date: Date) -> String {
+        let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
+        if minutes < 60 { return "\(minutes) min ago" }
+        let hours = minutes / 60
+        return "\(hours) hour\(hours == 1 ? "" : "s") ago"
     }
 
     // MARK: - Clock & Sun
@@ -349,7 +388,7 @@ struct ContentView: View {
     }
 
     /// Updates the clock and the sun's altitude (driving the background),
-    /// advances the ribbon's "now" marker, and rebuilds the day's sun timeline
+    /// advances the band's "now" marker, and rebuilds the day's sun timeline
     /// when the calendar day rolls over.
     private func tick() {
         var now = Date()
@@ -361,8 +400,12 @@ struct ContentView: View {
         #endif
 
         let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = Self.easternZone
+        // Weekend clocks name the day — "Sat 10:18 AM" — because the board's
+        // weekend copy is anchored to it.
+        let weekday = calendar.component(.weekday, from: now)
+        formatter.dateFormat = (weekday == 1 || weekday == 7) ? "EEE h:mm a" : "h:mm a"
         currentTime = formatter.string(from: now)
 
         withAnimation(.easeInOut(duration: 2.0)) {

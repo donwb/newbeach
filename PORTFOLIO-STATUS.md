@@ -25,7 +25,29 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-19 (evening: tvOS caught up with the predictive features, then
+last_verified: 2026-08-19 (night: tvOS board REBUILT to "tvOS design v3" (panorama
+  header, inline selectors — implemented from the Claude Design project handoff).
+  New structure: the cam holds the top 405pt full-bleed at its true 4.74:1 aspect
+  and carries the verdict (80pt headline + subline) plus a WATCHING caption strip
+  on its own bottom edge (all five cams, focus flips channels, offline cams struck
+  through with "offline since", nearest live neighbor named in amber); city
+  switching moved into the ramp section heading ("RAMPS New Smyrna Beach ‹ ›" +
+  count + Recent changes); ramp cards are 218pt with a new `overnight` state
+  (neutral field driven by the outlook's closed_now/overnight call — red now means
+  only an unplanned closure, and the verdict goes "Driving is done for today" with
+  the server's reopen copy); recovered space became the Ahead band — a 48pt surf
+  panel (line + rip risk + height/period/buoy-age, honest no-read state) and two
+  weekend day panels that open the NEW seven-row beach-forecast table overlay
+  (replaces the column OutlookOverlay); a slim daylight strip closes the screen.
+  DELETED: TopBar, VerdictBand/stat tiles, CoastlineRail, WeatherOverlay (the
+  Water/Air/Wind strip lives in the cam band, no overlay behind it). Shared
+  BeachStatus gained the outlook `surf` context block (wave height/period).
+  Verified in the tvOS simulator against prod (board, forecast, activity
+  screenshots) and all 4 XCUIRemote UI tests rewritten for the new focus graph
+  (cam strip → heading → day panels) pass. NOT YET FLIGHTED — build 19 (earlier
+  today) predates this board; the v3 board rides whenever Don next flights.
+  Earlier same day below.)
+prior_2026_08_19_pm: (tvOS caught up with the predictive features, then
   the band was redesigned the same session — the three stat squares (Tide /
   Water·Air / Wind) plus the briefly-added Weekend tile became TWO rectangles:
   "Outlook" leads (labeled SAT/SUN columns with color-coded verdict words + the surf

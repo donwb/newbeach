@@ -192,8 +192,8 @@ shoot_ipad() {
 
 # tvOS has no status bar to override and no rotation to fight, so the TV
 # gallery is the simplest of the three: boot, install, launch with the QA
-# hooks. The camera rail is inline on the board, so the board shot already
-# shows the switcher.
+# hooks. The cam caption strip and city selector are inline on the board,
+# so the board shot already shows both switchers.
 #
 # NOTE: deliberately no --sky-minutes here. That hook moves the sky, the
 # clock, and the sun ribbon, but NOT the verdict subline — ContentView's
@@ -210,9 +210,8 @@ shoot_tv() {
   local out="$OUT_ROOT/appletv"; mkdir -p "$out"
   rm -f "$out"/*.png
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/01-board.png"
-  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-outlook.png"  --overlay-outlook
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-forecast.png" --overlay-outlook
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/03-activity.png" --overlay-activity
-  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/04-weather.png"  --overlay-weather
 }
 
 paired_phone_for() { # watch udid -> phone udid

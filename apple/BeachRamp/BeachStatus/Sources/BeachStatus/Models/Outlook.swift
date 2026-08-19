@@ -11,17 +11,24 @@ public struct Outlook: Codable, Sendable {
     public let season: String
     public let schedule: OutlookSchedule
     public let tide: OutlookTide
+    /// The sea state the model saw — present only when a fresh buoy
+    /// observation informed the risk calls. Distinct from `surfReport` (the
+    /// casual product line): this is the model echo, carrying the raw wave
+    /// height and dominant period.
+    public let surf: OutlookSurfContext?
     /// The beach-wide casual surf line — optional, older servers (and the
     /// SURF_REPORT_ENABLED kill switch) omit it.
     public let surfReport: OutlookSurfReport?
     public let ramps: [RampOutlook]
 
     public init(generatedAt: Date, season: String, schedule: OutlookSchedule,
-                tide: OutlookTide, surfReport: OutlookSurfReport? = nil, ramps: [RampOutlook]) {
+                tide: OutlookTide, surf: OutlookSurfContext? = nil,
+                surfReport: OutlookSurfReport? = nil, ramps: [RampOutlook]) {
         self.generatedAt = generatedAt
         self.season = season
         self.schedule = schedule
         self.tide = tide
+        self.surf = surf
         self.surfReport = surfReport
         self.ramps = ramps
     }
@@ -50,8 +57,34 @@ public struct Outlook: Codable, Sendable {
         case season
         case schedule
         case tide
+        case surf
         case surfReport = "surf_report"
         case ramps
+    }
+}
+
+/// The wave observation the outlook was computed under — the model echo.
+/// Absent when no fresh buoy read informed the risk calls.
+public struct OutlookSurfContext: Codable, Sendable {
+    public let waveHeightFt: Double
+    public let dominantPeriodS: Double?
+    public let observedAt: Date
+    /// Which learned wave regime applied ("calm"/"neutral"/"rough").
+    public let regime: String?
+
+    public init(waveHeightFt: Double, dominantPeriodS: Double? = nil,
+                observedAt: Date, regime: String? = nil) {
+        self.waveHeightFt = waveHeightFt
+        self.dominantPeriodS = dominantPeriodS
+        self.observedAt = observedAt
+        self.regime = regime
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case waveHeightFt = "wave_height_ft"
+        case dominantPeriodS = "dominant_period_s"
+        case observedAt = "observed_at"
+        case regime
     }
 }
 

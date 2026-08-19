@@ -85,16 +85,21 @@ struct SunTimeline {
     }
 }
 
-// MARK: - Sun Ribbon
+// MARK: - Daylight Band
 
-/// Flat 18pt day ribbon: a 24-hour gradient through the sky phases with a now
-/// marker, sunrise/sunset times at the ends, and a live caption in the middle.
+/// The daylight band of design v3: a flat 14pt strip — a 24-hour gradient
+/// through the sky phases — with a white now marker standing proud of it,
+/// and three captions beneath: sunrise, the live middle caption, sunset.
+/// After sunset the end labels swap (sunset left, tomorrow's sunrise right)
+/// because that is the order the night now reads in.
 struct SunRibbon: View {
     let timeline: SunTimeline?
     let nowFraction: Double
     /// Stale board: sun facts are computed locally and stay trustworthy —
     /// the caption says so.
     let isStale: Bool
+
+    @Environment(\.skyPalette) private var sky
 
     var body: some View {
         VStack(spacing: 0) {
@@ -103,42 +108,43 @@ struct SunRibbon: View {
                 ZStack(alignment: .topLeading) {
                     Rectangle()
                         .fill(LinearGradient(stops: gradientStops, startPoint: .leading, endPoint: .trailing))
-                        .frame(width: w, height: 18)
+                        .frame(width: w, height: 14)
+                        .offset(y: 7)
 
-                    // Now marker: a white rule through the bar…
+                    // The now marker: a white rule standing 7pt proud of the
+                    // strip on both sides.
                     Rectangle()
                         .fill(.white)
-                        .frame(width: 4, height: 32)
-                        .position(x: markerX(w), y: 2)
-                        .animation(.easeInOut(duration: 1.0), value: nowFraction)
-
-                    // …and a red dot hanging below it.
-                    Circle()
-                        .fill(BoardColor.nowMarker)
-                        .frame(width: 14, height: 14)
-                        .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
-                        .position(x: markerX(w), y: 35)
+                        .frame(width: 4, height: 28)
+                        .position(x: markerX(w), y: 14)
                         .animation(.easeInOut(duration: 1.0), value: nowFraction)
                 }
             }
-            .frame(height: 44)
+            .frame(height: 28)
 
             HStack {
-                Text(sunriseLabel)
+                Text(leadingLabel)
                 Spacer()
                 Text(caption)
                     .fontWeight(.semibold)
                 Spacer()
-                Text(sunsetLabel)
+                Text(trailingLabel)
             }
             .font(.system(size: 22))
-            .foregroundStyle(.white.opacity(0.8))
-            .padding(.top, 6)
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.top, 14)
         }
     }
 
     private func markerX(_ width: CGFloat) -> CGFloat {
         min(width - 2, max(2, CGFloat(nowFraction) * width))
+    }
+
+    /// True from sunset until midnight — the stretch where the night reads
+    /// sunset-first and points at tomorrow's sunrise.
+    private var isEveningNight: Bool {
+        guard let set = timeline?.sunset else { return false }
+        return nowFraction >= set.fraction
     }
 
     // MARK: Gradient
@@ -182,12 +188,20 @@ struct SunRibbon: View {
 
     // MARK: Labels
 
-    private var sunriseLabel: String {
+    private var leadingLabel: String {
+        if isEveningNight {
+            guard let e = timeline?.sunset else { return "" }
+            return "Sunset \(e.timeText)"
+        }
         guard let e = timeline?.sunrise else { return "" }
         return "Sunrise \(e.timeText)"
     }
 
-    private var sunsetLabel: String {
+    private var trailingLabel: String {
+        if isEveningNight {
+            guard let e = timeline?.tomorrowSunrise else { return "" }
+            return "Sunrise \(e.timeText)"
+        }
         guard let e = timeline?.sunset else { return "" }
         return "Sunset \(e.timeText)"
     }
@@ -226,17 +240,13 @@ struct SunRibbon: View {
             return "\(daylight) of daylight left"
         case .eveningGolden:
             return "Golden hour now · sunset \(set.timeText)"
-        case .dusk:
-            if let d = t.civilDusk { return "Sunset \(set.timeText) · dusk until \(d.timeText)" }
-            return "Sunset was \(set.timeText)"
-        case .night:
-            // Post-dusk evening: today's sunrise is hours in the past (and
-            // already printed in the left label) — point at tomorrow's.
-            // The after-midnight hours fall under .preDawn, not here.
+        case .dusk, .night:
+            // The sky palette's phase name ("Civil dusk", "Night") narrates
+            // the dark hours, pointing at when the light comes back.
             if let tomorrow = t.tomorrowSunrise {
-                return "Sunrise tomorrow at \(tomorrow.timeText)"
+                return "\(sky.phaseName) · dark until \(tomorrow.timeText)"
             }
-            return "Sunrise at \(rise.timeText)"
+            return "\(sky.phaseName) · sunrise \(rise.timeText)"
         }
     }
 

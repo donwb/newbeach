@@ -62,6 +62,7 @@ final class TVViewModel {
             do {
                 let roster = try await api.fetchCameras()
                 cameras = roster.cameras
+                updateCameraHealth()
                 if let url = selectedCamera?.url, url != videoStreamURL {
                     videoStreamURL = url
                 }
@@ -106,8 +107,13 @@ final class TVViewModel {
     }
 
     // MARK: - Cameras
-    /// Live camera roster (south-to-north), backing the cam switcher strip.
+    /// Live camera roster (south-to-north), backing the cam caption strip.
+    /// The strip renders roster order directly — fixed geographic order.
     var cameras: [Camera] = []
+    /// When each currently-offline camera was first seen dark, keyed by id —
+    /// the caption strip's "offline since 12:48 PM" sub-labels. Cleared the
+    /// moment a camera's stream URL comes back.
+    var cameraOfflineSince: [String: Date] = [:]
     /// The currently selected camera id. Nil until the roster loads, then set
     /// to the roster's default.
     var selectedCameraID: String?
@@ -389,10 +395,67 @@ final class TVViewModel {
         do {
             let roster = try await api.fetchCameras()
             cameras = roster.cameras
+            updateCameraHealth()
             if selectedCameraID == nil {
                 selectedCameraID = roster.defaultID
             }
             applySelectedCameraURL()
         } catch { /* non-critical — keep current/fallback stream */ }
+    }
+
+    /// Stamp newly-dark cameras and clear recovered ones. First-seen time is
+    /// the best "offline since" this client can honestly claim.
+    private func updateCameraHealth() {
+        for camera in cameras {
+            if camera.url == nil {
+                if cameraOfflineSince[camera.id] == nil {
+                    cameraOfflineSince[camera.id] = Date()
+                }
+            } else {
+                cameraOfflineSince[camera.id] = nil
+            }
+        }
+    }
+
+    // MARK: - Overnight
+
+    /// The outlook entry proving the beach is in its overnight window —
+    /// outside driving hours every ramp is `closed_now`/`overnight`, so any
+    /// one of them speaks for the board. The county feed may still say OPEN
+    /// overnight; the outlook is authoritative for this display.
+    var overnightOutlook: RampOutlook? {
+        outlook?.ramps.first { $0.risk == "closed_now" && $0.reason == "overnight" }
+    }
+
+    var isOvernight: Bool { overnightOutlook != nil }
+
+    /// The v3 card state for a ramp: the outlook's overnight call wins, so
+    /// an expected end-of-driving close never wears the red field.
+    func rampState(for ramp: Ramp) -> TVRampState {
+        if let entry = outlook?.ramp(for: ramp.accessID),
+           entry.risk == "closed_now", entry.reason == "overnight" {
+            return .overnight
+        }
+        switch ramp.category {
+        case .open: return .open
+        case .limited: return .limited
+        case .closed: return .closed
+        }
+    }
+
+    /// The ramp heading's right-hand summary: "5 ramps · all open",
+    /// "3 open · 1 limited · 1 closed", "Closed overnight · 5 ramps".
+    var rampSummary: String {
+        let total = displayedRamps.count
+        if isOvernight {
+            return "Closed overnight · \(total) ramp\(total == 1 ? "" : "s")"
+        }
+        if closedCount == 0 && limitedCount == 0 {
+            return "\(total) ramp\(total == 1 ? "" : "s") · all open"
+        }
+        var parts = ["\(openCount) open"]
+        if limitedCount > 0 { parts.append("\(limitedCount) limited") }
+        if closedCount > 0 { parts.append("\(closedCount) closed") }
+        return parts.joined(separator: " · ")
     }
 }
