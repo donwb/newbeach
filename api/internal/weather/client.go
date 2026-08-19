@@ -21,12 +21,16 @@ const (
 )
 
 // Conditions represents the current observed weather conditions from the
-// nearest NWS observation station.
+// nearest NWS observation station. WindDirDeg/WindSpeedMph carry the raw
+// numbers behind the formatted strings — consumers that classify wind (the
+// surf report, the weekend outlook) read these instead of parsing prose.
 type Conditions struct {
 	Temperature   float64   `json:"temperature_f"`
 	WindSpeed     string    `json:"wind_speed"`
 	WindDirection string    `json:"wind_direction"`
 	WindGust      string    `json:"wind_gust,omitempty"`
+	WindDirDeg    *float64  `json:"wind_direction_deg,omitempty"`
+	WindSpeedMph  *float64  `json:"wind_speed_mph,omitempty"`
 	Description   string    `json:"description"`
 	Humidity      int       `json:"humidity"`
 	Icon          string    `json:"icon"`
@@ -60,24 +64,48 @@ type WeatherInfo struct {
 // descriptive User-Agent header.
 type Client struct {
 	httpClient *http.Client
+	baseURL    string
 	lat        float64
 	lon        float64
 
-	// Cached grid/station lookups (set once, never change).
+	// Surf Zone Forecast configuration (issuing office + UGC zone).
+	srfOffice string
+	srfZone   string
+
+	now func() time.Time // stubbed in tests
+
+	// Cached grid/station lookups (set once, never change) and the cached
+	// Surf Zone Forecast.
 	mu                 sync.Mutex
 	forecastURL        string
 	observationStation string
+	srfCached          *SurfZone
+	srfFetchedAt       time.Time
 }
 
 // NewClient creates a weather API client configured for the default beach
-// coordinates.
-func NewClient() *Client {
+// coordinates. Empty arguments take the defaults: the public NWS API,
+// office KMLB, zone FLZ141 (Coastal Volusia).
+func NewClient(baseURL, srfOffice, srfZone string) *Client {
+	if baseURL == "" {
+		baseURL = nwsBaseURL
+	}
+	if srfOffice == "" {
+		srfOffice = "KMLB"
+	}
+	if srfZone == "" {
+		srfZone = "FLZ141"
+	}
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		lat: defaultLat,
-		lon: defaultLon,
+		baseURL:   baseURL,
+		lat:       defaultLat,
+		lon:       defaultLon,
+		srfOffice: srfOffice,
+		srfZone:   srfZone,
+		now:       time.Now,
 	}
 }
 
@@ -214,7 +242,7 @@ func (c *Client) ensureGridResolved(ctx context.Context) error {
 	c.mu.Unlock()
 
 	// Resolve the grid point.
-	pointsURL := fmt.Sprintf("%s/points/%.4f,%.4f", nwsBaseURL, c.lat, c.lon)
+	pointsURL := fmt.Sprintf("%s/points/%.4f,%.4f", c.baseURL, c.lat, c.lon)
 	var points nwsPointsResponse
 	if err := c.doJSON(ctx, pointsURL, &points); err != nil {
 		return fmt.Errorf("fetching NWS points: %w", err)
@@ -263,7 +291,7 @@ func (c *Client) fetchCurrentConditions(ctx context.Context) (*Conditions, error
 		return nil, fmt.Errorf("observation station not resolved")
 	}
 
-	obsURL := fmt.Sprintf("%s/stations/%s/observations/latest", nwsBaseURL, station)
+	obsURL := fmt.Sprintf("%s/stations/%s/observations/latest", c.baseURL, station)
 	var obs nwsObservationResponse
 	if err := c.doJSON(ctx, obsURL, &obs); err != nil {
 		return nil, fmt.Errorf("fetching latest observation from station %s: %w", station, err)
@@ -284,6 +312,7 @@ func (c *Client) fetchCurrentConditions(ctx context.Context) (*Conditions, error
 	if obs.Properties.WindSpeed.Value != nil {
 		mph := kmhToMph(*obs.Properties.WindSpeed.Value)
 		cond.WindSpeed = fmt.Sprintf("%.0f mph", mph)
+		cond.WindSpeedMph = &mph
 	}
 
 	// Wind gust from NWS is in km/h — convert to mph and format.
@@ -292,9 +321,12 @@ func (c *Client) fetchCurrentConditions(ctx context.Context) (*Conditions, error
 		cond.WindGust = fmt.Sprintf("%.0f mph", gust)
 	}
 
-	// Wind direction in degrees — convert to cardinal direction.
+	// Wind direction in degrees — convert to cardinal direction, keeping the
+	// raw degrees alongside.
 	if obs.Properties.WindDirection.Value != nil {
-		cond.WindDirection = degreesToCardinal(*obs.Properties.WindDirection.Value)
+		deg := *obs.Properties.WindDirection.Value
+		cond.WindDirection = degreesToCardinal(deg)
+		cond.WindDirDeg = &deg
 	}
 
 	// Relative humidity.

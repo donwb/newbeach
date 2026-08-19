@@ -23,6 +23,7 @@ import (
 	"github.com/donwb/beach/api/internal/handlers"
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/nwsfc"
 	"github.com/donwb/beach/api/internal/predict"
 	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
@@ -97,6 +98,21 @@ func main() {
 	// tide-only without touching the learned params or the wave series.
 	predictWavesEnabled := os.Getenv("PREDICT_WAVES_ENABLED") != "false"
 
+	// Weekend outlook: NWS forecast gridpoints (land + marine) feed the
+	// multi-day verdicts. The base URL is overridable in case the App
+	// Platform egress IP ever gets blocked — point it at the cam-relay
+	// droplet's Caddy proxy, the NDBC_ERDDAP_URL precedent.
+	weekendEnabled := os.Getenv("WEEKEND_OUTLOOK_ENABLED") != "false"
+	nwsBaseURL := os.Getenv("NWS_BASE_URL")
+	nwsLandGrid := os.Getenv("NWS_LAND_GRIDPOINT")
+	if nwsLandGrid == "" {
+		nwsLandGrid = "MLB/42,92" // New Smyrna Beach
+	}
+	nwsMarineGrid := os.Getenv("NWS_MARINE_GRIDPOINT")
+	if nwsMarineGrid == "" {
+		nwsMarineGrid = "MLB/46,93" // coastal waters off the inlet (AMZ550)
+	}
+
 	camHealthInterval := 60 * time.Second
 	if chi := os.Getenv("CAM_HEALTH_INTERVAL"); chi != "" {
 		if secs, err := strconv.Atoi(chi); err == nil && secs > 0 {
@@ -127,8 +143,9 @@ func main() {
 	// Create NOAA client.
 	noaaClient := noaa.NewClient(tideStation, tempStations)
 
-	// Create NWS weather client.
-	weatherClient := weather.NewClient()
+	// Create NWS weather client. Shares NWS_BASE_URL with the forecast
+	// client so the droplet-proxy contingency covers every NWS fetch.
+	weatherClient := weather.NewClient(nwsBaseURL, os.Getenv("NWS_SRF_OFFICE"), os.Getenv("NWS_SRF_ZONE"))
 
 	// Set up Echo HTTP server.
 	e := echo.New()
@@ -156,7 +173,23 @@ func main() {
 		outlookStation = ""
 	}
 	outlookSvc := predict.NewService(pool, noaaClient, outlookStation)
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, ndbcStation)
+
+	// Surf report: one casual surf line on the outlook. Its switch is
+	// independent of PREDICT_WAVES_ENABLED — killing the copy must not kill
+	// the tide model's wave conditioning, and vice versa.
+	if os.Getenv("SURF_REPORT_ENABLED") != "false" {
+		outlookSvc.SetWeatherClient(weatherClient)
+		outlookSvc.EnableSurfReport(ndbcStation)
+	}
+
+	// Weekend outlook service — nil when disabled, which unregisters the
+	// route entirely (clients hide the section on fetch failure).
+	var weekendSvc *predict.WeekendService
+	if weekendEnabled {
+		nwsClient := nwsfc.NewClient(nwsBaseURL, nwsLandGrid, nwsMarineGrid)
+		weekendSvc = predict.NewWeekendService(pool, noaaClient, nwsClient)
+	}
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, ndbcStation)
 
 	// Serve static website files from the filesystem, after API routes so the
 	// CORS and logging middleware registered there wrap static responses too.

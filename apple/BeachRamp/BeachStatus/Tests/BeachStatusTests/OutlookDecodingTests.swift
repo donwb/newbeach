@@ -96,6 +96,38 @@ struct OutlookDecodingTests {
         #expect(outlook.ramp(for: "XX-000") == nil)
     }
 
+    @Test func legacyPayloadWithoutSurfReportDecodes() throws {
+        // The fixture above has no surf_report — older servers and the
+        // SURF_REPORT_ENABLED kill switch must decode to nil, not throw.
+        let outlook = try decode(payload)
+        #expect(outlook.surfReport == nil)
+    }
+
+    @Test func decodesSurfReport() throws {
+        let outlook = try decode("""
+        {
+          "generated_at": "2026-08-16T14:10:00Z",
+          "season": "turtle",
+          "schedule": { "opens_label": "around 8am", "closes_label": "7pm" },
+          "tide": {},
+          "surf_report": {
+            "line": "Clean chest-high — worth a paddle, but a closure's possible around 1:30pm · rip current risk is moderate today",
+            "quality": "good",
+            "height_label": "chest-high",
+            "rip_risk": "Moderate",
+            "observed_at": "2026-08-16T13:30:00Z"
+          },
+          "ramps": []
+        }
+        """)
+        let surf = try #require(outlook.surfReport)
+        #expect(surf.quality == "good")
+        #expect(surf.heightLabel == "chest-high")
+        #expect(surf.ripRisk == "Moderate")
+        #expect(surf.observedAt != nil)
+        #expect(surf.line.contains("worth a paddle"))
+    }
+
     @Test func boardHintAlwaysLooksForward() throws {
         let outlook = try decode(payload)
         // Tide-closed → the reopen estimate, never a blank.

@@ -14,6 +14,7 @@ import (
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/noaa"
+	"github.com/donwb/beach/api/internal/weather"
 )
 
 // outlookTTL is how long a computed outlook is served before recomputing.
@@ -27,6 +28,13 @@ type Service struct {
 	noaa    *noaa.Client
 	station string // NDBC buoy for serve-time sea state; empty = tide-only
 
+	// Surf report inputs (nil/empty = no surf line). surfStation is
+	// deliberately separate from station: PREDICT_WAVES_ENABLED gates the
+	// tide model's wave conditioning, SURF_REPORT_ENABLED gates the copy,
+	// and killing one must not kill the other.
+	weather     *weather.Client
+	surfStation string
+
 	mu       sync.Mutex
 	cached   *Outlook
 	cachedAt time.Time
@@ -38,6 +46,19 @@ type Service struct {
 // tide-only (the PREDICT_WAVES_ENABLED kill switch).
 func NewService(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string) *Service {
 	return &Service{pool: pool, noaa: noaaClient, station: ndbcStation}
+}
+
+// SetWeatherClient hands the service the NWS client used for surf-report
+// wind and the Surf Zone Forecast. Additive so either feature wanting it
+// can land first.
+func (s *Service) SetWeatherClient(w *weather.Client) {
+	s.weather = w
+}
+
+// EnableSurfReport turns on the surf line, reading sea state from the given
+// buoy's wave_observations rows.
+func (s *Service) EnableSurfReport(ndbcStation string) {
+	s.surfStation = ndbcStation
 }
 
 // Get returns the current outlook, recomputing at most every outlookTTL.
@@ -102,16 +123,45 @@ func (s *Service) build(ctx context.Context) (*Outlook, error) {
 
 	// Latest sea state, best-effort: the outlook must never fail because the
 	// buoy or its table is unavailable — BuildOutlook treats nil (and stale
-	// observations) as tide-only.
+	// observations) as tide-only. The surf report reads the same row, so the
+	// fetch happens when either consumer wants it — but the tide model only
+	// ever sees it through its own station gate.
 	var wave *models.WaveSample
-	if s.station != "" {
-		wave, err = database.GetLatestWaveObservation(ctx, s.pool, s.station)
+	if s.station != "" || s.surfStation != "" {
+		station := s.station
+		if station == "" {
+			station = s.surfStation
+		}
+		wave, err = database.GetLatestWaveObservation(ctx, s.pool, station)
 		if err != nil {
 			slog.Warn("outlook: reading latest wave observation", "err", err)
 			wave = nil
 		}
 	}
 
-	out := BuildOutlook(now, ramps, params, preds, wave)
+	modelWave := wave
+	if s.station == "" {
+		modelWave = nil // PREDICT_WAVES_ENABLED=false: tide-only risk calls
+	}
+
+	out := BuildOutlook(now, ramps, params, preds, modelWave)
+
+	// The surf line rides on top — best-effort, never fails the outlook.
+	if s.surfStation != "" {
+		var cond *weather.Conditions
+		var srf *weather.SurfZone
+		if s.weather != nil {
+			if cond, err = s.weather.GetCurrentConditions(ctx); err != nil {
+				slog.Warn("outlook: surf report conditions unavailable", "err", err)
+				cond = nil
+			}
+			if srf, err = s.weather.GetSurfZone(ctx); err != nil {
+				slog.Warn("outlook: surf zone forecast unavailable", "err", err)
+				srf = nil
+			}
+		}
+		out.SurfReport = BuildSurfReport(now, &out, wave, cond, srf)
+	}
+
 	return &out, nil
 }

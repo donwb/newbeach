@@ -78,6 +78,30 @@ services:
       - key: NDBC_ERDDAP_URL
         scope: RUN_AND_BUILD_TIME
         value: "https://cams.donwb.com/erddap/tabledap/cwwcNDBCMet.json"
+      # Weekend outlook: NWS forecast gridpoints. NWS_BASE_URL is unset (the
+      # public api.weather.gov, verified reachable from DO datacenter IPs
+      # 2026-08-18) — if the app's egress ever gets blocked, point it at a
+      # cams.donwb.com Caddy proxy route, the NDBC_ERDDAP_URL precedent.
+      - key: WEEKEND_OUTLOOK_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
+      - key: NWS_LAND_GRIDPOINT
+        scope: RUN_AND_BUILD_TIME
+        value: "MLB/42,92"
+      - key: NWS_MARINE_GRIDPOINT
+        scope: RUN_AND_BUILD_TIME
+        value: "MLB/46,93"
+      # Surf report: one casual surf line on the outlook; rip current risk
+      # relayed verbatim from the KMLB Surf Zone Forecast.
+      - key: SURF_REPORT_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
+      - key: NWS_SRF_OFFICE
+        scope: RUN_AND_BUILD_TIME
+        value: "KMLB"
+      - key: NWS_SRF_ZONE
+        scope: RUN_AND_BUILD_TIME
+        value: "FLZ141"
       - key: CONDITIONS_INTERVAL
         scope: RUN_AND_BUILD_TIME
         value: "30"

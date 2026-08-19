@@ -56,13 +56,22 @@ func HandleV2RampOutlook(svc *predict.Service) echo.HandlerFunc {
 
 		for _, ro := range outlook.Ramps {
 			if ro.RampID == id {
-				return c.JSON(http.StatusOK, map[string]interface{}{
+				resp := map[string]interface{}{
 					"generated_at": outlook.GeneratedAt,
 					"season":       outlook.Season,
 					"schedule":     outlook.Schedule,
 					"tide":         outlook.Tide,
 					"ramp":         ro,
-				})
+				}
+				// Shared context the bulk endpoint carries; omitted when nil,
+				// matching its omitempty behavior.
+				if outlook.Surf != nil {
+					resp["surf"] = outlook.Surf
+				}
+				if outlook.SurfReport != nil {
+					resp["surf_report"] = outlook.SurfReport
+				}
+				return c.JSON(http.StatusOK, resp)
 			}
 		}
 

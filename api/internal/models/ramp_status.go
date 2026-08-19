@@ -2,6 +2,7 @@ package models
 
 import (
 	"strings"
+	"unicode"
 	"time"
 )
 
@@ -127,4 +128,36 @@ func StatusToShort(status string) string {
 		}
 		return s
 	}
+}
+
+// PrettyRampName converts a GIS ramp name like "3RD AV" or "CRAWFORD RD" to a
+// display name like "3rd Ave" or "Crawford Rd".
+func PrettyRampName(name string) string {
+	words := strings.Fields(name)
+	for i, w := range words {
+		switch w {
+		case "AV", "AVE":
+			words[i] = "Ave"
+		case "RD":
+			words[i] = "Rd"
+		case "ST":
+			words[i] = "St"
+		case "BLVD":
+			words[i] = "Blvd"
+		case "DR":
+			words[i] = "Dr"
+		case "LN":
+			words[i] = "Ln"
+		case "CT":
+			words[i] = "Ct"
+		default:
+			if len(w) > 0 && unicode.IsDigit(rune(w[0])) {
+				// Ordinals: "3RD" → "3rd", "27TH" → "27th".
+				words[i] = strings.ToLower(w)
+			} else {
+				words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+			}
+		}
+	}
+	return strings.Join(words, " ")
 }

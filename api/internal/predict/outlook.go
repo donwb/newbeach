@@ -120,13 +120,16 @@ type SurfContext struct {
 	Regime          string    `json:"regime,omitempty"`
 }
 
-// Outlook is the full response served at /api/v2/outlook.
+// Outlook is the full response served at /api/v2/outlook. SurfReport is the
+// casual surf line (a product feature with its own kill switch), attached by
+// the service after BuildOutlook — distinct from Surf, the model echo.
 type Outlook struct {
 	GeneratedAt time.Time     `json:"generated_at"`
 	Season      string        `json:"season"`
 	Schedule    Schedule      `json:"schedule"`
 	Tide        TideContext   `json:"tide"`
 	Surf        *SurfContext  `json:"surf,omitempty"`
+	SurfReport  *SurfReport   `json:"surf_report,omitempty"`
 	Ramps       []RampOutlook `json:"ramps"`
 }
 

@@ -11,6 +11,9 @@ struct DetailStatusBand: View {
     let projection: ClosureProjection?
     /// Server outlook line; wins over `projection` when set.
     var outlookLine: String? = nil
+    /// Beach-wide surf line, rendered verbatim; nil when the server has
+    /// nothing worth saying.
+    var surfLine: String? = nil
     /// 20 on iPhone, 28 in the iPad sheet.
     var statusSize: CGFloat = 20
     @Environment(\.ground) private var ground
@@ -48,6 +51,13 @@ struct DetailStatusBand: View {
                 Text(line)
                     .font(.archivo(14, weight: .semiBold))
                     .foregroundStyle(field.text)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let surfLine {
+                Text(surfLine)
+                    .font(.archivo(12))
+                    .italic()
+                    .foregroundStyle(field.text2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

@@ -55,6 +55,7 @@ export function createDetailView(store) {
           </div>
           <div class="band-outlook" id="band-outlook"></div>
         </div>
+        <div class="band-surf" id="band-surf" hidden></div>
       </section>
 
       <section class="day-band">
@@ -183,6 +184,12 @@ export function createDetailView(store) {
       ? `${s.stale ? 'as of' : 'since'} ${sinceString(new Date(ramp.status_since), s.now)}`
       : '';
     $('#band-outlook').textContent = serverOutlookLine(ramp, s) || outlookLine(ramp, s);
+
+    // Beach-wide surf line, rendered verbatim; absent = hidden.
+    const surfLine = s.outlook?.surf_report?.line || '';
+    const surfEl = $('#band-surf');
+    surfEl.hidden = !surfLine;
+    surfEl.textContent = surfLine;
 
     updateDayBand(s);
     updateTide(s);

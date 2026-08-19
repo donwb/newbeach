@@ -821,6 +821,110 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   color: var(--ink2);
 }
 
+/* ---------- Surf line (detail status band) ---------- */
+
+.band-surf {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink2);
+  margin-top: 8px;
+}
+
+/* ---------- Weekend outlook + surf ---------- */
+
+.weekend {
+  padding-bottom: 24px;
+}
+
+/* Outlook on the left, the surf read on the right. */
+.weekend-cols {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 40px;
+  align-items: start;
+}
+
+.weekend-surf .surf-line {
+  margin: 6px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.weekend-headline {
+  margin: 6px 0 14px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.weekend-days {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+
+.wk-day {
+  border-top: 2px solid var(--rule2);
+  padding-top: 8px;
+  min-width: 0;
+}
+.wk-day.wk-weekend {
+  border-top-color: var(--rule);
+}
+
+.wk-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wk-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.wk-day.wk-weekend .wk-name {
+  color: var(--accent);
+}
+
+.wk-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #fff;
+}
+.wk-day[data-verdict='great'] .wk-pill { background: var(--c-open); }
+.wk-day[data-verdict='good'] .wk-pill { background: color-mix(in srgb, var(--c-open) 75%, var(--ink) 25%); }
+.wk-day[data-verdict='mixed'] .wk-pill { background: var(--c-limited); color: var(--limited-ink); }
+.wk-day[data-verdict='tough'] .wk-pill { background: var(--c-closed); }
+.wk-day[data-verdict='no_call'] .wk-pill { background: var(--ink2); }
+
+/* Server copy rendered verbatim. Full ink and upright — these lines are the
+   section's payload, not a footnote. */
+.wk-line {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.wk-window {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wk-attrs {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Recent changes ---------- */
 
 .changes {
@@ -1247,6 +1351,30 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   }
   .forecast-cell .fc-temp {
     font-size: 20px;
+  }
+
+  /* Surf stacks above the day rail on phones. */
+  .weekend-cols {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .weekend-surf {
+    order: -1;
+  }
+
+  /* Weekend days become a swipeable rail on phones. */
+  .weekend-days {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .weekend-days .wk-day {
+    flex: 0 0 150px;
+  }
+  .weekend-headline {
+    font-size: 15px;
   }
 
   .cam-offline h3 {

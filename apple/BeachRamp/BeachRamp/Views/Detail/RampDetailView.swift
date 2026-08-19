@@ -26,7 +26,8 @@ struct RampDetailView: View {
                     .padding(.bottom, 14)
 
                 DetailStatusBand(ramp: ramp, projection: viewModel.projection(for: ramp),
-                                 outlookLine: viewModel.outlookLine(for: ramp))
+                                 outlookLine: viewModel.outlookLine(for: ramp),
+                                 surfLine: viewModel.outlook?.surfReport?.line)
 
                 TodayStatusBandView(intervals: viewModel.intervalsByRamp[ramp.accessID])
                     .padding(.horizontal, 18)

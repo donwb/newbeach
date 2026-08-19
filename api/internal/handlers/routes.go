@@ -18,7 +18,7 @@ import (
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, ndbcStation string) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, weekendSvc *predict.WeekendService, ndbcStation string) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -70,6 +70,11 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/ramps/:id/intervals", HandleV2RampIntervals(pool))
 	v2.GET("/ramps/:id/outlook", HandleV2RampOutlook(outlookSvc))
 	v2.GET("/outlook", HandleV2Outlook(outlookSvc))
+	// Weekend outlook is optional — nil service (WEEKEND_OUTLOOK_ENABLED=false)
+	// means the route simply doesn't exist and clients hide the section.
+	if weekendSvc != nil {
+		v2.GET("/outlook/weekend", HandleV2WeekendOutlook(weekendSvc))
+	}
 	v2.GET("/activity", HandleV2RecentActivity(pool))
 	v2.GET("/tides", HandleV2Tides(noaaClient))
 	v2.GET("/tides/chart", HandleV2TideChart(noaaClient))

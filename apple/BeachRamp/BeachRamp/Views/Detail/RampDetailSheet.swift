@@ -79,6 +79,7 @@ struct RampDetailSheet: View {
                         ramp: ramp,
                         projection: viewModel.projection(for: ramp),
                         outlookLine: viewModel.outlookLine(for: ramp),
+                        surfLine: viewModel.outlook?.surfReport?.line,
                         statusSize: 28
                     )
 

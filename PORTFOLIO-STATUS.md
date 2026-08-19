@@ -25,7 +25,16 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-18 (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission ever.
+last_verified: 2026-08-19 (TWO NEW FEATURES SHIPPED to main → prod (web): (1) Weekend
+  Outlook — /api/v2/outlook/weekend, 6-day great/good/mixed/tough verdicts from the
+  tide engine + new NWS forecast package (api/internal/nwsfc), live-tunable thresholds
+  in the weekend_verdict_params settings key, web board section below the ramp cards;
+  (2) Surf Report — one casual surf line (surf_report block on both outlook endpoints)
+  from buoy + NWS wind + KMLB Surf Zone Forecast rip risk (relayed verbatim), shown
+  beside the weekend outlook on web and in the iOS detail band in-tree. iOS surf line
+  needs a re-flight to reach TestFlight; tvOS/TRMNL deferred. Next up: a /county/
+  showcase section for the weekend outlook. Prior state below.)
+prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission ever.
   Same day, the prep that made it possible: full ASC metadata sheet written to
   docs/APP-STORE-LISTING.md — name, subtitle, keywords, descriptions, review notes, and
   privacy answers for BOTH platforms, every length-limited field measured. Listing name

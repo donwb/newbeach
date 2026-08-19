@@ -172,6 +172,33 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - `api/internal/predict/backtest_test.go` replays five months of checked-in real history
   and pins recall/calibration floors — engine changes that degrade real-world behavior
   fail tests. Refresh fixtures from `/api/v2/ramps/:id/history` + NOAA hilo when needed.
+- **Weekend outlook (`GET /api/v2/outlook/weekend`, 2026-08-18)** answers "when
+  should I go this weekend": the next 6 days, each graded `verdict:
+  great|good|mixed|tough|no_call` + `closure_pressure: none|some|high` — a
+  **separate vocabulary from `risk` on purpose**; the weekend feature must never
+  borrow the fenced risk enum. Inputs: the existing per-ramp tide engine run
+  over future peaks, plus NWS gridpoint forecasts (`api/internal/nwsfc`: land
+  hourly + marine waves, TTL-cached, serve-stale, retry). Verdict thresholds are
+  **experiential and live-tunable**: `weekend_verdict_params` settings key
+  (defaults in `DefaultVerdictParams`, from Don's 2026-08-18 calibration —
+  storms block hours not days, wind ≥15 sustained degrades / ≥25 gusts caps at
+  tough, heat advisory or index ≥105 downgrades + biases windows to morning,
+  day high <65°F downgrades). Edit via `/api/v2/admin/settings`, no redeploy.
+  Degradation: no NWS coverage → honest tide-only verdicts with `basis` saying
+  so; `WEEKEND_OUTLOOK_ENABLED=false` unregisters the route. All copy in
+  `weekendtext.go` follows the text.go voice rules.
+- **Surf report (2026-08-19): the surf info is an adjective, not a feature.** One
+  casual line (`surf_report` block on both outlook endpoints, `predict/surfreport.go`):
+  a deterministic classifier over buoy height/period + NWS wind direction
+  (flat/blown/choppy/clean_small/good/firing, surfer-terms heights), with the
+  ramp-access clause appended only when the surf is worth driving to — reusing
+  the already-built ramp outlooks, never recomputing tide risk. **Rip current
+  risk is relayed verbatim from the KMLB Surf Zone Forecast (`weather/srf.go`),
+  never computed here**; elevated rip enters the prose, Low stays in the field.
+  No dedicated surf page anywhere — surfers have Surfline; the unique angle is
+  surf × ramp access. `surf_report` never touches `risk` or `SurfContext`
+  (the model echo), and `SURF_REPORT_ENABLED=false` removes the block while
+  leaving wave-conditioned predictions alone.
 - `api/internal/conditions` snapshots tide/wind/NDBC-buoy waves + ramp counts to
   `beach_conditions` every 30 min. Originally the seed data for the wave-aware model
   (now shipped, fed by `wave_observations`); still valuable as the joint
@@ -251,6 +278,13 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
 | `NDBC_STATION` | Conditions logger, prediction | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
 | `PREDICT_WAVES_ENABLED` | API | Set `false` to serve tide-only outlooks (wave series keeps accumulating) |
+| `WEEKEND_OUTLOOK_ENABLED` | API | Set `false` to remove `/api/v2/outlook/weekend` entirely (clients hide the section) |
+| `NWS_BASE_URL` | Weekend outlook | NWS API base override; unset = api.weather.gov. If the app egress ever gets blocked, point at a cams.donwb.com Caddy proxy route (`NDBC_ERDDAP_URL` precedent) |
+| `NWS_LAND_GRIDPOINT` | Weekend outlook | NWS land gridpoint `OFFICE/x,y` (default `MLB/42,92`, New Smyrna) |
+| `NWS_MARINE_GRIDPOINT` | Weekend outlook | NWS marine gridpoint (default `MLB/46,93`, zone AMZ550) |
+| `SURF_REPORT_ENABLED` | API | Set `false` to drop the `surf_report` block from outlook payloads (independent of `PREDICT_WAVES_ENABLED`) |
+| `NWS_SRF_OFFICE` | Surf report | Surf Zone Forecast issuing office (default `KMLB`) |
+| `NWS_SRF_ZONE` | Surf report | SRF zone section to parse (default `FLZ141`, Coastal Volusia) |
 | `NDBC_ERDDAP_URL` | Conditions logger, prediction | ERDDAP mirror base URL; **prod points at the cam-relay droplet's `/erddap/*` Caddy proxy** because NOAA tarpits the app's egress IP |
 | `CONDITIONS_INTERVAL` | Conditions logger | Minutes between beach_conditions snapshots (default: 30) |
 | `CONDITIONS_ENABLED` | Conditions logger | Set `false` to disable snapshotting |

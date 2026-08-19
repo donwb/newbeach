@@ -103,6 +103,26 @@ export function createBoardView(store) {
 
       <section class="ramp-grid" id="ramp-grid" aria-live="polite"></section>
 
+      <section class="weekend" id="weekend-section" hidden>
+        <div class="weekend-cols">
+          <div class="weekend-main" id="weekend-main">
+            <div class="section-head">
+              <span class="kicker">When should I go?</span>
+              <span class="section-note">Next six days</span>
+            </div>
+            <p class="weekend-headline" id="weekend-headline"></p>
+            <div class="weekend-days" id="weekend-days"></div>
+          </div>
+          <aside class="weekend-surf" id="weekend-surf" hidden>
+            <div class="section-head">
+              <span class="kicker">Surf</span>
+              <span class="section-note" id="surf-note"></span>
+            </div>
+            <p class="surf-line" id="surf-line"></p>
+          </aside>
+        </div>
+      </section>
+
       <section class="cam" id="cam-section" hidden>
         <div class="section-head">
           <span class="kicker" id="cam-kicker">Live cam</span>
@@ -161,13 +181,15 @@ export function createBoardView(store) {
     sub(['tide', 'weather'], updateStats);
     sub(['tide', 'now'], updateTideSection);
     sub(['weather'], updateForecast);
+    sub(['weekend'], updateWeekend);
+    sub(['outlook'], updateSurfLine);
     sub(['activity'], updateChanges);
     sub(['config', 'cameras', 'selectedCameraId'], updateCam);
     sub(['health', 'stale', 'dataAgeMs', 'config'], updateChrome);
 
     const s = store.state;
     updateClock(s); updateCityControls(s); updateFiltersAndGrid(s); updateVerdict(s);
-    updateStats(s); updateTideSection(s); updateForecast(s); updateChanges(s);
+    updateStats(s); updateTideSection(s); updateForecast(s); updateWeekend(s); updateSurfLine(s); updateChanges(s);
     updateCam(s); updateChrome(s);
   }
 
@@ -480,6 +502,54 @@ export function createBoardView(store) {
         <div class="fc-desc">${escapeHTML(p.short_description || '')}</div>
       </div>
     `).join('');
+  }
+
+  // The section hosts two independent server reads: the weekend outlook and
+  // the surf line. It renders when either exists, and each half hides alone.
+  function updateOutlookSectionVisibility(s) {
+    const hasWeekend = !!s.weekend?.days?.length;
+    const hasSurf = !!s.outlook?.surf_report?.line;
+    $('#weekend-section').hidden = !hasWeekend && !hasSurf;
+    $('#weekend-main').hidden = !hasWeekend;
+    $('#weekend-surf').hidden = !hasSurf;
+  }
+
+  function updateSurfLine(s) {
+    updateOutlookSectionVisibility(s);
+    const report = s.outlook?.surf_report;
+    const line = report?.line || '';
+    if (prints.surfLine === line) return;
+    prints.surfLine = line;
+    $('#surf-line').textContent = line;
+    $('#surf-note').textContent = report?.height_label || '';
+  }
+
+  function updateWeekend(s) {
+    updateOutlookSectionVisibility(s);
+    const wk = s.weekend;
+    if (!wk?.days?.length) return;
+    const print = wk.generated_at + ':' + wk.days.map((d) => d.date + d.verdict).join('|');
+    if (prints.weekend === print) return;
+    prints.weekend = print;
+
+    $('#weekend-headline').textContent = wk.headline || '';
+    $('#weekend-days').innerHTML = wk.days.map((d) => {
+      const attrs = [
+        d.high_temp_f != null ? `${Math.round(d.high_temp_f)}°` : null,
+        d.rain_chance_pct != null ? `${Math.round(d.rain_chance_pct)}% rain` : null,
+        d.wind_label || null,
+      ].filter(Boolean).join(' · ');
+      return `
+      <div class="wk-day${d.is_weekend ? ' wk-weekend' : ''}" data-verdict="${escapeHTML(d.verdict)}">
+        <div class="wk-top">
+          <span class="wk-name">${escapeHTML(d.weekday.slice(0, 3))}</span>
+          <span class="wk-pill">${escapeHTML(d.verdict.replace('_', ' '))}</span>
+        </div>
+        <p class="wk-line">${escapeHTML(d.headline)}</p>
+        ${d.best_window && !d.headline.includes(d.best_window.label) ? `<p class="wk-window">Best stretch ~${escapeHTML(d.best_window.label)}</p>` : ''}
+        ${attrs ? `<div class="wk-attrs">${escapeHTML(attrs)}</div>` : ''}
+      </div>`;
+    }).join('');
   }
 
   function updateChanges(s) {

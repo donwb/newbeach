@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -137,7 +136,7 @@ func HandleV2Trmnl(pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *w
 
 		for _, r := range ramps {
 			tr := trmnlRamp{
-				Name:              prettyRampName(r.RampName),
+				Name:              models.PrettyRampName(r.RampName),
 				AccessStatus:      r.AccessStatus,
 				AccessStatusShort: models.StatusToShort(r.AccessStatus),
 				StatusCategory:    r.StatusCategory,
@@ -197,38 +196,6 @@ func sortRampsForDisplay(ramps []models.RampStatusWithSince) {
 			return ramps[i].RampName < ramps[j].RampName
 		}
 	})
-}
-
-// prettyRampName converts a GIS ramp name like "3RD AV" or "CRAWFORD RD" to a
-// display name like "3rd Ave" or "Crawford Rd".
-func prettyRampName(name string) string {
-	words := strings.Fields(name)
-	for i, w := range words {
-		switch w {
-		case "AV", "AVE":
-			words[i] = "Ave"
-		case "RD":
-			words[i] = "Rd"
-		case "ST":
-			words[i] = "St"
-		case "BLVD":
-			words[i] = "Blvd"
-		case "DR":
-			words[i] = "Dr"
-		case "LN":
-			words[i] = "Ln"
-		case "CT":
-			words[i] = "Ct"
-		default:
-			if len(w) > 0 && unicode.IsDigit(rune(w[0])) {
-				// Ordinals: "3RD" → "3rd", "27TH" → "27th".
-				words[i] = strings.ToLower(w)
-			} else {
-				words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
-			}
-		}
-	}
-	return strings.Join(words, " ")
 }
 
 func formatClock(t time.Time) string {
@@ -455,7 +422,7 @@ func buildTrmnlActivity(history []models.RampHistoryEntry, city string, now time
 		}
 		entries = append(entries, trmnlActivityEntry{
 			Time:   formatClock(t),
-			Name:   prettyRampName(h.RampName),
+			Name:   models.PrettyRampName(h.RampName),
 			Status: h.AccessStatus,
 		})
 	}

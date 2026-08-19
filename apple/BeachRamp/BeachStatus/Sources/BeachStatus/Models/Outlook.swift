@@ -11,14 +11,18 @@ public struct Outlook: Codable, Sendable {
     public let season: String
     public let schedule: OutlookSchedule
     public let tide: OutlookTide
+    /// The beach-wide casual surf line — optional, older servers (and the
+    /// SURF_REPORT_ENABLED kill switch) omit it.
+    public let surfReport: OutlookSurfReport?
     public let ramps: [RampOutlook]
 
     public init(generatedAt: Date, season: String, schedule: OutlookSchedule,
-                tide: OutlookTide, ramps: [RampOutlook]) {
+                tide: OutlookTide, surfReport: OutlookSurfReport? = nil, ramps: [RampOutlook]) {
         self.generatedAt = generatedAt
         self.season = season
         self.schedule = schedule
         self.tide = tide
+        self.surfReport = surfReport
         self.ramps = ramps
     }
 
@@ -46,7 +50,41 @@ public struct Outlook: Codable, Sendable {
         case season
         case schedule
         case tide
+        case surfReport = "surf_report"
         case ramps
+    }
+}
+
+/// The one-line casual surf read ("clean chest-high — worth a paddle").
+/// `line` is the product and is rendered verbatim; the other fields exist so
+/// a client can branch (icon, color) without parsing prose. Rip current risk
+/// is the NWS Surf Zone Forecast's own words, relayed verbatim.
+public struct OutlookSurfReport: Codable, Sendable {
+    public let line: String
+    /// "flat", "blown", "choppy", "clean_small", "good", or "firing" — raw
+    /// string so new server values degrade gracefully.
+    public let quality: String?
+    /// Surfer-terms height ("waist-high"); absent when the buoy is silent.
+    public let heightLabel: String?
+    /// "Low", "Moderate", or "High", verbatim from the NWS.
+    public let ripRisk: String?
+    public let observedAt: Date?
+
+    public init(line: String, quality: String? = nil, heightLabel: String? = nil,
+                ripRisk: String? = nil, observedAt: Date? = nil) {
+        self.line = line
+        self.quality = quality
+        self.heightLabel = heightLabel
+        self.ripRisk = ripRisk
+        self.observedAt = observedAt
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case line
+        case quality
+        case heightLabel = "height_label"
+        case ripRisk = "rip_risk"
+        case observedAt = "observed_at"
     }
 }
 
