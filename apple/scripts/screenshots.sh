@@ -210,9 +210,9 @@ shoot_tv() {
   local out="$OUT_ROOT/appletv"; mkdir -p "$out"
   rm -f "$out"/*.png
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/01-board.png"
-  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-tide.png"     --overlay-tide
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-outlook.png"  --overlay-outlook
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/03-activity.png" --overlay-activity
-  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/04-water.png"    --overlay-temp
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/04-weather.png"  --overlay-weather
 }
 
 paired_phone_for() { # watch udid -> phone udid

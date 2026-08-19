@@ -22,12 +22,14 @@ extension WeekendDay {
     }
 }
 
-/// Full-screen weekend outlook: the week's one-line answer up top, then the
-/// next six days as columns — verdict pill, the day's story, the best
-/// stretch, and the weather facts. Every string is the server's; the client
-/// never words its own predictions.
-struct WeekendOverlay: View {
+/// Full-screen outlook: the week's one-line answer up top, today's surf
+/// read, then the next six days as columns — verdict pill, the day's story,
+/// the best stretch, and the weather facts. Every string is the server's;
+/// the client never words its own predictions.
+struct OutlookOverlay: View {
     let weekend: WeekendOutlook
+    /// Today's full surf line — the tile face may truncate it, this never does.
+    let surfLine: String?
     let onClose: () -> Void
 
     var body: some View {
@@ -38,12 +40,25 @@ struct WeekendOverlay: View {
             footnote: footnote,
             onClose: onClose
         ) {
+            if let surfLine {
+                HStack(alignment: .firstTextBaseline, spacing: 20) {
+                    Text("Surf today")
+                        .kickerStyle()
+                    Text(surfLine)
+                        .font(.system(size: 28))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .padding(.top, 26)
+            }
+
             HStack(alignment: .top, spacing: 24) {
                 ForEach(weekend.days, id: \.date) { day in
                     DayColumn(day: day)
                 }
             }
-            .padding(.top, 34)
+            .padding(.top, surfLine == nil ? 34 : 30)
         }
     }
 
@@ -148,6 +163,8 @@ private struct DayColumn: View {
 
 #if DEBUG
 #Preview {
-    WeekendOverlay(weekend: PreviewFixtures.weekend, onClose: {})
+    OutlookOverlay(weekend: PreviewFixtures.weekend,
+                   surfLine: "Clean chest-high — worth a paddle",
+                   onClose: {})
 }
 #endif

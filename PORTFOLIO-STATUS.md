@@ -25,14 +25,20 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-19 (evening: tvOS caught up with the predictive features — new
-  Weekend stat tile ("Sat · Good") opening a full-screen six-day overlay (verdict
-  pills, best stretches, feels-like temps; WeekendOutlook model + fetch added to the
-  shared BeachStatus package), and the surf line now replaces the all-open verdict
-  subline on the TV board (closed/limited/stale safety sublines untouched; stale
-  boards also drop the Weekend tile). Verified in the tvOS simulator against prod;
-  in-tree only — rides the next re-flight, which stays deferred until build 18
-  clears App Review. Earlier same day below.)
+last_verified: 2026-08-19 (evening: tvOS caught up with the predictive features, then
+  the band was redesigned the same session — the three stat squares (Tide /
+  Water·Air / Wind) plus the briefly-added Weekend tile became TWO rectangles:
+  "Outlook" leads (weekend verdict "Sat · Good" + surf line, opening the six-day
+  overlay with verdict pills, best stretches, feels-like temps, and the surf read),
+  "Weather" follows (spot values + next tide extreme, opening one combined overlay:
+  tide curve/extremes + water stations + NWS forecast with per-period wind).
+  WeekendOutlook model + fetchWeekendOutlook() added to the shared BeachStatus
+  package; the three single-stat overlays are gone; XCUIRemote UI tests updated and
+  passing; screenshots.sh TV shots repointed (--overlay-outlook/--overlay-weather —
+  the submitted App Store TV screenshots 02-tide/04-water no longer match the app
+  and need recapturing at next re-flight). Verified in the tvOS simulator against
+  prod; in-tree only — rides the next re-flight, deferred until build 18 clears
+  App Review. Earlier same day below.)
 prior_2026_08_19_am: (TWO NEW FEATURES SHIPPED to main → prod (web): (1) Weekend
   Outlook — /api/v2/outlook/weekend, 6-day great/good/mixed/tough verdicts from the
   tide engine + new NWS forecast package (api/internal/nwsfc), live-tunable thresholds

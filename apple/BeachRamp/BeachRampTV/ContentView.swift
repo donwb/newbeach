@@ -67,10 +67,8 @@ struct ContentView: View {
     init() {
         #if DEBUG
         let args = Self.launchArgs
-        if args.contains("--overlay-tide") { _detailPanel = State(initialValue: .tide) }
-        if args.contains("--overlay-temp") { _detailPanel = State(initialValue: .temp) }
-        if args.contains("--overlay-wind") { _detailPanel = State(initialValue: .wind) }
-        if args.contains("--overlay-weekend") { _detailPanel = State(initialValue: .weekend) }
+        if args.contains("--overlay-outlook") { _detailPanel = State(initialValue: .outlook) }
+        if args.contains("--overlay-weather") { _detailPanel = State(initialValue: .weather) }
         if args.contains("--overlay-activity") { _showActivity = State(initialValue: true) }
         #endif
     }
@@ -153,30 +151,21 @@ struct ContentView: View {
             switch detailPanel {
             case .none:
                 EmptyView()
-            case .tide:
-                TideDetailOverlay(
-                    tide: viewModel.tideInfo,
-                    stationID: viewModel.config?.tideStation ?? "8721147",
-                    onClose: { detailPanel = .none }
-                )
-            case .temp:
-                WaterAirDetailOverlay(
-                    tide: viewModel.tideInfo,
-                    weather: viewModel.weather,
-                    onClose: { detailPanel = .none }
-                )
-            case .wind:
-                WindDetailOverlay(
-                    weather: viewModel.weather,
-                    onClose: { detailPanel = .none }
-                )
-            case .weekend:
+            case .outlook:
                 if let weekend = viewModel.weekend {
-                    WeekendOverlay(
+                    OutlookOverlay(
                         weekend: weekend,
+                        surfLine: viewModel.surfLine,
                         onClose: { detailPanel = .none }
                     )
                 }
+            case .weather:
+                WeatherOverlay(
+                    tide: viewModel.tideInfo,
+                    weather: viewModel.weather,
+                    stationID: viewModel.config?.tideStation ?? "8721147",
+                    onClose: { detailPanel = .none }
+                )
             }
         }
     }
@@ -193,7 +182,7 @@ struct ContentView: View {
             )
 
             VerdictBand(
-                verdict: displayVerdict,
+                verdict: viewModel.verdict,
                 stats: statTiles,
                 focusedStat: $focusedStat,
                 onSelect: { detailPanel = $0 }
@@ -279,95 +268,63 @@ struct ContentView: View {
         viewModel.cameras.filter { $0.id != viewModel.selectedCameraID && $0.url != nil }.count
     }
 
-    /// The verdict, with the surf line standing in for the all-open subline.
-    /// The open-state subline (tide direction + light left) is fully redundant
-    /// with the Tide tile and SunRibbon, so the surf read earns that slot.
-    /// Closed/limited/stale sublines carry safety copy (reopen estimates,
-    /// "do not trust this board") and always pass through untouched.
-    private var displayVerdict: Verdict {
-        let verdict = viewModel.verdict
-        guard verdict.category == .open, !viewModel.isStale,
-              let surfLine = viewModel.surfLine else { return verdict }
-        return Verdict(category: verdict.category,
-                       headline: verdict.headline,
-                       subline: surfLine)
-    }
-
+    /// The two band tiles: outlook (predictions) leads, weather follows.
+    /// The outlook tile drops out when the weekend feature is off; weather
+    /// is always there.
     private var statTiles: [StatTileModel] {
-        var tiles = [tideStat, waterAirStat, windStat]
-        if let weekendTile = weekendStat {
-            tiles.append(weekendTile)
+        var tiles: [StatTileModel] = []
+        if let outlookStat {
+            tiles.append(outlookStat)
         }
+        tiles.append(weatherStat)
         return tiles
     }
 
-    /// The Weekend tile: the next weekend day's verdict as the value
-    /// ("Sat · Great"), the other weekend day as the detail. Absent entirely
-    /// when the weekend outlook isn't available (old server, kill switch,
-    /// fetch failure) — the band renders its original three tiles. Also
-    /// absent on a stale board: predictions step back like the grid hints
-    /// do, and the "Last known" headline gets its full width back.
-    private var weekendStat: StatTileModel? {
-        guard !viewModel.isStale, let weekend = viewModel.weekend else { return nil }
+    /// The Outlook tile — the predictive lead: the next weekend day's
+    /// verdict as the value ("Sat · Good", verdict-tinted), today's surf
+    /// line as the detail (the overlay carries the untruncated version).
+    /// Absent when the weekend outlook isn't available (old server, kill
+    /// switch) — its overlay is the multi-day view, so surf alone isn't
+    /// enough to earn the tile.
+    private var outlookStat: StatTileModel? {
+        guard let weekend = viewModel.weekend else { return nil }
         let days = weekend.weekendDays
         guard let first = days.first else { return nil }
 
-        var detail = " "
-        if days.count > 1 {
+        var detail = viewModel.surfLine ?? " "
+        if viewModel.surfLine == nil, days.count > 1 {
             detail = "\(days[1].weekdayShort) · \(days[1].verdictLabel)"
-        } else if let window = first.bestWindow {
-            detail = "Best \(window.label)"
         }
         return StatTileModel(
-            label: "Weekend",
+            label: "Outlook",
             value: "\(first.weekdayShort) · \(first.verdictLabel)",
             detail: detail,
-            panel: .weekend,
+            panel: .outlook,
             valueColor: first.verdictCategory.map { palette.statusColor(for: $0) }
         )
     }
 
-    private var tideStat: StatTileModel {
-        let tide = viewModel.tideInfo
-        let value = tide.map { $0.isRising ? "Rising" : "Dropping" } ?? "—"
-        var detail = " "
-        if let tide, let next = VerdictBuilder.nextExtreme(in: tide, after: Date()) {
-            detail = "\(next.label) \(SinceFormatter.clock(next.time))"
-        }
-        return StatTileModel(label: "Tide", value: value, detail: detail, panel: .tide)
-    }
-
-    private var waterAirStat: StatTileModel {
+    /// The Weather tile — the old tide / water·air / wind tiles folded into
+    /// one: spot values up top, the tide's direction and next extreme below.
+    private var weatherStat: StatTileModel {
         let water = viewModel.tideInfo?.waterTempAvg.map { "\(Int($0))°" } ?? "—"
         let air = viewModel.weather?.current.temperatureF.map { "\(Int($0))°" } ?? "—"
-        return StatTileModel(
-            label: "Water · Air",
-            value: "\(water) · \(air)",
-            detail: viewModel.weather?.current.description ?? " ",
-            panel: .temp
-        )
-    }
-
-    private var windStat: StatTileModel {
-        var value = "—"
+        var value = "\(water) · \(air)"
         if let current = viewModel.weather?.current {
             let direction = current.windDirection ?? ""
             let speed = current.windSpeed?.split(separator: " ").first.map(String.init) ?? ""
             let joined = "\(direction) \(speed)".trimmingCharacters(in: .whitespaces)
-            if !joined.isEmpty { value = joined }
+            if !joined.isEmpty { value += " · \(joined)" }
         }
-        var detail = " "
-        if let tomorrow = tomorrowForecast {
-            detail = "\(tomorrow.shortName) \(tomorrow.temperature)°"
-        }
-        return StatTileModel(label: "Wind", value: value, detail: detail, panel: .wind)
-    }
 
-    /// Tomorrow's daytime forecast (the second daytime period).
-    private var tomorrowForecast: ForecastPeriod? {
-        guard let forecast = viewModel.weather?.forecast else { return nil }
-        let daytime = forecast.filter(\.isDaytime)
-        return daytime.count > 1 ? daytime[1] : daytime.first
+        var detail = " "
+        if let tide = viewModel.tideInfo {
+            detail = tide.isRising ? "Tide rising" : "Tide dropping"
+            if let next = VerdictBuilder.nextExtreme(in: tide, after: Date()) {
+                detail += " · \(next.label.lowercased()) \(SinceFormatter.clock(next.time))"
+            }
+        }
+        return StatTileModel(label: "Weather", value: value, detail: detail, panel: .weather)
     }
 
     // MARK: - Clock & Sun

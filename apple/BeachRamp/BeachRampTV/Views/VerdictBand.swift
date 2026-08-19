@@ -3,7 +3,7 @@ import BeachStatus
 
 /// Which detail overlay is open. `.none` means the board is showing.
 enum DetailPanel {
-    case none, tide, temp, wind, weekend
+    case none, outlook, weather
 }
 
 /// One stat tile's display strings.
@@ -12,14 +12,14 @@ struct StatTileModel {
     let value: String
     let detail: String
     let panel: DetailPanel
-    /// Tint for the value line — the Weekend tile carries its verdict color.
+    /// Tint for the value line — the Outlook tile carries its verdict color.
     /// Nil means the standard white.
     var valueColor: Color? = nil
 }
 
-/// The verdict band: headline + subline on the left, three focusable stat
-/// tiles (tide / water & air / wind) on the right. The 22×76 accent bar is
-/// what makes the headline readable at distance before the words resolve.
+/// The verdict band: headline + subline on the left, two focusable
+/// rectangular tiles (outlook / weather) on the right. The 22×76 accent bar
+/// is what makes the headline readable at distance before the words resolve.
 struct VerdictBand: View {
     let verdict: Verdict
     let stats: [StatTileModel]
@@ -38,11 +38,13 @@ struct VerdictBand: View {
             HStack(spacing: 20) {
                 ForEach(stats, id: \.label) { stat in
                     StatTile(stat: stat, focusedStat: $focusedStat, onSelect: onSelect)
+                        .frame(width: 390)
                 }
             }
-            // Equal-width tiles at the spec's 687 for three; a fourth
-            // (Weekend) widens the group and the headline cedes the room.
-            .frame(width: stats.count > 3 ? 920 : 687)
+            // Two 390pt rectangles. The group width holds when the outlook
+            // tile is absent (old server, kill switch) so the weather tile
+            // stays put on the right edge instead of ballooning.
+            .frame(width: 800, alignment: .trailing)
         }
         // Focus section across the whole band (headline included) so Down
         // from the far-left city chip enters the stat tiles instead of
@@ -106,6 +108,7 @@ private struct StatTile: View {
                 Text(stat.detail)
                     .font(.system(size: 24))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.9)
                     .foregroundStyle(.white.opacity(0.75))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,9 +135,8 @@ private struct StatTile: View {
                     subline: "Tide dropping · low 4:57 PM · 5h 41m of light left"
                 ),
                 stats: [
-                    StatTileModel(label: "Tide", value: "Dropping", detail: "Low 4:57 PM", panel: .tide),
-                    StatTileModel(label: "Water · Air", value: "82° · 89°", detail: "Mostly clear", panel: .temp),
-                    StatTileModel(label: "Wind", value: "ENE 9", detail: "Sat 93°", panel: .wind),
+                    StatTileModel(label: "Outlook", value: "Sat · Good", detail: "Clean chest-high — worth a paddle", panel: .outlook),
+                    StatTileModel(label: "Weather", value: "82° · 89° · ENE 9", detail: "Dropping · low 4:57 PM", panel: .weather),
                 ],
                 focusedStat: $focusedStat,
                 onSelect: { _ in }
@@ -158,9 +160,8 @@ private struct StatTile: View {
                     subline: "Four open · closed for high tide since 12:48 PM · reopens near 6:30 PM"
                 ),
                 stats: [
-                    StatTileModel(label: "Tide", value: "Dropping", detail: "Low 4:57 PM", panel: .tide),
-                    StatTileModel(label: "Water · Air", value: "82° · 89°", detail: "Mostly clear", panel: .temp),
-                    StatTileModel(label: "Wind", value: "ENE 9", detail: "Sat 93°", panel: .wind),
+                    StatTileModel(label: "Outlook", value: "Sat · Mixed", detail: "Blown out — choppy and messy", panel: .outlook),
+                    StatTileModel(label: "Weather", value: "82° · 89° · ENE 9", detail: "Dropping · low 4:57 PM", panel: .weather),
                 ],
                 focusedStat: $focusedStat,
                 onSelect: { _ in }

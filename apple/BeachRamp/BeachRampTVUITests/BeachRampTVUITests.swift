@@ -20,7 +20,7 @@ final class BeachRampTVUITests: XCTestCase {
     /// of these is a stat tile. ("New Smyrna Beach" is ambiguous — it names
     /// both the city chip and a camera pin — so tests locate elements by
     /// focus + geometry instead of by label lookup.)
-    private let statPrefixes = ["Tide", "Water", "Wind"]
+    private let statPrefixes = ["Outlook", "Weather"]
 
     override func setUpWithError() throws {
         continueAfterFailure = false
