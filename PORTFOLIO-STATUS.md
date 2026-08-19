@@ -28,10 +28,12 @@ mission_dates: |
 last_verified: 2026-08-19 (evening: tvOS caught up with the predictive features, then
   the band was redesigned the same session — the three stat squares (Tide /
   Water·Air / Wind) plus the briefly-added Weekend tile became TWO rectangles:
-  "Outlook" leads (weekend verdict "Sat · Good" + surf line, opening the six-day
-  overlay with verdict pills, best stretches, feels-like temps, and the surf read),
-  "Weather" follows (spot values + next tide extreme, opening one combined overlay:
-  tide curve/extremes + water stations + NWS forecast with per-period wind).
+  "Outlook" leads (labeled SAT/SUN columns with color-coded verdict words + the surf
+  line, opening the six-day overlay with verdict pills, best stretches, feels-like
+  temps, and the surf read), "Weather" follows (labeled WATER/AIR/WIND micro-columns
+  + next tide extreme — labels chosen over bare values after Don couldn't tell 83°
+  water from 84° air — opening one combined overlay: tide curve/extremes + water
+  stations + NWS forecast with per-period wind).
   WeekendOutlook model + fetchWeekendOutlook() added to the shared BeachStatus
   package; the three single-stat overlays are gone; XCUIRemote UI tests updated and
   passing; screenshots.sh TV shots repointed (--overlay-outlook/--overlay-weather —
