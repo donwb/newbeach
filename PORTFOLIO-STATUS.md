@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 19 — flighted to TestFlight 2026-08-19 with the tvOS predictive board; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 20 — flighted to TestFlight 2026-08-19 evening with the tvOS design-v3 board, tag flight/build-20; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -44,8 +44,9 @@ last_verified: 2026-08-19 (night: tvOS board REBUILT to "tvOS design v3" (panora
   BeachStatus gained the outlook `surf` context block (wave height/period).
   Verified in the tvOS simulator against prod (board, forecast, activity
   screenshots) and all 4 XCUIRemote UI tests rewritten for the new focus graph
-  (cam strip → heading → day panels) pass. NOT YET FLIGHTED — build 19 (earlier
-  today) predates this board; the v3 board rides whenever Don next flights.
+  (cam strip → heading → day panels) pass. FLIGHTED same evening at Don's
+  direction: build 1.0 (20), both platforms, tag flight/build-20 — the v3 board
+  is on TestFlight. Build 18 stays pinned to the App Review submission.
   Earlier same day below.)
 prior_2026_08_19_pm: (tvOS caught up with the predictive features, then
   the band was redesigned the same session — the three stat squares (Tide /
