@@ -280,41 +280,41 @@ struct ContentView: View {
         return tiles
     }
 
-    /// The Outlook tile — the predictive lead: the next weekend day's
-    /// verdict as the value ("Sat · Good", verdict-tinted), today's surf
-    /// line as the detail (the overlay carries the untruncated version).
-    /// Absent when the weekend outlook isn't available (old server, kill
-    /// switch) — its overlay is the multi-day view, so surf alone isn't
-    /// enough to earn the tile.
+    /// The Outlook tile — the predictive lead: one labeled column per
+    /// weekend day with the verdict word in its color, today's surf line as
+    /// the detail (the overlay carries the untruncated version). Absent when
+    /// the weekend outlook isn't available (old server, kill switch) — its
+    /// overlay is the multi-day view, so surf alone isn't enough to earn
+    /// the tile.
     private var outlookStat: StatTileModel? {
         guard let weekend = viewModel.weekend else { return nil }
-        let days = weekend.weekendDays
-        guard let first = days.first else { return nil }
+        let days = weekend.weekendDays.prefix(2)
+        guard !days.isEmpty else { return nil }
 
-        var detail = viewModel.surfLine ?? " "
-        if viewModel.surfLine == nil, days.count > 1 {
-            detail = "\(days[1].weekdayShort) · \(days[1].verdictLabel)"
-        }
         return StatTileModel(
             label: "Outlook",
-            value: "\(first.weekdayShort) · \(first.verdictLabel)",
-            detail: detail,
-            panel: .outlook,
-            valueColor: first.verdictCategory.map { palette.statusColor(for: $0) }
+            columns: days.map { day in
+                StatTileColumn(
+                    label: day.weekdayShort.uppercased(),
+                    value: day.verdictLabel,
+                    color: day.verdictCategory.map { palette.statusColor(for: $0) }
+                )
+            },
+            detail: viewModel.surfLine ?? " ",
+            panel: .outlook
         )
     }
 
     /// The Weather tile — the old tide / water·air / wind tiles folded into
-    /// one: spot values up top, the tide's direction and next extreme below.
+    /// one: labeled spot values up top, the tide's direction and next
+    /// extreme below.
     private var weatherStat: StatTileModel {
-        let water = viewModel.tideInfo?.waterTempAvg.map { "\(Int($0))°" } ?? "—"
-        let air = viewModel.weather?.current.temperatureF.map { "\(Int($0))°" } ?? "—"
-        var value = "\(water) · \(air)"
+        var wind = "—"
         if let current = viewModel.weather?.current {
             let direction = current.windDirection ?? ""
             let speed = current.windSpeed?.split(separator: " ").first.map(String.init) ?? ""
             let joined = "\(direction) \(speed)".trimmingCharacters(in: .whitespaces)
-            if !joined.isEmpty { value += " · \(joined)" }
+            if !joined.isEmpty { wind = joined }
         }
 
         var detail = " "
@@ -324,7 +324,18 @@ struct ContentView: View {
                 detail += " · \(next.label.lowercased()) \(SinceFormatter.clock(next.time))"
             }
         }
-        return StatTileModel(label: "Weather", value: value, detail: detail, panel: .weather)
+        return StatTileModel(
+            label: "Weather",
+            columns: [
+                StatTileColumn(label: "WATER",
+                               value: viewModel.tideInfo?.waterTempAvg.map { "\(Int($0))°" } ?? "—"),
+                StatTileColumn(label: "AIR",
+                               value: viewModel.weather?.current.temperatureF.map { "\(Int($0))°" } ?? "—"),
+                StatTileColumn(label: "WIND", value: wind),
+            ],
+            detail: detail,
+            panel: .weather
+        )
     }
 
     // MARK: - Clock & Sun

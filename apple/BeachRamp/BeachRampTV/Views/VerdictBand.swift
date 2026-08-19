@@ -6,15 +6,22 @@ enum DetailPanel {
     case none, outlook, weather
 }
 
-/// One stat tile's display strings.
-struct StatTileModel {
+/// One labeled micro-column inside a tile ("SAT / Good", "WATER / 70°") —
+/// the label is what keeps similar numbers from needing decoding.
+struct StatTileColumn {
     let label: String
     let value: String
+    /// Verdict tint for the value; nil means the standard white.
+    var color: Color? = nil
+}
+
+/// One stat tile's display strings: a kicker, labeled columns, and a detail
+/// line (the surf read on Outlook, the tide state on Weather).
+struct StatTileModel {
+    let label: String
+    let columns: [StatTileColumn]
     let detail: String
     let panel: DetailPanel
-    /// Tint for the value line — the Outlook tile carries its verdict color.
-    /// Nil means the standard white.
-    var valueColor: Color? = nil
 }
 
 /// The verdict band: headline + subline on the left, two focusable
@@ -100,11 +107,22 @@ private struct StatTile: View {
                         .font(.system(size: 24))
                         .foregroundStyle(.white.opacity(0.55))
                 }
-                Text(stat.value)
-                    .font(.system(size: 40, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .foregroundStyle(stat.valueColor ?? .white)
+                HStack(spacing: 20) {
+                    ForEach(stat.columns, id: \.label) { column in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(column.label)
+                                .font(.system(size: 15, weight: .semibold))
+                                .tracking(15 * 0.08)
+                                .foregroundStyle(.white.opacity(0.55))
+                            Text(column.value)
+                                .font(.system(size: 32, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .foregroundStyle(column.color ?? .white)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
                 Text(stat.detail)
                     .font(.system(size: 24))
                     .lineLimit(1)
@@ -135,8 +153,15 @@ private struct StatTile: View {
                     subline: "Tide dropping · low 4:57 PM · 5h 41m of light left"
                 ),
                 stats: [
-                    StatTileModel(label: "Outlook", value: "Sat · Good", detail: "Clean chest-high — worth a paddle", panel: .outlook),
-                    StatTileModel(label: "Weather", value: "82° · 89° · ENE 9", detail: "Dropping · low 4:57 PM", panel: .weather),
+                    StatTileModel(label: "Outlook",
+                                  columns: [StatTileColumn(label: "SAT", value: "Good", color: .green),
+                                            StatTileColumn(label: "SUN", value: "Mixed", color: .orange)],
+                                  detail: "Clean chest-high — worth a paddle", panel: .outlook),
+                    StatTileModel(label: "Weather",
+                                  columns: [StatTileColumn(label: "WATER", value: "82°"),
+                                            StatTileColumn(label: "AIR", value: "89°"),
+                                            StatTileColumn(label: "WIND", value: "ENE 9")],
+                                  detail: "Tide dropping · low 4:57 PM", panel: .weather),
                 ],
                 focusedStat: $focusedStat,
                 onSelect: { _ in }
@@ -160,8 +185,15 @@ private struct StatTile: View {
                     subline: "Four open · closed for high tide since 12:48 PM · reopens near 6:30 PM"
                 ),
                 stats: [
-                    StatTileModel(label: "Outlook", value: "Sat · Mixed", detail: "Blown out — choppy and messy", panel: .outlook),
-                    StatTileModel(label: "Weather", value: "82° · 89° · ENE 9", detail: "Dropping · low 4:57 PM", panel: .weather),
+                    StatTileModel(label: "Outlook",
+                                  columns: [StatTileColumn(label: "SAT", value: "Mixed", color: .orange),
+                                            StatTileColumn(label: "SUN", value: "Tough", color: .red)],
+                                  detail: "Blown out — choppy and messy", panel: .outlook),
+                    StatTileModel(label: "Weather",
+                                  columns: [StatTileColumn(label: "WATER", value: "82°"),
+                                            StatTileColumn(label: "AIR", value: "89°"),
+                                            StatTileColumn(label: "WIND", value: "ENE 9")],
+                                  detail: "Tide dropping · low 4:57 PM", panel: .weather),
                 ],
                 focusedStat: $focusedStat,
                 onSelect: { _ in }
