@@ -202,8 +202,11 @@
     }[c]));
 
     $('wk-demo-days').innerHTML = wk.days.map((d) => {
+      const temp = d.high_temp_f != null
+        ? Math.round(d.high_temp_f) + '°' + (d.feels_like_f != null ? ' (feels ' + Math.round(d.feels_like_f) + '°)' : '')
+        : null;
       const attrs = [
-        d.high_temp_f != null ? Math.round(d.high_temp_f) + '°' : null,
+        temp,
         d.rain_chance_pct != null ? Math.round(d.rain_chance_pct) + '% rain' : null,
         d.wind_label || null,
       ].filter(Boolean).join(' · ');
@@ -211,6 +214,7 @@
         + '<div class="wkd-top"><span class="wkd-name">' + esc(d.weekday.slice(0, 3)) + '</span>'
         + '<span class="wkd-pill">' + esc(d.verdict.replace('_', ' ')) + '</span></div>'
         + '<p class="wkd-line">' + esc(d.headline) + '</p>'
+        + (d.why ? '<p class="wkd-why">' + esc(d.why) + '</p>' : '')
         + (attrs ? '<div class="wkd-attrs">' + esc(attrs) + '</div>' : '')
         + '</div>';
     }).join('');

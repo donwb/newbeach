@@ -534,8 +534,11 @@ export function createBoardView(store) {
 
     $('#weekend-headline').textContent = wk.headline || '';
     $('#weekend-days').innerHTML = wk.days.map((d) => {
+      const temp = d.high_temp_f != null
+        ? `${Math.round(d.high_temp_f)}°${d.feels_like_f != null ? ` (feels ${Math.round(d.feels_like_f)}°)` : ''}`
+        : null;
       const attrs = [
-        d.high_temp_f != null ? `${Math.round(d.high_temp_f)}°` : null,
+        temp,
         d.rain_chance_pct != null ? `${Math.round(d.rain_chance_pct)}% rain` : null,
         d.wind_label || null,
       ].filter(Boolean).join(' · ');
@@ -546,6 +549,7 @@ export function createBoardView(store) {
           <span class="wk-pill">${escapeHTML(d.verdict.replace('_', ' '))}</span>
         </div>
         <p class="wk-line">${escapeHTML(d.headline)}</p>
+        ${d.why ? `<p class="wk-why">${escapeHTML(d.why)}</p>` : ''}
         ${d.best_window && !d.headline.includes(d.best_window.label) ? `<p class="wk-window">Best stretch ~${escapeHTML(d.best_window.label)}</p>` : ''}
         ${attrs ? `<div class="wk-attrs">${escapeHTML(attrs)}</div>` : ''}
       </div>`;

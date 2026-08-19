@@ -133,7 +133,11 @@ func dayText(verdict string, facts dayFacts, window *Window, vp VerdictParams) (
 		clauses = append(clauses, "storms possible after "+fmtClock(roundNearest30(*facts.firstStormAt)))
 	}
 	if extremeHeat && !cold {
-		clauses = append(clauses, "brutal heat by midday — mornings are kinder")
+		if facts.maxHeatIdxF != nil {
+			clauses = append(clauses, fmt.Sprintf("feels like ~%d° by midday — mornings are kinder", roundTo5(*facts.maxHeatIdxF)))
+		} else {
+			clauses = append(clauses, "brutal heat by midday — mornings are kinder")
+		}
 	}
 	if !gusty && facts.maxWindMph != nil && *facts.maxWindMph >= vp.WindDegradeMph {
 		clauses = append(clauses, fmt.Sprintf("breezy — around %d mph", roundTo5(*facts.maxWindMph)))
@@ -146,6 +150,91 @@ func dayText(verdict string, facts dayFacts, window *Window, vp VerdictParams) (
 	}
 
 	return headline, strings.Join(clauses, " · ")
+}
+
+// whyText justifies the verdict pill when the headline doesn't already: one
+// short line naming the binding driver(s), numbers included. It renders only
+// for mixed-or-worse days — a good day needs no defense — and only for
+// drivers the headline leaves out, so a card can never show a downgraded
+// pill whose cause is invisible (the bug this fixes: MIXED over a
+// sunny-looking chip row, with the 108° heat index hiding in detail).
+func whyText(verdict string, drivers []string, facts dayFacts, vp VerdictParams, headline string) string {
+	if !facts.hasWeather || verdictRank(verdict) > verdictRank(VerdictMixed) {
+		return ""
+	}
+
+	var parts []string
+	lower := strings.ToLower(headline)
+	for _, d := range drivers {
+		if headlineCovers(lower, d) {
+			continue
+		}
+		switch d {
+		case DriverHeat:
+			if facts.maxHeatIdxF != nil {
+				parts = append(parts, fmt.Sprintf("the heat, feels like ~%d° by midday", roundTo5(*facts.maxHeatIdxF)))
+			} else {
+				parts = append(parts, "the heat, an advisory's up")
+			}
+		case DriverStorms:
+			parts = append(parts, "the storms")
+		case DriverWind:
+			if facts.maxWindMph != nil {
+				parts = append(parts, fmt.Sprintf("the wind, around %d mph", roundTo5(*facts.maxWindMph)))
+			} else {
+				parts = append(parts, "the wind")
+			}
+		case DriverCold:
+			if facts.maxTempF != nil {
+				parts = append(parts, fmt.Sprintf("the cold, high only around %d°", roundTo5(*facts.maxTempF)))
+			} else {
+				parts = append(parts, "the cold")
+			}
+		case DriverTide:
+			if facts.pressure == PressureHigh {
+				parts = append(parts, "a big ramp-closing tide")
+			} else {
+				parts = append(parts, "a tide worth watching")
+			}
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+
+	opener := "A mixed bag"
+	if verdict == VerdictTough {
+		opener = "A rough one"
+	}
+	if len(parts) == 1 {
+		return opener + " — mostly " + parts[0]
+	}
+	return opener + " — " + strings.Join(parts[:len(parts)-1], ", ") + " and " + parts[len(parts)-1]
+}
+
+// headlineCovers reports whether the headline already tells this driver's
+// story — the same keyword approach the detail clauses use to avoid saying
+// "storms" twice.
+func headlineCovers(lowerHeadline, driver string) bool {
+	var words []string
+	switch driver {
+	case DriverHeat:
+		words = []string{"heat", "scorcher", "feels like"}
+	case DriverStorms:
+		words = []string{"storm"}
+	case DriverWind:
+		words = []string{"wind", "gust"}
+	case DriverCold:
+		words = []string{"walk", "cold", "bundled"}
+	case DriverTide:
+		words = []string{"tide"}
+	}
+	for _, w := range words {
+		if strings.Contains(lowerHeadline, w) {
+			return true
+		}
+	}
+	return false
 }
 
 // peakClause renders "around the ~1:30pm high tide" for the day's worst peak,

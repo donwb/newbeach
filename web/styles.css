@@ -912,6 +912,15 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   color: var(--ink);
 }
 
+/* The pill's justification — why a day graded below good. Quieter than the
+   headline but still readable: it answers the question the pill raises. */
+.wk-why {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink2);
+}
+
 .wk-window {
   margin: 4px 0 0;
   font-size: 12px;

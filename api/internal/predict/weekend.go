@@ -1,6 +1,7 @@
 package predict
 
 import (
+	"slices"
 	"sort"
 	"time"
 
@@ -26,6 +27,18 @@ const (
 	PressureNone = "none"
 	PressureSome = "some"
 	PressureHigh = "high"
+)
+
+// Verdict drivers name the check that actually set a day's grade, so the
+// copy (and clients) can always answer "why this pill?". A driver is binding
+// — it enforced the rank the day landed on — not merely a condition that
+// fired and was shadowed by something worse.
+const (
+	DriverTide   = "tide"
+	DriverStorms = "storms"
+	DriverWind   = "wind"
+	DriverHeat   = "heat"
+	DriverCold   = "cold"
 )
 
 // WeekendParamsKey is the settings-table key holding the tunable verdict
@@ -83,16 +96,21 @@ type WeekendDay struct {
 	Weekday         string   `json:"weekday"`
 	IsWeekend       bool     `json:"is_weekend"`
 	Verdict         string   `json:"verdict"`
-	Basis           []string `json:"basis"` // "tide" (+"weather") (+"marine")
+	Drivers         []string `json:"drivers,omitempty"` // what set the verdict, e.g. "heat"
+	Basis           []string `json:"basis"`             // "tide" (+"weather") (+"marine")
 	Headline        string   `json:"headline"`
+	Why             string   `json:"why,omitempty"` // pill justification, only when the headline doesn't carry it
 	Detail          string   `json:"detail,omitempty"`
 	BestWindow      *Window  `json:"best_window,omitempty"`
 	ClosurePressure string   `json:"closure_pressure"`
 	Schedule        Schedule `json:"schedule"`
 
 	// Supporting attributes for the day cards — they back the verdict, they
-	// are not a forecast page.
+	// are not a forecast page. FeelsLikeF is the day's max heat index, sent
+	// only when it meaningfully exceeds the air temp: 90° undersells a 108°
+	// heat index, and the heat index is what the verdict actually reads.
 	HighTempF     *float64 `json:"high_temp_f,omitempty"`
+	FeelsLikeF    *float64 `json:"feels_like_f,omitempty"`
 	RainChancePct *float64 `json:"rain_chance_pct,omitempty"`
 	WindLabel     string   `json:"wind_label,omitempty"`
 }
@@ -166,9 +184,13 @@ func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, para
 			RainChancePct:   facts.maxPoPPct,
 			WindLabel:       windLabel(facts.maxWindMph, facts.maxGustMph),
 		}
-		day.Verdict = dayVerdict(facts, vp)
+		if facts.maxHeatIdxF != nil && facts.maxTempF != nil && *facts.maxHeatIdxF >= *facts.maxTempF+5 {
+			day.FeelsLikeF = facts.maxHeatIdxF
+		}
+		day.Verdict, day.Drivers = dayVerdict(facts, vp)
 		day.BestWindow = bestWindow(now, i, frame, facts, vp)
 		day.Headline, day.Detail = dayText(day.Verdict, facts, day.BestWindow, vp)
+		day.Why = whyText(day.Verdict, day.Drivers, facts, vp, day.Headline)
 		out.Days = append(out.Days, day)
 	}
 
@@ -354,8 +376,10 @@ func maxFloat(dst **float64, src *float64) {
 }
 
 // dayVerdict collapses a day's facts into one verdict. Caps push down, never
-// up, so multiple problems can't cancel out.
-func dayVerdict(facts dayFacts, vp VerdictParams) string {
+// up, so multiple problems can't cancel out. The second return names the
+// binding drivers — the checks whose enforced rank is the rank the day
+// landed on — so the copy can always say why the pill reads what it reads.
+func dayVerdict(facts dayFacts, vp VerdictParams) (string, []string) {
 	// Without weather coverage the answer is honest but modest: tides alone
 	// can't promise a great day.
 	v := VerdictGreat
@@ -363,23 +387,31 @@ func dayVerdict(facts dayFacts, vp VerdictParams) string {
 		v = VerdictGood
 	}
 
-	cap := func(limit string) {
+	type hit struct {
+		driver string
+		rank   int
+	}
+	var hits []hit
+
+	cap := func(driver, limit string) {
+		hits = append(hits, hit{driver, verdictRank(limit)})
 		if verdictRank(limit) < verdictRank(v) {
 			v = limit
 		}
 	}
-	downgrade := func() {
+	downgrade := func(driver string) {
 		if verdictRank(v) > verdictRank(VerdictTough) {
 			v = verdictAtRank(verdictRank(v) - 1)
+			hits = append(hits, hit{driver, verdictRank(v)})
 		}
 	}
 
 	// Tide pressure.
 	switch facts.pressure {
 	case PressureHigh:
-		cap(VerdictMixed)
+		cap(DriverTide, VerdictMixed)
 	case PressureSome:
-		cap(VerdictGood)
+		cap(DriverTide, VerdictGood)
 	}
 
 	if facts.hasWeather {
@@ -389,30 +421,39 @@ func dayVerdict(facts dayFacts, vp VerdictParams) string {
 		// "great": part of it is spoken for.
 		switch {
 		case facts.stormFrac >= vp.StormWashoutFrac:
-			cap(VerdictMixed)
+			cap(DriverStorms, VerdictMixed)
 		case facts.stormFrac >= 0.15:
-			cap(VerdictGood)
+			cap(DriverStorms, VerdictGood)
 		}
 
 		// Wind.
 		if facts.maxGustMph != nil && *facts.maxGustMph >= vp.GustToughMph {
-			cap(VerdictTough)
+			cap(DriverWind, VerdictTough)
 		} else if facts.maxWindMph != nil && *facts.maxWindMph >= vp.WindDegradeMph {
-			downgrade()
+			downgrade(DriverWind)
 		}
 
 		// Heat.
 		if facts.heatAdvisory || (facts.maxHeatIdxF != nil && *facts.maxHeatIdxF >= vp.HeatIndexF) {
-			downgrade()
+			downgrade(DriverHeat)
 		}
 
 		// Cold.
 		if facts.maxTempF != nil && *facts.maxTempF < vp.ColdHighF {
-			downgrade()
+			downgrade(DriverCold)
 		}
 	}
 
-	return v
+	if v == VerdictGreat {
+		return v, nil
+	}
+	var drivers []string
+	for _, h := range hits {
+		if h.rank == verdictRank(v) && !slices.Contains(drivers, h.driver) {
+			drivers = append(drivers, h.driver)
+		}
+	}
+	return v, drivers
 }
 
 func verdictRank(v string) int {

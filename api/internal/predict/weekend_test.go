@@ -181,6 +181,70 @@ func TestWeekendAllDayStormsCapMixed(t *testing.T) {
 	assert.Contains(t, strings.ToLower(sat.Headline), "storm")
 }
 
+func TestWeekendHeatDowngradeNamesItself(t *testing.T) {
+	// The real 2026-08-19/20 case: a watchable tide caps at good, afternoon
+	// storms shape the window, and a 108° heat index takes the last notch to
+	// mixed — but the headline talks storms. The pill must justify itself:
+	// heat is the binding driver, so `why` names it with the number, and the
+	// chip row gets the feels-like the air temp was hiding.
+	now, _, _ := quietWeek(t)
+	var preds []models.TidePrediction
+	for d := 0; d < 8; d++ {
+		day := now.AddDate(0, 0, d)
+		preds = append(preds, highAt(t, day.Format("2006-01-02")+" 13:00", 2.5)) // possible, not likely
+	}
+	land := flatLand(now, now.AddDate(0, 0, 7), func(tm time.Time, h *nwsfc.HourlySample) {
+		hi := 108.0
+		h.HeatIndexF = &hi
+		if tm.In(eastern).Hour() >= 18 { // storms at the edge of the day
+			v := 70.0
+			h.ThunderPct = &v
+		}
+	})
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+
+	thu := day(t, out, "Thursday")
+	require.NotNil(t, thu)
+	assert.Equal(t, PressureSome, thu.ClosurePressure)
+	assert.Equal(t, VerdictMixed, thu.Verdict)
+	assert.Equal(t, []string{DriverHeat}, thu.Drivers, "heat took the binding notch")
+
+	assert.Contains(t, thu.Why, "heat", "the pill's cause must be visible")
+	assert.Contains(t, thu.Why, "110°", "heat comes with its (rounded) number")
+	assert.NotContains(t, strings.ToLower(thu.Headline), "heat", "headline keeps the plan; why carries the justification")
+
+	require.NotNil(t, thu.FeelsLikeF)
+	assert.Equal(t, 108.0, *thu.FeelsLikeF)
+
+	// The detail clause also carries the number now.
+	assert.Contains(t, thu.Detail, "~110°")
+}
+
+func TestWeekendWhySilentWhenHeadlineCovers(t *testing.T) {
+	// When the headline already names the binding driver, why must not
+	// repeat it — an all-day-storm mixed day is explained by its headline.
+	now, preds, _ := quietWeek(t)
+	land := flatLand(now, now.AddDate(0, 0, 7), func(tm time.Time, h *nwsfc.HourlySample) {
+		v := 80.0
+		h.ThunderPct = &v
+	})
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+
+	sat := day(t, out, "Saturday")
+	require.NotNil(t, sat)
+	assert.Equal(t, VerdictMixed, sat.Verdict)
+	assert.Equal(t, []string{DriverStorms}, sat.Drivers)
+	assert.Empty(t, sat.Why, "headline already says storms")
+
+	// Great days carry no drivers and no why.
+	quiet := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, flatLand(now, now.AddDate(0, 0, 7), nil), nil)
+	for _, d := range quiet.Days {
+		assert.Equal(t, VerdictGreat, d.Verdict, d.Weekday)
+		assert.Empty(t, d.Drivers, d.Weekday)
+		assert.Empty(t, d.Why, d.Weekday)
+	}
+}
+
 func TestWeekendGustsCapTough(t *testing.T) {
 	now, preds, _ := quietWeek(t)
 	land := flatLand(now, now.AddDate(0, 0, 7), func(tm time.Time, h *nwsfc.HourlySample) {
@@ -290,7 +354,7 @@ func TestWeekendCopyRules(t *testing.T) {
 
 	checkDay := func(t *testing.T, d WeekendDay) {
 		t.Helper()
-		for _, s := range []string{d.Headline, d.Detail} {
+		for _, s := range []string{d.Headline, d.Why, d.Detail} {
 			lower := strings.ToLower(s)
 			assert.NotContains(t, lower, "will close", "promised closure in %q", s)
 			assert.NotContains(t, lower, "closure likely", "overconfident closure in %q", s)
