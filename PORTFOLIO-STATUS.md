@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 18 — flighted and submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 19 — flighted to TestFlight 2026-08-19 with the tvOS predictive board; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -38,9 +38,12 @@ last_verified: 2026-08-19 (evening: tvOS caught up with the predictive features,
   package; the three single-stat overlays are gone; XCUIRemote UI tests updated and
   passing; screenshots.sh TV shots repointed (--overlay-outlook/--overlay-weather —
   the submitted App Store TV screenshots 02-tide/04-water no longer match the app
-  and need recapturing at next re-flight). Verified in the tvOS simulator against
-  prod; in-tree only — rides the next re-flight, deferred until build 18 clears
-  App Review. Earlier same day below.)
+  and STILL need recapturing + re-submitting whenever listing assets are next
+  touched). Verified in the tvOS simulator against prod, then FLIGHTED: Don
+  overrode the build-18 wait and build 1.0 (19) went to TestFlight 2026-08-19
+  (both platforms, tag flight/build-19) so he can live with the new TV board.
+  TestFlight-only — build 18 stays the one pinned to the App Review submission.
+  Earlier same day below.)
 prior_2026_08_19_am: (TWO NEW FEATURES SHIPPED to main → prod (web): (1) Weekend
   Outlook — /api/v2/outlook/weekend, 6-day great/good/mixed/tough verdicts from the
   tide engine + new NWS forecast package (api/internal/nwsfc), live-tunable thresholds

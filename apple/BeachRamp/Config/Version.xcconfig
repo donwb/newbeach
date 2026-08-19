@@ -8,7 +8,7 @@
 // apple/scripts/flight.sh rewrites CURRENT_PROJECT_VERSION on every flight.
 
 MARKETING_VERSION = 1.0
-CURRENT_PROJECT_VERSION = 18
+CURRENT_PROJECT_VERSION = 19
 
 // Shipped name under the icon on every platform. The App Store Connect
 // listing name is "Beach Ramp Status"; this is the shorter home-screen form.
