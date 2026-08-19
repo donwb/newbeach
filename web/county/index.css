@@ -180,6 +180,75 @@ section .body em { font-style: italic; }
 .pair { display: grid; grid-template-columns: 1fr 1.55fr; gap: 28px; align-items: start; margin-top: 32px; }
 .pair .shot { margin-top: 0; }
 
+/* ---------- Live weekend demo ---------- */
+
+.wk-demo {
+  margin-top: 32px;
+  border: 2px solid var(--rule);
+  background: #fff;
+  padding: 24px 26px 26px;
+}
+.wk-demo-headline {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.wk-demo-surf {
+  margin-top: 4px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink2);
+}
+.wk-demo-days {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 18px;
+  margin-top: 20px;
+}
+.wkd {
+  border-top: 2px solid var(--rule2);
+  padding-top: 8px;
+  min-width: 0;
+}
+.wkd-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.wkd-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.wkd.weekend .wkd-name { color: var(--accent); }
+.wkd-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #fff;
+}
+.wkd[data-verdict='great'] .wkd-pill { background: #0a7a42; }
+.wkd[data-verdict='good'] .wkd-pill { background: #3b8a5e; }
+.wkd[data-verdict='mixed'] .wkd-pill { background: #f5a214; color: #241500; }
+.wkd[data-verdict='tough'] .wkd-pill { background: #d22b18; }
+.wkd[data-verdict='no_call'] .wkd-pill { background: rgba(32, 30, 29, 0.5); }
+.wkd-line {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.wkd-attrs {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Offer & ask cards ---------- */
 
 .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 34px; }
@@ -219,4 +288,14 @@ footer a:hover { text-decoration: underline; }
   .split, .pair, .cards { grid-template-columns: 1fr; }
   .hero { padding: 40px 0 34px; }
   section { padding: 42px 0; }
+
+  /* Weekend demo days become a swipeable rail on phones. */
+  .wk-demo-days {
+    display: flex;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .wk-demo-days .wkd { flex: 0 0 150px; }
 }

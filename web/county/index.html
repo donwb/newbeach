@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex">
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <!-- ?v= busts the sw runtime cache; bump when index.css changes. -->
-  <link rel="stylesheet" href="index.css?v=2">
+  <link rel="stylesheet" href="index.css?v=3">
 </head>
 <body>
 <div class="page">
@@ -78,7 +78,32 @@
   </section>
 
   <section>
-    <div class="sec-head"><span class="num">03</span><h2>Native on iPhone and iPad</h2></div>
+    <div class="sec-head"><span class="num">03</span><h2>It plans the weekend</h2></div>
+    <div class="body">
+      <p>
+        Newest addition (August 2026): ask the board <strong>"when should I
+        go?"</strong> and it answers days ahead. The same learned tide model runs
+        over the coming week's predicted peaks, joined with the National Weather
+        Service forecast — storms, wind, heat — and grades each of the next six
+        days, naming the best stretch of the day to be on the sand. A one-line
+        surf read sits alongside, with the NWS rip-current risk relayed
+        word-for-word, never recomputed.
+      </p>
+      <p>
+        What's below is <strong>not a screenshot</strong> — it's the live
+        outlook, fetched from the running service as you read this page.
+      </p>
+    </div>
+    <div class="wk-demo" id="wk-demo" hidden>
+      <div class="wk-demo-headline" id="wk-demo-headline"></div>
+      <div class="wk-demo-surf" id="wk-demo-surf" hidden></div>
+      <div class="wk-demo-days" id="wk-demo-days"></div>
+    </div>
+    <p class="caption">Live from <strong>/api/v2/outlook/weekend</strong> — every sentence written by the server, model retrained nightly.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="num">04</span><h2>Native on iPhone and iPad</h2></div>
     <div class="body">
       <p>
         Purpose-built SwiftUI apps, not wrapped web pages: a sun-following board
@@ -94,7 +119,7 @@
   </section>
 
   <section>
-    <div class="sec-head"><span class="num">04</span><h2>The whole coastline on the big screen</h2></div>
+    <div class="sec-head"><span class="num">05</span><h2>The whole coastline on the big screen</h2></div>
     <div class="body">
       <p>
         The Apple TV app puts the county's live beach cams next to ramp status,
@@ -107,7 +132,7 @@
   </section>
 
   <section>
-    <div class="sec-head"><span class="num">05</span><h2>The offer, plainly</h2></div>
+    <div class="sec-head"><span class="num">06</span><h2>The offer, plainly</h2></div>
     <div class="cards">
       <div class="card flag">
         <span class="label">What the county gets</span>
@@ -150,5 +175,48 @@
   </footer>
 
 </div>
+
+<script>
+// Live weekend-outlook demo: real data or nothing — the section stays hidden
+// on any failure rather than showing a broken frame.
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  try {
+    const [wk, ol] = await Promise.all([
+      fetch('/api/v2/outlook/weekend').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/v2/outlook').then((r) => (r.ok ? r.json() : null)),
+    ]);
+    if (!wk || !wk.days || !wk.days.length) return;
+
+    $('wk-demo-headline').textContent = wk.headline || '';
+
+    const surf = ol && ol.surf_report && ol.surf_report.line;
+    if (surf) {
+      $('wk-demo-surf').textContent = 'Surf: ' + surf;
+      $('wk-demo-surf').hidden = false;
+    }
+
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+
+    $('wk-demo-days').innerHTML = wk.days.map((d) => {
+      const attrs = [
+        d.high_temp_f != null ? Math.round(d.high_temp_f) + '°' : null,
+        d.rain_chance_pct != null ? Math.round(d.rain_chance_pct) + '% rain' : null,
+        d.wind_label || null,
+      ].filter(Boolean).join(' · ');
+      return '<div class="wkd' + (d.is_weekend ? ' weekend' : '') + '" data-verdict="' + esc(d.verdict) + '">'
+        + '<div class="wkd-top"><span class="wkd-name">' + esc(d.weekday.slice(0, 3)) + '</span>'
+        + '<span class="wkd-pill">' + esc(d.verdict.replace('_', ' ')) + '</span></div>'
+        + '<p class="wkd-line">' + esc(d.headline) + '</p>'
+        + (attrs ? '<div class="wkd-attrs">' + esc(attrs) + '</div>' : '')
+        + '</div>';
+    }).join('');
+
+    $('wk-demo').hidden = false;
+  } catch (e) { /* leave the demo hidden */ }
+})();
+</script>
 </body>
 </html>
