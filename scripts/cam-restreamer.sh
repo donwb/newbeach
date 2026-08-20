@@ -53,12 +53,17 @@ RELAY_HOST="${RELAY_HOST:?set RELAY_HOST (relay droplet ip/host)}"
 RELAY_PUB_PASS="${RELAY_PUB_PASS:?set RELAY_PUB_PASS (mediamtx publisher password)}"
 YTDLP_COOKIES="${YTDLP_COOKIES:-}"
 LOG_DIR="${LOG_DIR:-$HOME/Library/Logs/cam-restreamer}"
+# Where the relay serves the streams it receives — the ground truth for
+# whether a publish is actually reaching viewers (see the half-open check).
+RELAY_HLS_BASE="${RELAY_HLS_BASE:-https://cams.donwb.com}"
 
 STALL_SECS=60        # restart a pipeline if ffmpeg makes no progress this long
 RETRY_STREAMED=30    # retry after a stream that was up and dropped
 RETRY_SECS=120       # base delay for resolve-failure backoff + roster retries
 RETRY_MAX=1800       # backoff cap for streams that fail to resolve at all
 ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
+RELAY_CHECK_TICKS=4  # relay liveness probe every N watchdog ticks (~60s)
+RELAY_DEAD_CHECKS=3  # consecutive probe misses before declaring half-open
 
 mkdir -p "$LOG_DIR"
 
@@ -110,7 +115,18 @@ stream_one() {
                 >> "$log_f" 2>&1 &
         local pid=$!
 
-        # Watchdog: ffmpeg rewrites $prog every ~1s while data flows.
+        # Watchdog: ffmpeg rewrites $prog every ~1s while data flows. That
+        # alone is not enough — a network event can leave the RTMP publish
+        # half-open (2026-08-19: a sunset router blip orphaned every publish;
+        # the droplet timed the sessions out while the Studio-side pipelines
+        # kept "streaming" into the void for 45+ minutes with the progress
+        # file happily advancing). RTMP publish is write-only with no
+        # app-level ack, so nothing local ever errors. The relay's HLS
+        # manifest is the ground truth (hlsAlwaysRemux: 200 ⟺ publisher
+        # present): if it goes missing RELAY_DEAD_CHECKS probes in a row
+        # while the local pipeline looks healthy, the publish is dead in a
+        # way only the relay can see — restart the pipeline.
+        local ticks=0 relay_misses=0
         while kill -0 "$pid" 2>/dev/null; do
             sleep 15
             if [ -f "$prog" ]; then
@@ -119,6 +135,20 @@ stream_one() {
                     log "[$id] stalled (${age}s without progress), restarting" >> "$log_f"
                     kill_pipeline "$id" "$vid" "$pid"
                     break
+                fi
+            fi
+            ticks=$(( ticks + 1 ))
+            if [ $(( ticks % RELAY_CHECK_TICKS )) -eq 0 ] && [ -s "$prog" ]; then
+                if curl -sfL --max-time 8 "$RELAY_HLS_BASE/$id/index.m3u8" 2>/dev/null \
+                        | head -c 16 | grep -q '#EXTM3U'; then
+                    relay_misses=0
+                else
+                    relay_misses=$(( relay_misses + 1 ))
+                    if [ "$relay_misses" -ge "$RELAY_DEAD_CHECKS" ]; then
+                        log "[$id] relay stopped serving the stream (${relay_misses} probes) while the local pipeline looked healthy — half-open publish, restarting" >> "$log_f"
+                        kill_pipeline "$id" "$vid" "$pid"
+                        break
+                    fi
                 fi
             fi
         done
