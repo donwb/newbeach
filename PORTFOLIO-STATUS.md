@@ -25,7 +25,40 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-19 (late night: tvOS gained its TWO-MODE presentation from the
+last_verified: 2026-08-20 (tvOS REBUILT AGAIN to the "video first" design — Don lived
+  with the two-mode board on a real device one evening and killed it: he watches the
+  video far more than expected, and the mode toggle made the information fight the
+  picture. New design (Claude Design project d3055b06, handoff README in the project's
+  design_handoff_tvos_videofirst/): fixed bands — header 110 / picture 340 / cam strip
+  56 / ledger 574 — the panorama is NEVER covered, cropped further, or moved; pull
+  surfaces (Beach outlook from the header button, Ramp detail from a ledger row)
+  replace the bottom 630pt only; red means closed and nothing else (focus/active/
+  all-open are dry-sand #F0DDB4); the ground follows the sun through 16 NEW dark
+  day-part gradients (TVSkyGround, tvOS-local, contrast unit-tested, three anchors
+  pinned from the mock). The 1280×270 relay stream is top-crop-clipped client-side to
+  1920×340, which exactly removes the vendor's baked-in AccuWeather badge (relay stays
+  -c copy). No mode toggle: TVBoardMode, both invisible focus catchers, SunRibbon, and
+  all three overlays DELETED. Ledger: server per-city verdict copy rendered verbatim
+  (new /api/v2/outlook `cities` block, VerdictBuilder fallback), windowed 5-row ramp
+  list (closures sort to top, sand scroll thumb, "12 · 7 below" header count), per-ramp
+  Next column from outlook short/reopen strings, surf report + weekend slots right.
+  Ramp detail surface: today bar + white tide curve + 48h log from /intervals.
+  Beach outlook surface: 7-day table (Day/High/Rain/Surf/Best window/Closure risk)
+  from the weekend endpoint extended same-day to 7 days + closure_risk_label +
+  surf_label, plus the new per-city verdicts (Go: cityverdict.go/citytext.go, all
+  additive, backtest pins untouched, deployed to prod before the client). Archivo now
+  used on tvOS via the shared package's registered faces. Verified in the tvOS
+  simulator against prod: resting/outlook/detail/golden/night screenshots, crop
+  framing validated against a captured live frame, 6 rewritten XCUIRemote UI tests
+  passing (cam switch, ledger walk, city cycle, box-local Right, both surfaces with
+  focus restore), TVSkyGround contrast test sweeping every 2° of sun altitude. QA args
+  now --surface-outlook / --surface-ramp-detail (+ --stream-url); screenshots.sh
+  updated. Sim quirk noted in-commit: the tvOS Simulator renders the relay's mpegts
+  video slowly/black at first (audio leads) — real hardware is fine, fmp4 renders
+  instantly. NOT yet flighted — Don flights; the physical-remote pass (item 2) should
+  ride that build. App Store TV screenshots now trail by FOUR designs.
+  Prior 08-19 state below.)
+prior_2026_08_19_late: (tvOS gained its TWO-MODE presentation from the
   "tvOS modes" Claude Design handoff — Cam mode and Board mode, one D-pad press apart.
   Cam mode is the new resting state: the video at its native 680pt (1:1 — the 3222×680
   source's largest sharp frame, 60% of the panorama; Board mode's 405pt band shows 100%
