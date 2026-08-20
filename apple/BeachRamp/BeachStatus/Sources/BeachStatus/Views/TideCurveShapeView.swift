@@ -9,14 +9,29 @@ public struct TideCurveShapeView: View {
     /// Closure threshold in feet — the dashed line is the point of the
     /// detail chart. Nil draws nothing.
     public var threshold: Double?
+    /// Curve stroke width — the tvOS detail surface draws at 3.
+    public var strokeWidth: CGFloat
+    /// Optional color overrides. Nil (the default) reads the `\.ground`
+    /// tokens as ever; the tvOS detail surface passes its own mono palette,
+    /// where the now-line must not be the ground accent (red means closed
+    /// there, and nothing else).
+    public var strokeColor: Color?
+    public var fillColor: Color?
+    public var nowLineColor: Color?
     @Environment(\.ground) private var ground
 
     public init(points: [TideCurve.Point], range: ClosedRange<Date>,
-                height: CGFloat, threshold: Double? = nil) {
+                height: CGFloat, threshold: Double? = nil,
+                strokeWidth: CGFloat = 2, strokeColor: Color? = nil,
+                fillColor: Color? = nil, nowLineColor: Color? = nil) {
         self.points = points
         self.range = range
         self.height = height
         self.threshold = threshold
+        self.strokeWidth = strokeWidth
+        self.strokeColor = strokeColor
+        self.fillColor = fillColor
+        self.nowLineColor = nowLineColor
     }
 
     public var body: some View {
@@ -24,8 +39,8 @@ public struct TideCurveShapeView: View {
         GeometryReader { geo in
             let size = geo.size
             ZStack(alignment: .topLeading) {
-                fillPath(in: size).fill(t.tideFill)
-                strokePath(in: size).stroke(t.ink, lineWidth: 2)
+                fillPath(in: size).fill(fillColor ?? t.tideFill)
+                strokePath(in: size).stroke(strokeColor ?? t.ink, lineWidth: strokeWidth)
                 if let threshold {
                     Path { p in
                         let ty = y(for: threshold, in: size)
@@ -36,7 +51,7 @@ public struct TideCurveShapeView: View {
                             style: StrokeStyle(lineWidth: 2, dash: [6, 5]))
                 }
                 Rectangle()
-                    .fill(t.accent)
+                    .fill(nowLineColor ?? t.accent)
                     .frame(width: 2)
                     .offset(x: x(for: Date(), in: size) - 1)
             }

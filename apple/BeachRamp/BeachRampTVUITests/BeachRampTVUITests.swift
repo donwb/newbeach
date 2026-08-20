@@ -7,14 +7,13 @@
 
 import XCTest
 
-/// Remote-navigation tests for the two-mode board's focus graph. Board mode:
-/// row order is cam caption strip → ramp heading (city selector, Recent
-/// changes) → weekend day panels, the video never takes focus, and closing
-/// an overlay returns focus to the control that opened it. The mode switch:
-/// Down from Cam mode opens the board, Up from the caption strip closes it,
-/// and Menu returns to Cam mode from the board. The caption strip's mode
-/// hint ("▾ Ramps" in Cam mode, "▴ Full cam" in Board mode) is the
-/// observable signal for which mode is up.
+/// Remote-navigation tests for the video-first board's focus graph. There
+/// is no mode toggle: the resting screen is header (outlook button) over the
+/// picture over the cam strip over the ledger. Focus rows: cam strip →
+/// ramps header → ramp rows; the outlook button sits above the strip; the
+/// right box has no focusables in v1, so Left/Right stays box-local for
+/// free. Select on a ramp row opens Ramp detail; the outlook button opens
+/// Beach outlook; Back closes a surface and restores focus.
 final class BeachRampTVUITests: XCTestCase {
 
     private var app: XCUIApplication!
@@ -23,141 +22,135 @@ final class BeachRampTVUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        // Board-focus tests start on the board; the mode-switch tests
-        // relaunch with their own mode.
-        app.launchArguments = ["--mode-board"]
         app.launch()
+        // Initial focus lands on the cam strip once the roster loads.
         XCTAssertTrue(
-            app.buttons["Recent changes"].waitForExistence(timeout: 15),
-            "board should load with the ramp heading"
+            focusedElement(withPrefix: "camStrip.").waitForExistence(timeout: 20),
+            "initial focus should land on the cam strip"
         )
     }
 
-    /// The single currently focused button.
     private var focusedButton: XCUIElement {
         app.buttons.matching(NSPredicate(format: "hasFocus == true")).firstMatch
     }
 
-    /// Walk focus to the top of the board's rows — the cam caption strip,
-    /// which sits inside the 405pt cam band. One press at a time with a
-    /// stop check: an extra Up from the strip would fall through and close
-    /// the board.
-    private func focusCamStrip() {
-        for _ in 0..<4 {
-            if focusedButton.exists, focusedButton.frame.minY < app.frame.height * 0.38 {
-                break
-            }
+    private func focusedElement(withPrefix prefix: String) -> XCUIElement {
+        app.buttons.matching(
+            NSPredicate(format: "hasFocus == true AND identifier BEGINSWITH %@", prefix)
+        ).firstMatch
+    }
+
+    private var focusedID: String { focusedButton.identifier }
+
+    @MainActor
+    func testLeftRightSwitchesCam() throws {
+        let before = focusedID
+        remote.press(.right)
+        // Focus moved to a different cam; the strip switch is focus-driven.
+        XCTAssertTrue(focusedID.hasPrefix("camStrip."), "focus stays on the strip (got \(focusedID))")
+        XCTAssertNotEqual(focusedID, before, "Right should move to the next cam")
+
+        // The newly focused cam becomes the watched one.
+        let watched = app.buttons.matching(
+            NSPredicate(format: "identifier == %@ AND value == %@", focusedID, "watching")
+        ).firstMatch
+        XCTAssertTrue(watched.waitForExistence(timeout: 3),
+                      "the focused cam should become the watched cam")
+    }
+
+    @MainActor
+    func testDownWalksIntoTheLedger() throws {
+        remote.press(.down)
+        XCTAssertTrue(
+            focusedID == "rampsHeader" || focusedID.hasPrefix("rampRow."),
+            "Down from the strip should land in the ramps box (got \(focusedID))"
+        )
+    }
+
+    @MainActor
+    func testCityCycleOnRampsHeader() throws {
+        focusRampsHeader()
+        let before = app.buttons["rampsHeader"].value as? String
+        remote.press(.right)
+        // City cycling is instant and local; the header keeps focus.
+        XCTAssertEqual(focusedID, "rampsHeader", "focus stays on the header")
+        let after = app.buttons["rampsHeader"].value as? String
+        XCTAssertNotEqual(before, after, "Right on the header should cycle the city")
+    }
+
+    @MainActor
+    func testRampRowStaysBoxLocalOnRight() throws {
+        focusFirstRampRow()
+        let before = focusedID
+        remote.press(.right)
+        XCTAssertEqual(focusedID, before, "Right on a ramp row is inert — box-local rule")
+    }
+
+    @MainActor
+    func testSelectRampRowOpensDetailAndBackRestores() throws {
+        focusFirstRampRow()
+        let row = focusedID
+        remote.press(.select)
+        XCTAssertTrue(surface("surface.rampDetail").waitForExistence(timeout: 5),
+                      "Select on a ramp row should open Ramp detail")
+
+        remote.press(.menu)
+        XCTAssertTrue(waitForDisappearance(of: surface("surface.rampDetail"), timeout: 5),
+                      "Back should close the surface")
+        // Focus returns to the row that opened it, one runloop later.
+        let restored = app.buttons.matching(
+            NSPredicate(format: "hasFocus == true AND identifier == %@", row)
+        ).firstMatch
+        XCTAssertTrue(restored.waitForExistence(timeout: 3),
+                      "focus should return to the ramp row that opened the surface")
+    }
+
+    @MainActor
+    func testOutlookButtonOpensSurface() throws {
+        remote.press(.up)
+        XCTAssertEqual(focusedID, "outlookButton",
+                       "Up from the cam strip should reach the outlook button")
+        remote.press(.select)
+        XCTAssertTrue(surface("surface.outlook").waitForExistence(timeout: 5),
+                      "Select should open the Beach outlook surface")
+
+        remote.press(.menu)
+        XCTAssertTrue(waitForDisappearance(of: surface("surface.outlook"), timeout: 5),
+                      "Back should close the surface")
+        let restored = app.buttons.matching(
+            NSPredicate(format: "hasFocus == true AND identifier == %@", "outlookButton")
+        ).firstMatch
+        XCTAssertTrue(restored.waitForExistence(timeout: 3),
+                      "focus should return to the outlook button")
+    }
+
+    // MARK: - Helpers
+
+    /// A pull surface by identifier, whatever element type SwiftUI exposes
+    /// the container as.
+    private func surface(_ id: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: id).firstMatch
+    }
+
+    private func focusRampsHeader() {
+        remote.press(.down)
+        for _ in 0..<3 where focusedID != "rampsHeader" {
             remote.press(.up)
         }
-        XCTAssertLessThan(focusedButton.frame.minY, app.frame.height * 0.45,
-                          "top of the focus order should be the cam caption strip (focused: \(focusedButton.label))")
+        XCTAssertEqual(focusedID, "rampsHeader",
+                       "should be able to reach the ramps header (got \(focusedID))")
     }
 
-    @MainActor
-    func testVerticalOrderCamStripToHeadingToDayPanels() throws {
-        focusCamStrip()
-
+    private func focusFirstRampRow() {
+        focusRampsHeader()
         remote.press(.down)
-        let headingY = focusedButton.frame.minY
-        XCTAssertGreaterThan(headingY, app.frame.height * 0.3,
-                             "down from the cam strip should leave the band (focused: \(focusedButton.label))")
-        XCTAssertLessThan(headingY, app.frame.height * 0.6,
-                          "down from the cam strip should land on the ramp heading, not the day panels (focused: \(focusedButton.label))")
-
-        remote.press(.down)
-        XCTAssertGreaterThan(focusedButton.frame.minY, app.frame.height * 0.6,
-                             "down from the heading should land on the day panels (focused: \(focusedButton.label))")
-
-        remote.press(.up)
-        let backY = focusedButton.frame.minY
-        XCTAssertGreaterThan(backY, app.frame.height * 0.3,
-                             "up from the day panels should return to the heading, not the cam band")
-        XCTAssertLessThan(backY, app.frame.height * 0.6,
-                          "up from the day panels should return to the heading (focused: \(focusedButton.label))")
+        XCTAssertTrue(focusedID.hasPrefix("rampRow."),
+                      "Down from the header should land on a ramp row (got \(focusedID))")
     }
 
-    @MainActor
-    func testRecentChangesReachableAndOpens() throws {
-        focusCamStrip()
-        remote.press(.down)
-
-        // Walk right along the heading; the last stop is Recent changes.
-        let recentChanges = app.buttons["Recent changes"]
-        for _ in 0..<4 where !recentChanges.hasFocus {
-            remote.press(.right)
-        }
-        XCTAssertTrue(recentChanges.hasFocus, "Recent changes should be reachable from the heading")
-
-        remote.press(.select)
-        XCTAssertTrue(
-            app.staticTexts["Recent changes"].waitForExistence(timeout: 5),
-            "selecting the button should open the activity overlay"
-        )
-
-        remote.press(.menu)
-        let refocus = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "hasFocus == true"), object: recentChanges)
-        XCTAssertEqual(XCTWaiter.wait(for: [refocus], timeout: 5), .completed,
-                       "closing the overlay should return focus to the Recent changes button")
-    }
-
-    @MainActor
-    func testMenuReturnsToCamModeFromBoard() throws {
-        XCTAssertTrue(app.staticTexts["▴ Full cam"].waitForExistence(timeout: 5),
-                      "board mode should show the Full cam hint")
-        remote.press(.menu)
-        XCTAssertTrue(app.staticTexts["▾ Ramps"].waitForExistence(timeout: 5),
-                      "Menu on the board should return to Cam mode, not open an overlay")
-    }
-
-    @MainActor
-    func testDownOpensBoardAndUpClosesIt() throws {
-        app.terminate()
-        app.launchArguments = ["--mode-cam"]
-        app.launch()
-        XCTAssertTrue(app.staticTexts["▾ Ramps"].waitForExistence(timeout: 15),
-                      "Cam mode should show the Ramps hint")
-        // The Down fall-through hangs off the caption strip's focus — wait
-        // for the focus engine to settle there before pressing.
-        XCTAssertTrue(focusedButton.waitForExistence(timeout: 10),
-                      "a cam caption should take initial focus in Cam mode")
-
-        remote.press(.down)
-        XCTAssertTrue(app.staticTexts["▴ Full cam"].waitForExistence(timeout: 5),
-                      "Down from Cam mode should open the board")
-
-        // Focus was handed back to the caption strip on open; Up from it
-        // has nowhere further to go and falls through, closing the board.
-        remote.press(.up)
-        XCTAssertTrue(app.staticTexts["▾ Ramps"].waitForExistence(timeout: 5),
-                      "Up from the caption strip should close the board")
-    }
-
-    @MainActor
-    func testForecastOverlayReturnsFocusToDayPanel() throws {
-        focusCamStrip()
-        remote.press(.down)
-        remote.press(.down)
-
-        // The day panels exist only when the weekend outlook is being
-        // served — skip rather than fail when the feature is off.
-        guard focusedButton.frame.minY > app.frame.height * 0.6 else {
-            throw XCTSkip("no weekend day panels on the board (weekend outlook off)")
-        }
-
-        let openingLabel = focusedButton.label
-        remote.press(.select)
-        XCTAssertTrue(
-            app.staticTexts["Press Menu to close"].waitForExistence(timeout: 5),
-            "selecting a day panel should open the beach forecast overlay"
-        )
-
-        remote.press(.menu)
-        let restored = XCTNSPredicateExpectation(
-            predicate: NSPredicate { [weak self] _, _ in
-                self?.focusedButton.label == openingLabel
-            }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed,
-                       "closing the forecast should return focus to the panel that opened it")
+    private func waitForDisappearance(of element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "exists == false")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
     }
 }

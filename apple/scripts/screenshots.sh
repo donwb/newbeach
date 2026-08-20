@@ -192,16 +192,16 @@ shoot_ipad() {
 
 # tvOS has no status bar to override and no rotation to fight, so the TV
 # gallery is the simplest of the three: boot, install, launch with the QA
-# hooks. The cam caption strip and city selector are inline on the board,
-# so the board shot already shows both switchers.
+# hooks (video-first: --surface-outlook / --surface-ramp-detail open the
+# pull surfaces once data loads). The cam strip and city selector are
+# inline on the resting screen, so the board shot shows both switchers.
 #
-# NOTE: deliberately no --sky-minutes here. That hook moves the sky, the
-# clock, and the sun ribbon, but NOT the verdict subline — ContentView's
-# verdict is built from a real Date() — so a frozen evening board reads
-# "7:30 PM" next to "9h 1m of light left" and contradicts itself in a store
-# screenshot. Shooting at real wall-clock time keeps every string agreeing.
-# Shoot midday Eastern: the board is mixed and the cams are lit. (If the
-# hook is ever threaded through the verdict, sky phases can come back.)
+# NOTE: deliberately no --sky-minutes here. That hook moves the ground and
+# the clock, but NOT the verdict copy — the verdict is the server's own
+# string for right now — so a frozen evening board would contradict itself
+# in a store screenshot. Shooting at real wall-clock time keeps every
+# string agreeing. Shoot midday Eastern: the ledger is mixed and the cams
+# are lit.
 shoot_tv() {
   local udid; udid="$(udid_for "$TV_SIM")"
   say "Apple TV — $TV_SIM ($udid)"
@@ -210,8 +210,8 @@ shoot_tv() {
   local out="$OUT_ROOT/appletv"; mkdir -p "$out"
   rm -f "$out"/*.png
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/01-board.png"
-  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-forecast.png" --overlay-outlook
-  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/03-activity.png" --overlay-activity
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-outlook.png" --surface-outlook
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/03-ramp-detail.png" --surface-ramp-detail
 }
 
 paired_phone_for() { # watch udid -> phone udid

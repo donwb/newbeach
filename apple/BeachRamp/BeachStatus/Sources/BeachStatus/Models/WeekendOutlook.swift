@@ -1,16 +1,17 @@
 import Foundation
 
 /// The server's "when should I go this weekend?" answer from
-/// `/api/v2/outlook/weekend`: the next six days, each graded with a verdict
-/// and casual copy. Like `Outlook`, every human-readable string is
-/// server-built and rendered verbatim — clients never compute their own
-/// predictions. The verdict vocabulary (`great|good|mixed|tough|no_call`) is
-/// deliberately separate from `RampOutlook.risk` and must never borrow it.
+/// `/api/v2/outlook/weekend`: the days ahead (seven on current servers), each
+/// graded with a verdict and casual copy. Like `Outlook`, every
+/// human-readable string is server-built and rendered verbatim — clients
+/// never compute their own predictions, and never assume a fixed day count.
+/// The verdict vocabulary (`great|good|mixed|tough|no_call`) is deliberately
+/// separate from `RampOutlook.risk` and must never borrow it.
 public struct WeekendOutlook: Codable, Sendable {
     public let generatedAt: Date
     /// The week's one-line summary ("Saturday's the day this weekend…").
     public let headline: String
-    /// Six days, today first, Eastern calendar.
+    /// The days ahead, today first, Eastern calendar.
     public let days: [WeekendDay]
 
     public init(generatedAt: Date, headline: String, days: [WeekendDay]) {
@@ -61,6 +62,12 @@ public struct WeekendDay: Codable, Sendable {
     public let feelsLikeF: Double?
     public let rainChancePct: Double?
     public let windLabel: String?
+    /// The day's closure story in one phrase ("Mid-day close potential") —
+    /// beach-day level, never naming ramps. Optional: older servers omit it.
+    public let closureRiskLabel: String?
+    /// The day's forecast surf in the report's height words ("Knee-high");
+    /// absent without marine coverage.
+    public let surfLabel: String?
 
     public init(date: String, weekday: String, isWeekend: Bool, verdict: String,
                 drivers: [String]? = nil, basis: [String], headline: String,
@@ -68,7 +75,8 @@ public struct WeekendDay: Codable, Sendable {
                 bestWindow: OutlookWindow? = nil, closurePressure: String,
                 schedule: OutlookSchedule? = nil, highTempF: Double? = nil,
                 feelsLikeF: Double? = nil, rainChancePct: Double? = nil,
-                windLabel: String? = nil) {
+                windLabel: String? = nil, closureRiskLabel: String? = nil,
+                surfLabel: String? = nil) {
         self.date = date
         self.weekday = weekday
         self.isWeekend = isWeekend
@@ -85,6 +93,8 @@ public struct WeekendDay: Codable, Sendable {
         self.feelsLikeF = feelsLikeF
         self.rainChancePct = rainChancePct
         self.windLabel = windLabel
+        self.closureRiskLabel = closureRiskLabel
+        self.surfLabel = surfLabel
     }
 
     /// "Sat" — the three-letter weekday for tight spots, matching the web.
@@ -114,5 +124,7 @@ public struct WeekendDay: Codable, Sendable {
         case feelsLikeF = "feels_like_f"
         case rainChancePct = "rain_chance_pct"
         case windLabel = "wind_label"
+        case closureRiskLabel = "closure_risk_label"
+        case surfLabel = "surf_label"
     }
 }

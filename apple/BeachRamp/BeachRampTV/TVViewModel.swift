@@ -84,9 +84,30 @@ final class TVViewModel {
     /// Server-side open/close prediction. Non-critical: nil (old server or
     /// failed fetch) simply hides the tile hints.
     var outlook: Outlook?
-    /// Six-day weekend outlook. Non-critical: nil (route disabled, old
+    /// Multi-day weekend outlook. Non-critical: nil (route disabled, old
     /// server, or failed fetch) hides the Weekend tile entirely.
     var weekend: WeekendOutlook?
+    /// The open ramp-detail surface's 48-hour history. Loaded on demand when
+    /// a detail surface opens; keyed by ramp so a stale fetch never dresses
+    /// the wrong ramp.
+    var rampIntervals: RampIntervals?
+
+    /// Fetch the last 48 hours for a ramp (the detail surface's today bar and
+    /// event log). Clears first so a slow fetch shows loading, not the
+    /// previous ramp's history.
+    @MainActor
+    func loadIntervals(for ramp: Ramp) async {
+        if rampIntervals?.ramp.accessID != ramp.accessID {
+            rampIntervals = nil
+        }
+        do {
+            let result = try await api.fetchIntervals(rampID: ramp.id, hours: 48)
+            // Only publish if the surface still wants this ramp.
+            if rampIntervals == nil || rampIntervals?.ramp.accessID == ramp.accessID {
+                rampIntervals = result
+            }
+        } catch { /* non-critical — the surface shows its loading/empty state */ }
+    }
 
     // MARK: - Freshness
 
@@ -187,6 +208,44 @@ final class TVViewModel {
     }
 
     var allRamps: [Ramp] { ramps }
+
+    /// The ledger's row order: closures sort to the top so a shut ramp is
+    /// never below the fold, then the city's normal display order.
+    var sortedLedgerRamps: [Ramp] {
+        let ordered = displayedRamps
+        return ordered.enumerated().sorted { a, b in
+            let aClosed = a.element.category == .closed
+            let bClosed = b.element.category == .closed
+            if aClosed != bClosed { return aClosed }
+            return a.offset < b.offset
+        }.map(\.element)
+    }
+
+    /// The server-built verdict for the current city, matched by display
+    /// name case-insensitively (server casing may differ on hyphenated
+    /// cities). Nil on older servers — callers fall back to VerdictBuilder.
+    var currentCityVerdict: CityVerdict? {
+        outlook?.cities?.first {
+            $0.displayName.caseInsensitiveCompare(currentCity) == .orderedSame
+        }
+    }
+
+    /// The overnight ledger's all-cities lines: every city at one line each,
+    /// with the server's reopen copy. Per-ramp detail has nothing to say
+    /// overnight, and the county feed's overnight statuses are unreliable —
+    /// the outlook is authoritative, so each city reports its full count.
+    var overnightCityLines: [TVOvernightCityLine] {
+        guard let reopen = overnightOutlook?.reopen?.label else { return [] }
+        return cities.map { city in
+            let count = ramps.filter { $0.cityDisplay == city }.count
+            return TVOvernightCityLine(
+                id: city,
+                city: city,
+                closedLabel: "\(count) closed",
+                reopenLabel: reopen
+            )
+        }
+    }
 
     var cities: [String] {
         Array(Set(ramps.map(\.cityDisplay))).sorted()
@@ -428,34 +487,4 @@ final class TVViewModel {
     }
 
     var isOvernight: Bool { overnightOutlook != nil }
-
-    /// The v3 card state for a ramp: the outlook's overnight call wins, so
-    /// an expected end-of-driving close never wears the red field.
-    func rampState(for ramp: Ramp) -> TVRampState {
-        if let entry = outlook?.ramp(for: ramp.accessID),
-           entry.risk == "closed_now", entry.reason == "overnight" {
-            return .overnight
-        }
-        switch ramp.category {
-        case .open: return .open
-        case .limited: return .limited
-        case .closed: return .closed
-        }
-    }
-
-    /// The ramp heading's right-hand summary: "5 ramps · all open",
-    /// "3 open · 1 limited · 1 closed", "Closed overnight · 5 ramps".
-    var rampSummary: String {
-        let total = displayedRamps.count
-        if isOvernight {
-            return "Closed overnight · \(total) ramp\(total == 1 ? "" : "s")"
-        }
-        if closedCount == 0 && limitedCount == 0 {
-            return "\(total) ramp\(total == 1 ? "" : "s") · all open"
-        }
-        var parts = ["\(openCount) open"]
-        if limitedCount > 0 { parts.append("\(limitedCount) limited") }
-        if closedCount > 0 { parts.append("\(closedCount) closed") }
-        return parts.joined(separator: " · ")
-    }
 }

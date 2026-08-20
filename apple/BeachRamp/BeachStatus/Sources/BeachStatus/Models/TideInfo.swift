@@ -91,6 +91,12 @@ public struct TideChartData: Codable, Sendable {
     public let highLow: [TidePrediction]
     public let hourly: [HourlyTidePoint]
 
+    public init(currentTime: Date, highLow: [TidePrediction], hourly: [HourlyTidePoint]) {
+        self.currentTime = currentTime
+        self.highLow = highLow
+        self.hourly = hourly
+    }
+
     enum CodingKeys: String, CodingKey {
         case currentTime = "current_time"
         case highLow = "high_low"

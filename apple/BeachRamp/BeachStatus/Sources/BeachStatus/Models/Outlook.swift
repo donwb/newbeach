@@ -20,10 +20,14 @@ public struct Outlook: Codable, Sendable {
     /// SURF_REPORT_ENABLED kill switch) omit it.
     public let surfReport: OutlookSurfReport?
     public let ramps: [RampOutlook]
+    /// Per-city verdict copy (the tvOS resting-screen headline) — optional,
+    /// older servers omit it.
+    public let cities: [CityVerdict]?
 
     public init(generatedAt: Date, season: String, schedule: OutlookSchedule,
                 tide: OutlookTide, surf: OutlookSurfContext? = nil,
-                surfReport: OutlookSurfReport? = nil, ramps: [RampOutlook]) {
+                surfReport: OutlookSurfReport? = nil, ramps: [RampOutlook],
+                cities: [CityVerdict]? = nil) {
         self.generatedAt = generatedAt
         self.season = season
         self.schedule = schedule
@@ -31,11 +35,18 @@ public struct Outlook: Codable, Sendable {
         self.surf = surf
         self.surfReport = surfReport
         self.ramps = ramps
+        self.cities = cities
     }
 
     /// The outlook for a ramp, keyed by county access id.
     public func ramp(for accessID: String) -> RampOutlook? {
         ramps.first { $0.accessID == accessID }
+    }
+
+    /// The verdict for a city, keyed by the raw GIS city string
+    /// (e.g. "NEW SMYRNA BEACH") that ramps carry in `city`.
+    public func cityVerdict(for city: String) -> CityVerdict? {
+        cities?.first { $0.city == city }
     }
 
     /// The glanceable board hint for a ramp: boards always look forward, so
@@ -60,6 +71,46 @@ public struct Outlook: Codable, Sendable {
         case surf
         case surfReport = "surf_report"
         case ramps
+        case cities
+    }
+}
+
+/// One city's across-the-room verdict: a big headline, its detail line, and
+/// the state that colors the accent bar. Headline and detail are server-built
+/// prediction copy — rendered verbatim, never recomputed client-side.
+public struct CityVerdict: Codable, Sendable, Equatable {
+    /// Raw GIS city key, matching `Ramp.city` ("NEW SMYRNA BEACH").
+    public let city: String
+    /// Server-built display casing ("New Smyrna Beach").
+    public let displayName: String
+    /// "all_open", "some_closed", "golden", or "overnight" — kept as a raw
+    /// string so new server values degrade gracefully (unknown states get the
+    /// muted bar treatment).
+    public let state: String
+    public let headline: String
+    public let detail: String
+    public let openCount: Int
+    public let rampCount: Int
+
+    public init(city: String, displayName: String, state: String,
+                headline: String, detail: String, openCount: Int, rampCount: Int) {
+        self.city = city
+        self.displayName = displayName
+        self.state = state
+        self.headline = headline
+        self.detail = detail
+        self.openCount = openCount
+        self.rampCount = rampCount
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case city
+        case displayName = "display_name"
+        case state
+        case headline
+        case detail
+        case openCount = "open_count"
+        case rampCount = "ramp_count"
     }
 }
 
@@ -174,6 +225,9 @@ public struct RampOutlook: Codable, Sendable {
     public let reason: String?
     public let accessID: String
     public let rampID: Int
+    /// Raw GIS city key ("NEW SMYRNA BEACH") for grouping against
+    /// `Outlook.cities` — optional, older servers omit it.
+    public let city: String?
     /// "low", "medium", or "high" — how much history backs this ramp.
     public let confidence: String
     public let headline: String
@@ -184,12 +238,14 @@ public struct RampOutlook: Codable, Sendable {
     public let reopen: OutlookReopen?
 
     public init(risk: String, reason: String? = nil, accessID: String, rampID: Int,
-                confidence: String, headline: String, detail: String?, short: String?,
+                city: String? = nil, confidence: String, headline: String,
+                detail: String?, short: String?,
                 window: OutlookWindow?, reopen: OutlookReopen?) {
         self.risk = risk
         self.reason = reason
         self.accessID = accessID
         self.rampID = rampID
+        self.city = city
         self.confidence = confidence
         self.headline = headline
         self.detail = detail
@@ -211,6 +267,7 @@ public struct RampOutlook: Codable, Sendable {
         case reason
         case accessID = "access_id"
         case rampID = "ramp_id"
+        case city
         case confidence
         case headline
         case detail

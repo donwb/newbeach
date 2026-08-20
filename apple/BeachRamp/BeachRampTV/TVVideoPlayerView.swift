@@ -35,7 +35,7 @@ struct TVVideoPlayerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
-                BoardColor.overlayField
+                Color(boardHex: 0x05080C)
             }
         }
         .onAppear {

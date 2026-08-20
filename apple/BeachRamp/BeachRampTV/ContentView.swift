@@ -8,132 +8,86 @@
 import SwiftUI
 import BeachStatus
 
-/// UserDefaults key for the persisted display mode — the choice is made
-/// once, not re-made every launch.
-private let tvModeKey = "tvDisplayMode"
-
-/// The tvOS board: two presentations of the same moment, one D-pad press
-/// apart. Cam mode rests on the video at its native 680pt with only the
-/// verdict, the surf sentence and the five ramp cards; press Down and the
-/// board rises from the bottom — the cam settles to its v3 405pt band and
-/// the heading, weekend panels and daylight band fill in. Press Up from the
-/// caption strip and it drops away. The rule that makes the switch legible:
-/// the verdict never moves — brand row, weather, clock and the big call sit
-/// at the same coordinates in both modes; only the video's bottom edge
-/// travels, and the ramp cards ride between modes rather than rebuild.
+/// The video-first board (2026-08-20 handoff). The panorama is the app: a
+/// fixed 1920×340 band that is never cropped further, never covered, never
+/// moved. Under it, the information ledger; over neither, ever, anything.
+/// Two rules carry the design: a pull surface (Beach outlook, Ramp detail)
+/// replaces the ledger and never the picture, and red means closed and
+/// nothing else — focus, selection and the all-open verdict are dry sand.
+/// The ground behind it all follows the sun through sixteen dark day-part
+/// gradients (TVSkyGround); there is no mode toggle any more.
 struct ContentView: View {
     @State private var viewModel = TVViewModel()
-    /// The display mode, persisted across launches. Falls back to Cam mode
-    /// after 10 idle minutes — the picture is the better thing to leave on
-    /// a television.
-    @AppStorage(tvModeKey) private var modeRaw = TVBoardMode.cam.rawValue
-    /// Invisible focus target just below the cam band in Cam mode — a Down
-    /// press from the caption strip lands here and opens the board.
-    @FocusState private var expandCatcherFocused: Bool
-    /// Measured top of the ramp-card grid within the board block, so the
-    /// parked block in Cam mode puts the cards exactly at the ambient
-    /// section's card position.
-    @State private var cardsTopInBlock: CGFloat = 109
-    /// Bumped when the verdict headline changes while Cam mode is up — the
-    /// band flashes its accent bar once, in place. Never opens the board.
+    @FocusState private var focus: RootFocus?
+    /// The open pull surface. Replaces the cam strip + ledger only.
+    @State private var activeSurface: TVSurface?
+    /// Where focus was when a surface opened — restored on close.
+    @State private var focusBeforeSurface: RootFocus?
+    /// First visible row of the windowed ramp list.
+    @State private var rampTopIndex = 0
+    /// Bumped when the verdict headline changes in place — the bar flashes
+    /// once. A status change never opens a surface or steals focus.
     @State private var verdictFlashToken = 0
-    /// Last remote interaction we can observe (focus moves, selects,
-    /// overlay traffic) — drives the 10-minute fallback to Cam mode.
+    /// Last remote interaction we can observe — drives the 10-minute idle
+    /// reset (surfaces close, focus clears, the ledger stays).
     @State private var lastRemoteActivity = Date()
-    @FocusState private var focusedCamera: String?
     @State private var currentTime = ""
     @State private var sunAltitude: Double = 30
     @State private var sunRising = true
-    /// The day's sun timeline, recomputed when the calendar day rolls over.
-    /// Drives the daylight band.
-    @State private var sunTimeline: SunTimeline?
-    /// The current instant as a fraction (0…1) of the local day — the position
-    /// of the "now" marker on the band. Updated every tick.
-    @State private var nowFraction: Double = 0
-    @State private var solarDay: Date?
     @State private var timeTimer: Timer?
-    /// The beach forecast overlay (opens from the weekend panels).
-    @State private var showForecast = false
-    /// The Recent-changes overlay (Menu from the board, or the heading button).
-    @State private var showActivity = false
-    /// Which weekend day panel has focus — owned here so closing the
-    /// forecast overlay can hand focus back to the panel that opened it.
-    @FocusState private var focusedDay: String?
-    @State private var forecastOpenedFrom: String?
-    /// True while Recent changes was opened from the heading button (vs. the
-    /// Menu shortcut) — focus returns to the button on close.
-    @State private var activityOpenedFromButton = false
-    @FocusState private var recentChangesButtonFocused: Bool
-    @FocusState private var cityFocused: Bool
 
     private let solar = SolarCalculator.newSmyrnaBeach
 
-    /// Eastern time — the beach's local zone, used for the clock and sun times.
     private static let easternZone = TimeZone(identifier: "America/New_York")!
-
-    /// Gregorian calendar pinned to Eastern time, for day-boundary math.
     private static var easternCalendar: Calendar {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = easternZone
         return cal
     }
 
-    private var palette: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
+    private var ground: TVSkyGround { TVSkyGround.forSun(altitude: sunAltitude, isRising: sunRising) }
+    private var sky: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
 
-    private var mode: TVBoardMode { TVBoardMode(rawValue: modeRaw) ?? .cam }
-
-    /// The mode switch: 340ms, ease-out, one motion.
-    private static let modeTransition: TimeInterval = 0.34
-    /// Idle remote time before the board falls back to Cam mode.
-    private static let idleFallback: TimeInterval = 10 * 60
-    /// Card height + the ambient section's 40pt bottom inset — where the
-    /// card row's top edge sits in Cam mode, measured from the screen bottom.
-    private static let ambientCardsBottomInset: CGFloat = 40 + 218
+    /// Idle remote time before surfaces close and focus clears.
+    private static let idleReset: TimeInterval = 10 * 60
 
     #if DEBUG
-    /// QA hooks (simulator screenshot verification, DEBUG only):
-    /// --overlay-* opens an overlay directly; --sky-minutes N renders the
-    /// board at that wall-clock minute (0–1439), mirroring the design mock's
-    /// timeMinutes scrub; --simulate-stale backdates the last refresh.
+    /// QA hooks (screenshot verification, DEBUG only): --surface-outlook /
+    /// --surface-ramp-detail[=ACCESS_ID] open a pull surface once data has
+    /// loaded; --sky-minutes N renders at that wall-clock minute;
+    /// --simulate-stale backdates the last refresh.
     private static let launchArgs = ProcessInfo.processInfo.arguments
     private static let skyMinutesOverride: Int? = launchArgs
         .firstIndex(of: "--sky-minutes")
         .flatMap { idx in launchArgs.indices.contains(idx + 1) ? Int(launchArgs[idx + 1]) : nil }
     private static let simulateStale = launchArgs.contains("--simulate-stale")
+    private static let surfaceOutlookArg = launchArgs.contains("--surface-outlook")
+    private static let surfaceRampArg: String?? = launchArgs
+        .first { $0.hasPrefix("--surface-ramp-detail") }
+        .map { arg in
+            let parts = arg.split(separator: "=", maxSplits: 1)
+            return parts.count == 2 ? String(parts[1]) : nil
+        }
+    /// --stream-url <url>: force the picture band's stream (player-path QA).
+    private static let streamOverride: URL? = launchArgs
+        .firstIndex(of: "--stream-url")
+        .flatMap { idx in launchArgs.indices.contains(idx + 1) ? URL(string: launchArgs[idx + 1]) : nil }
     #endif
-
-    init() {
-        #if DEBUG
-        let args = Self.launchArgs
-        // --mode-cam / --mode-board force the persisted mode for screenshots;
-        // overlays open from the board, so they imply Board mode.
-        if args.contains("--mode-cam") {
-            UserDefaults.standard.set(TVBoardMode.cam.rawValue, forKey: tvModeKey)
-        }
-        if args.contains("--mode-board") || args.contains("--overlay-outlook") || args.contains("--overlay-activity") {
-            UserDefaults.standard.set(TVBoardMode.board.rawValue, forKey: tvModeKey)
-        }
-        if args.contains("--overlay-outlook") { _showForecast = State(initialValue: true) }
-        if args.contains("--overlay-activity") { _showActivity = State(initialValue: true) }
-        #endif
-    }
 
     var body: some View {
         ZStack {
-            palette.gradient
+            ground.gradient
                 .ignoresSafeArea()
 
             if viewModel.isLoading && viewModel.ramps.isEmpty {
                 ProgressView("Loading Beach Status…")
-                    .font(.title2)
-                    .foregroundStyle(.white)
+                    .font(.archivo(28, weight: .semiBold))
+                    .foregroundStyle(TVInk.type)
             } else {
                 boardContent
             }
-
-            overlayLayer
         }
-        .environment(\.skyPalette, palette)
+        .environment(\.skyPalette, sky)
         .animation(.easeInOut(duration: 2.0), value: sunAltitude)
         .onExitCommand(perform: menuAction)
         .task {
@@ -145,301 +99,225 @@ struct ContentView: View {
                 viewModel.stopAutoRefresh()
                 viewModel.lastSuccessfulRefresh = Date().addingTimeInterval(-14 * 60)
             }
+            applyLaunchSurface()
+            if let url = Self.streamOverride { viewModel.videoStreamURL = url }
             #endif
         }
-        .onChange(of: focusedCamera) { _, id in
+        .onChange(of: focus) { _, target in
             noteActivity()
-            // Channel-flip feel: moving focus across the caption strip
-            // switches the active stream live. selectCamera is a no-op when
-            // the id is unchanged or the camera's URL isn't resolved yet.
-            if let id { viewModel.selectCamera(id) }
+            // Channel-flip feel: moving focus across the cam strip switches
+            // the active stream live. selectCamera no-ops on same id or an
+            // unresolved URL.
+            if case .cam(let id) = target { viewModel.selectCamera(id) }
         }
-        .onChange(of: expandCatcherFocused) { _, focused in
-            // Down from the caption strip in Cam mode — the board rises.
-            if focused { expandToBoard() }
+        .onChange(of: viewModel.selectedCameraID) { _, id in
+            // Initial focus: the cam strip, once the roster names a cam.
+            if focus == nil, let id { focus = .cam(id) }
         }
-        .onChange(of: verdictDisplay) { old, new in
-            // A ramp closing while Cam mode is up changes the verdict line
-            // in place and flashes the accent bar once. It does not open the
-            // board — a status change is not a reason to take the beach off
-            // the screen.
-            if mode == .cam, old.headline != new.headline {
-                verdictFlashToken &+= 1
-            }
-        }
-        .onChange(of: focusedDay) { _, _ in noteActivity() }
-        .onChange(of: cityFocused) { _, _ in noteActivity() }
-        .onChange(of: recentChangesButtonFocused) { _, _ in noteActivity() }
-        .onChange(of: showForecast) { _, open in
-            noteActivity()
-            // Hand focus back to the day panel that opened the overlay,
-            // deferred a runloop so the panel is back in the focus hierarchy
-            // after the overlay (which grabbed focus on appear) tears down.
-            if !open, let slot = forecastOpenedFrom {
-                forecastOpenedFrom = nil
-                DispatchQueue.main.async { focusedDay = slot }
-            }
-        }
-        .onChange(of: showActivity) { _, open in
-            noteActivity()
-            if !open && activityOpenedFromButton {
-                activityOpenedFromButton = false
-                DispatchQueue.main.async { recentChangesButtonFocused = true }
-            }
+        .onChange(of: verdictModel.headline) { old, new in
+            if old != new { verdictFlashToken &+= 1 }
         }
     }
 
-    // MARK: - Mode Switching
+    // MARK: - Composition
 
-    /// Menu returns to Cam mode from the board (an open overlay's own
-    /// handler wins while it has focus); from Cam mode it is unhandled, so
-    /// the system exits to the Home screen. Recent changes stays reachable
-    /// through the heading's button.
+    private var boardContent: some View {
+        VStack(spacing: 0) {
+            HeaderBand(
+                weatherCells: weatherCells,
+                time: currentTime,
+                staleMinutes: staleMinutes,
+                surfaceOpen: activeSurface != nil,
+                focus: $focus,
+                onOpenOutlook: { openSurface(.outlook) }
+            )
+
+            PictureBand(
+                streamURL: viewModel.videoStreamURL,
+                rebuildToken: viewModel.videoStreamGeneration,
+                isPlaying: $viewModel.isVideoPlaying,
+                selectedOffline: selectedCamOffline,
+                onPlaybackFailure: { viewModel.refreshVideoStream() }
+            )
+
+            bottomArea
+        }
+        .ignoresSafeArea()
+    }
+
+    /// The swappable 630pt: cam strip + ledger at rest, a pull surface when
+    /// one is open. The header and the picture above do not move a pixel.
+    @ViewBuilder private var bottomArea: some View {
+        switch activeSurface {
+        case .outlook:
+            SurfaceScaffold(identifier: "surface.outlook", focus: $focus, onClose: closeSurface) {
+                BeachOutlookSurface(city: viewModel.currentCity, rows: outlookRows)
+            }
+        case .rampDetail(let ramp):
+            SurfaceScaffold(identifier: "surface.rampDetail", focus: $focus, onClose: closeSurface) {
+                RampDetailSurface(
+                    ramp: liveRamp(for: ramp),
+                    kicker: detailKicker(for: ramp),
+                    surfSentence: viewModel.outlook?.surfReport?.line,
+                    prediction: viewModel.outlook?.ramp(for: ramp.accessID)?.headline,
+                    intervals: viewModel.rampIntervals?.ramp.accessID == ramp.accessID
+                        ? viewModel.rampIntervals : nil,
+                    tideDirection: viewModel.tideInfo?.tideDirection,
+                    tideChart: viewModel.tideChart,
+                    now: Date()
+                )
+            }
+        case nil:
+            VStack(spacing: 0) {
+                CamStrip(
+                    cameras: viewModel.cameras,
+                    selectedID: viewModel.selectedCameraID,
+                    offlineSince: viewModel.cameraOfflineSince,
+                    focus: $focus
+                )
+                LedgerView(
+                    verdict: verdictModel,
+                    flashToken: verdictFlashToken,
+                    city: viewModel.currentCity,
+                    rows: rampRows,
+                    topIndex: $rampTopIndex,
+                    overnightLines: viewModel.isOvernight && !viewModel.overnightCityLines.isEmpty
+                        ? viewModel.overnightCityLines : nil,
+                    surf: surfBox,
+                    weekend: weekendSlots,
+                    focus: $focus,
+                    upTargetCamID: viewModel.selectedCamera?.id,
+                    onCycleCity: cycleCity,
+                    onSelect: { row in
+                        if let ramp = viewModel.sortedLedgerRamps.first(where: { $0.accessID == row.id }) {
+                            openSurface(.rampDetail(ramp))
+                        }
+                    },
+                    onActivity: noteActivity
+                )
+            }
+            .transition(.opacity)
+        }
+    }
+
+    // MARK: - Surfaces
+
+    private func openSurface(_ surface: TVSurface) {
+        noteActivity()
+        focusBeforeSurface = focus
+        withAnimation(.easeOut(duration: TVMetrics.surfaceTransition)) {
+            activeSurface = surface
+        }
+        DispatchQueue.main.async { focus = .surface }
+        if case .rampDetail(let ramp) = surface {
+            Task { await viewModel.loadIntervals(for: ramp) }
+        }
+    }
+
+    private func closeSurface() {
+        guard activeSurface != nil else { return }
+        noteActivity()
+        withAnimation(.easeOut(duration: TVMetrics.surfaceTransition)) {
+            activeSurface = nil
+        }
+        // Restore focus where it was, one runloop later so the ledger is
+        // back in the hierarchy. A row that left the window (sorting moved
+        // it) clamps to the ramps header.
+        let stashed = focusBeforeSurface
+        focusBeforeSurface = nil
+        DispatchQueue.main.async {
+            if case .ramp(let id) = stashed,
+               !visibleRowIDs.contains(id) {
+                focus = .rampsHeader
+                return
+            }
+            focus = stashed ?? viewModel.selectedCamera.map { .cam($0.id) }
+        }
+    }
+
+    /// Menu with a surface open closes it; at rest it is unhandled, so the
+    /// system exits to the Home screen.
     private var menuAction: (() -> Void)? {
-        guard mode == .board, !showForecast, !showActivity else { return nil }
-        return { collapseToCam() }
+        activeSurface == nil ? nil : { closeSurface() }
+    }
+
+    private var visibleRowIDs: [String] {
+        let rows = rampRows
+        let top = max(0, min(rampTopIndex, max(0, rows.count - RampsBox.visibleRows)))
+        return rows[top..<min(rows.count, top + RampsBox.visibleRows)].map(\.id)
+    }
+
+    private func cycleCity(_ direction: Int) {
+        if direction > 0 { viewModel.nextCity() } else { viewModel.previousCity() }
+        rampTopIndex = 0
     }
 
     private func noteActivity() {
         lastRemoteActivity = Date()
     }
 
-    private func expandToBoard() {
-        guard mode == .cam, !showForecast, !showActivity else { return }
-        noteActivity()
-        withAnimation(.easeOut(duration: Self.modeTransition)) {
-            modeRaw = TVBoardMode.board.rawValue
-        }
-        // The catcher that got us here just went unfocusable; hand focus
-        // back to the caption strip — row 0 of the board's focus rows.
-        DispatchQueue.main.async { focusedCamera = viewModel.selectedCamera?.id }
+    // MARK: - Display models
+
+    private var selectedCamOffline: Bool {
+        viewModel.selectedCamera.map { $0.url == nil } ?? false
     }
-
-    private func collapseToCam() {
-        guard mode == .board else { return }
-        noteActivity()
-        withAnimation(.easeOut(duration: Self.modeTransition)) {
-            modeRaw = TVBoardMode.cam.rawValue
-        }
-        DispatchQueue.main.async { focusedCamera = viewModel.selectedCamera?.id }
-    }
-
-    // MARK: - Overlays
-
-    @ViewBuilder private var overlayLayer: some View {
-        if showActivity {
-            ActivityOverlay(
-                city: viewModel.currentCity,
-                entries: viewModel.todaysActivity,
-                onClose: { showActivity = false }
-            )
-        } else if showForecast, let weekend = viewModel.weekend {
-            ForecastOverlay(
-                city: viewModel.currentCity,
-                weekend: weekend,
-                onClose: { showForecast = false }
-            )
-        }
-    }
-
-    // MARK: - Board Layout
-
-    /// The two-mode composition. The cam band tops a vertical stack whose
-    /// remainder is the Cam-mode ambient section (surf sentence on its own
-    /// dark ground); the board is one absolutely-positioned block that
-    /// slides between its parked Cam-mode position (only its card row
-    /// visible, landing at the ambient card slot) and y = 405. The cards
-    /// therefore ride between modes rather than rebuild, while the board's
-    /// heading, panels and daylight band crossfade in during the rise.
-    private var boardContent: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .top) {
-                VStack(spacing: 0) {
-                    camBand
-                    ambientArea
-                }
-                boardBlock(screenHeight: geo.size.height)
-            }
-        }
-        .ignoresSafeArea()
-    }
-
-    private var camBand: some View {
-        CamBand(
-            streamURL: viewModel.videoStreamURL,
-            rebuildToken: viewModel.videoStreamGeneration,
-            isPlaying: $viewModel.isVideoPlaying,
-            cameras: viewModel.cameras,
-            selectedID: viewModel.selectedCameraID,
-            offlineSince: viewModel.cameraOfflineSince,
-            verdict: verdictDisplay,
-            weatherCells: weatherCells,
-            time: currentTime,
-            staleMinutes: staleMinutes,
-            mode: mode,
-            flashToken: verdictFlashToken,
-            focusedCamera: $focusedCamera,
-            onSelectCamera: { viewModel.selectCamera($0); noteActivity() },
-            onPlaybackFailure: { viewModel.refreshVideoStream() },
-            onCollapse: { collapseToCam() }
-        )
-    }
-
-    /// Cam mode's lower 400pt: the surf sentence on its own ground (white
-    /// type needs to clear the pale end of the sky gradient). The ramp cards
-    /// that appear to live here belong to the board block above. Constant
-    /// day and night — the after-dark treatment is the feed's own darkness.
-    private var ambientArea: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AmbientSurfLine(model: surfPanel)
-            Spacer(minLength: 0)
-        }
-        .padding(.top, 32)
-        .padding(.horizontal, 64)
-        .padding(.bottom, 40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            LinearGradient(
-                colors: [Color(boardHex: 0x041420).opacity(0.88),
-                         Color(boardHex: 0x041420).opacity(0.74)],
-                startPoint: .top, endPoint: .bottom
-            )
-        )
-        .overlay(alignment: .top) { expandCatcher }
-        .opacity(mode == .cam ? 1 : 0)
-    }
-
-    /// Invisible focus target on the band's bottom edge, live only in Cam
-    /// mode while the caption strip has focus (the `focusedCamera` gate
-    /// keeps launch-time initial focus off it): nothing else is focusable
-    /// down there, so a Down press always lands here and opens the board.
-    private var expandCatcher: some View {
-        Color(boardHex: 0x041420).opacity(0.02)
-            .frame(maxWidth: .infinity)
-            .frame(height: 10)
-            .focusable(mode == .cam && focusedCamera != nil)
-            .focused($expandCatcherFocused)
-    }
-
-    /// The board as one block — never reflowed mid-rise, only translated.
-    private func boardBlock(screenHeight: CGFloat) -> some View {
-        lowerArea
-            .frame(height: screenHeight - CamBand.boardModeHeight)
-            // Night dimming scrim — darkens the board after sunset, but
-            // only below the band: the live feed is already dark at
-            // night, and dimming it further reads as a dead cam. The
-            // band has its own designed scrim. Cam mode's ambient ground
-            // is already dark, so the dim rides the mode crossfade.
-            .overlay(
-                Color.black
-                    .opacity(mode == .board ? palette.dimOverlayOpacity : 0)
-                    .allowsHitTesting(false)
-            )
-            .offset(y: boardOffset(screenHeight: screenHeight))
-    }
-
-    private func boardOffset(screenHeight: CGFloat) -> CGFloat {
-        if mode == .board { return CamBand.boardModeHeight }
-        // Cam mode: park the block so its card row lands at the ambient
-        // section's card slot; everything else in it is faded and disabled.
-        return (screenHeight - Self.ambientCardsBottomInset) - cardsTopInBlock
-    }
-
-    /// Board chrome (heading, ahead band, daylight band) dissolves in Cam
-    /// mode — the cards are the only part of the block both modes share.
-    private var boardChromeOpacity: Double { mode == .board ? 1 : 0 }
-
-    private var lowerArea: some View {
-        VStack(spacing: 0) {
-            RampHeading(
-                city: viewModel.currentCity,
-                summary: viewModel.rampSummary,
-                cityFocused: $cityFocused,
-                recentChangesFocused: $recentChangesButtonFocused,
-                onNextCity: { viewModel.nextCity(); noteActivity() },
-                onRecentChanges: {
-                    activityOpenedFromButton = true
-                    showActivity = true
-                }
-            )
-            .opacity(boardChromeOpacity)
-            .disabled(mode != .board)
-
-            RampGridView(cards: rampCards, staleAsOf: staleAsOf)
-                .onGeometryChange(for: CGFloat.self) { proxy in
-                    proxy.frame(in: .named("tvBoardBlock")).minY
-                } action: { cardsTopInBlock = $0 }
-                .padding(.top, 18)
-
-            AheadBand(
-                surf: surfPanel,
-                days: dayPanels,
-                focusedDay: $focusedDay,
-                onOpenForecast: {
-                    forecastOpenedFrom = focusedDay
-                    showForecast = true
-                }
-            )
-            .padding(.top, 20)
-            .opacity(boardChromeOpacity)
-            .disabled(mode != .board)
-
-            // A single spacer absorbs slack above the daylight band — no
-            // band is ever centered into a shrinkable track.
-            Spacer(minLength: 0)
-
-            SunRibbon(
-                timeline: sunTimeline,
-                nowFraction: nowFraction,
-                isStale: viewModel.isStale
-            )
-            .opacity(boardChromeOpacity)
-        }
-        .padding(.top, 24)
-        .padding(.horizontal, 64)
-        .padding(.bottom, 44)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .coordinateSpace(name: "tvBoardBlock")
-    }
-
-    // MARK: - Derived Display Data
 
     private var staleMinutes: Int? {
         guard viewModel.isStale, let age = viewModel.dataAge else { return nil }
         return max(1, Int((age / 60).rounded()))
     }
 
-    /// "as of" time for muted cards when the board is stale.
-    private var staleAsOf: String? {
-        guard viewModel.isStale, let last = viewModel.lastSuccessfulRefresh else { return nil }
-        return SinceFormatter.string(from: last)
-    }
-
-    /// The verdict block: overnight is a factual neutral state with the
-    /// server's own reopen copy; everything else comes from VerdictBuilder.
-    private var verdictDisplay: TVVerdictDisplay {
+    /// The verdict: server-built city copy rendered verbatim when the server
+    /// provides it and the data is live; VerdictBuilder otherwise (older
+    /// server, stale board — the builder carries the stale voice). The bar
+    /// color stays a client fact: red only when a ramp is actually closed.
+    private var verdictModel: TVVerdictModel {
+        if !viewModel.isStale, let cv = viewModel.currentCityVerdict {
+            return TVVerdictModel(
+                headline: cv.headline,
+                detail: cv.detail,
+                barColor: barColor(for: cv.state)
+            )
+        }
         if !viewModel.isStale, let overnight = viewModel.overnightOutlook {
-            return TVVerdictDisplay(
+            return TVVerdictModel(
                 headline: "Driving is done for today",
-                subline: overnight.detail ?? overnight.headline,
-                barColor: .white.opacity(0.55)
+                detail: overnight.detail ?? overnight.headline,
+                barColor: TVInk.barMuted
             )
         }
         let verdict = viewModel.verdict
-        let bar: Color = switch verdict.category {
-        case .open: BoardColor.verdictGood
-        case .limited: BoardColor.verdictMixed
-        case .closed: Color(boardHex: 0xC9301C)
-        }
-        return TVVerdictDisplay(headline: verdict.headline, subline: verdict.subline, barColor: bar)
+        let bar: Color = viewModel.closedCount > 0 ? TVInk.closed : TVInk.sand
+        return TVVerdictModel(headline: verdict.headline, detail: verdict.subline, barColor: bar)
     }
 
-    private var rampCards: [TVRampCardModel] {
-        viewModel.displayedRamps.map { ramp in
-            TVRampCardModel(
-                ramp: ramp,
-                state: viewModel.rampState(for: ramp),
-                shortLine: viewModel.outlookHint(for: ramp)
+    private func barColor(for state: String) -> Color {
+        switch state {
+        case "all_open", "golden": TVInk.sand
+        case "some_closed": viewModel.closedCount > 0 ? TVInk.closed : TVInk.sand
+        case "overnight": TVInk.barMuted
+        default: TVInk.barMuted
+        }
+    }
+
+    /// The ledger rows: closures on top, Now factual, Next the server's own
+    /// prediction strings verbatim ("Clear all day" is the one fixed label,
+    /// mapped from the typed `risk == none` field the way pills map colors).
+    private var rampRows: [TVRampRowModel] {
+        viewModel.sortedLedgerRamps.map { ramp in
+            let entry = viewModel.outlook?.ramp(for: ramp.accessID)
+            let next: String?
+            switch entry?.risk {
+            case "none": next = "Clear all day"
+            case "closed_now": next = entry?.reopen?.label
+            default: next = entry?.short ?? entry?.reopen?.label
+            }
+            return TVRampRowModel(
+                id: ramp.accessID,
+                name: ramp.rampDisplayName,
+                nowLabel: tvStatusWord(ramp.accessStatus),
+                isClosed: ramp.category == .closed,
+                nextLabel: next
             )
         }
     }
@@ -461,17 +339,12 @@ struct ContentView: View {
         ]
     }
 
-    /// The surf panel: the server's line and rip risk verbatim, the buoy
-    /// facts underneath. No report = the honest "no read" state.
-    private var surfPanel: SurfPanelModel {
+    /// The surf block: the server's line and rip risk verbatim, buoy facts
+    /// under it. v1 has only the "Now" window — paging arrives with server
+    /// support for future windows.
+    private var surfBox: TVSurfBoxModel {
         let context = viewModel.outlook?.surf
         if let report = viewModel.outlook?.surfReport {
-            var ripLabel: String?
-            var elevated = false
-            if let rip = report.ripRisk {
-                ripLabel = "Rip risk \(rip.lowercased())"
-                elevated = rip.lowercased() != "low"
-            }
             var parts: [String] = []
             if let height = report.heightLabel, !height.isEmpty {
                 parts.append(height.prefix(1).uppercased() + height.dropFirst())
@@ -479,71 +352,95 @@ struct ContentView: View {
             if let period = context?.dominantPeriodS {
                 parts.append("\(Int(period.rounded()))s")
             }
-            // Cam mode's sentence keeps height/period and folds a calm rip
-            // read into the prose; the buoy-read time stays on the board
-            // panel. An elevated rip is rendered separately, in amber.
-            var sentenceParts = parts
-            if let ripLabel, !elevated {
-                sentenceParts.append(ripLabel.prefix(1).lowercased() + ripLabel.dropFirst())
+            if let rip = report.ripRisk {
+                parts.append("rip risk \(rip.lowercased())")
             }
             if let at = report.observedAt ?? context?.observedAt {
                 parts.append("buoy read \(agoText(at))")
             }
-            return SurfPanelModel(
-                line: report.line,
-                ripLabel: ripLabel,
-                ripElevated: elevated,
+            return TVSurfBoxModel(
+                windowLabel: "Now",
+                headline: report.line,
                 detail: parts.isEmpty ? " " : parts.joined(separator: " · "),
-                sentenceDetail: sentenceParts.isEmpty ? " " : sentenceParts.joined(separator: " · "),
                 hasRead: true
             )
         }
-
         var detail = "Buoy is quiet — no recent report"
         if let at = context?.observedAt {
             detail = "Buoy last reported \(agoText(at))"
         }
-        return SurfPanelModel(
-            line: "No surf read right now",
-            ripLabel: "No read",
-            ripElevated: false,
-            detail: detail,
-            sentenceDetail: detail,
-            hasRead: false
-        )
+        return TVSurfBoxModel(windowLabel: "Now", headline: "No surf read right now",
+                              detail: detail, hasRead: false)
     }
 
-    /// The two weekend slots. Positions never move — on a Saturday the slot
-    /// keeps its place and takes the label "Today · Saturday".
-    private var dayPanels: [DayPanelModel] {
+    /// The two weekend slots: server copy, compacted for the card (the
+    /// best-window label is the server's own string).
+    private var weekendSlots: [TVWeekendSlot] {
         guard let weekend = viewModel.weekend else { return [] }
         var days = Array(weekend.weekendDays.prefix(2))
         if days.isEmpty { days = Array(weekend.days.prefix(2)) }
         let today = Self.todayDateLabel()
-        return days.enumerated().map { index, day in
-            DayPanelModel(
+        return days.map { day in
+            TVWeekendSlot(
                 id: day.date,
-                label: day.date == today ? "Today · \(day.weekday)" : day.weekday,
-                verdict: day.verdict,
-                headline: day.headline,
-                metrics: metricsLine(for: day),
-                cta: index == days.count - 1 ? "All 7 days ›" : nil
+                dayName: day.date == today ? "Today · \(day.weekday)" : day.weekday,
+                headline: day.bestWindow.map { "Best \($0.label)" } ?? day.headline,
+                metrics: slotMetrics(for: day)
             )
         }
     }
 
-    /// "93° · rain 20% · SW 8"
-    private func metricsLine(for day: WeekendDay) -> String {
+    private func slotMetrics(for day: WeekendDay) -> String {
         var parts: [String] = []
         if let high = day.highTempF { parts.append("\(Int(high.rounded()))°") }
-        if let rain = day.rainChancePct { parts.append("rain \(Int(rain.rounded()))%") }
-        if let wind = day.windLabel {
-            parts.append(wind.replacingOccurrences(of: " mph", with: ""))
+        if let risk = day.closureRiskLabel, !risk.isEmpty {
+            parts.append(risk.prefix(1).lowercased() + risk.dropFirst())
+        } else if let wind = day.windLabel, !wind.isEmpty {
+            parts.append(wind)
         }
         return parts.isEmpty ? " " : parts.joined(separator: " · ")
     }
 
-    /// Today's Eastern date in the server's "2026-08-22" label format.
+    /// The outlook table rows. "Any time" / "No real window" are fixed
+    /// labels mapped from typed fields (window absence + the risk label),
+    /// same contract as pill colors.
+    private var outlookRows: [TVOutlookDayRow] {
+        guard let weekend = viewModel.weekend else { return [] }
+        let today = Self.todayDateLabel()
+        return weekend.days.map { day in
+            let worst = day.closureRiskLabel == "All-day close risk"
+            let window: String
+            if let label = day.bestWindow?.label {
+                window = label
+            } else {
+                window = worst ? "No real window" : "Any time"
+            }
+            return TVOutlookDayRow(
+                id: day.date,
+                day: day.date == today ? "Today" : day.weekday,
+                high: day.highTempF.map { "\(Int($0.rounded()))°" } ?? "—",
+                rain: day.rainChancePct.map { "\(Int($0.rounded()))%" } ?? "—",
+                surf: day.surfLabel ?? "—",
+                bestWindow: window,
+                closureRisk: day.closureRiskLabel ?? "—",
+                isToday: day.date == today,
+                isWorstRisk: worst
+            )
+        }
+    }
+
+    /// The detail surface re-reads the live ramp each render so a status
+    /// change updates the open surface in place.
+    private func liveRamp(for ramp: Ramp) -> Ramp {
+        viewModel.ramps.first { $0.accessID == ramp.accessID } ?? ramp
+    }
+
+    private func detailKicker(for ramp: Ramp) -> String {
+        let index = viewModel.displayedRamps.firstIndex { $0.accessID == ramp.accessID }
+        let number = index.map { String(format: "%02d", $0 + 1) } ?? "—"
+        return "Ramp \(number) · \(ramp.cityDisplay)"
+    }
+
     private static func todayDateLabel() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -552,7 +449,6 @@ struct ContentView: View {
         return formatter.string(from: Date())
     }
 
-    /// "40 min ago" / "7 hours ago"
     private func agoText(_ date: Date) -> String {
         let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
         if minutes < 60 { return "\(minutes) min ago" }
@@ -560,7 +456,7 @@ struct ContentView: View {
         return "\(hours) hour\(hours == 1 ? "" : "s") ago"
     }
 
-    // MARK: - Clock & Sun
+    // MARK: - Clock & sun
 
     private func startClock() {
         tick()
@@ -569,9 +465,9 @@ struct ContentView: View {
         }
     }
 
-    /// Updates the clock and the sun's altitude (driving the background),
-    /// advances the band's "now" marker, and rebuilds the day's sun timeline
-    /// when the calendar day rolls over.
+    /// Updates the clock, moves the sun (the ground follows it), and runs
+    /// the idle reset. Real wall clock for idleness on purpose —
+    /// --sky-minutes scrubs `now` for screenshots and must not fake it.
     private func tick() {
         var now = Date()
         let calendar = Self.easternCalendar
@@ -584,8 +480,6 @@ struct ContentView: View {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = Self.easternZone
-        // Weekend clocks name the day — "Sat 10:18 AM" — because the board's
-        // weekend copy is anchored to it.
         let weekday = calendar.component(.weekday, from: now)
         formatter.dateFormat = (weekday == 1 || weekday == 7) ? "EEE h:mm a" : "h:mm a"
         currentTime = formatter.string(from: now)
@@ -595,53 +489,33 @@ struct ContentView: View {
             sunRising = solar.isRising(at: now)
         }
 
-        nowFraction = SunTimeline.dayFraction(of: now, calendar: calendar)
-
-        if solarDay == nil || !calendar.isDate(solarDay!, inSameDayAs: now) {
-            solarDay = now
-            sunTimeline = SunTimeline(day: now, solar: solar, calendar: calendar, zone: Self.easternZone)
-        }
-
-        // 10 idle minutes on the board fall back to Cam mode, closing any
-        // overlay on the way — the picture is the better thing to leave on
-        // a television. Real wall clock on purpose: --sky-minutes scrubs
-        // `now` for screenshots and must not fake idleness.
-        if mode == .board, Date().timeIntervalSince(lastRemoteActivity) > Self.idleFallback {
-            showForecast = false
-            showActivity = false
-            collapseToCam()
+        // Idle: surfaces close and focus clears; the ledger stays — there is
+        // no mode to fall back to any more.
+        if Date().timeIntervalSince(lastRemoteActivity) > Self.idleReset {
+            if activeSurface != nil { closeSurface() }
+            if focus != nil { focus = nil }
         }
     }
-}
 
-/// Cam mode's surf read — a baseline sentence, not a panel: kicker, the
-/// server's line verbatim, and the height/period/rip facts. An elevated rip
-/// risk enters the prose in amber; the no-read state mutes the line.
-private struct AmbientSurfLine: View {
-    let model: SurfPanelModel
-
-    var body: some View {
-        HStack(alignment: .lastTextBaseline, spacing: 24) {
-            Text("Surf")
-                .kickerStyle(opacity: 0.6)
-            Text(model.line)
-                .font(.system(size: 44, weight: .heavy))
-                .tracking(44 * -0.02)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .foregroundStyle(.white.opacity(model.hasRead ? 1.0 : 0.72))
-            Text(model.sentenceDetail)
-                .font(.system(size: 24))
-                .lineLimit(1)
-                .foregroundStyle(.white.opacity(model.hasRead ? 0.75 : 0.6))
-            if model.ripElevated, let rip = model.ripLabel {
-                Text(rip)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(BoardColor.amberAccent)
+    #if DEBUG
+    /// Launch-arg surfaces, applied once data is loaded (the ramp object has
+    /// to exist). Tolerates a failed fetch — no data, no surface.
+    private func applyLaunchSurface() {
+        if Self.surfaceOutlookArg {
+            openSurface(.outlook)
+            return
+        }
+        if let idArg = Self.surfaceRampArg {
+            let ramp: Ramp?
+            if let id = idArg {
+                ramp = viewModel.ramps.first { $0.accessID == id }
+            } else {
+                ramp = viewModel.displayedRamps.first
             }
-            Spacer(minLength: 0)
+            if let ramp { openSurface(.rampDetail(ramp)) }
         }
     }
+    #endif
 }
 
 #Preview {

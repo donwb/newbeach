@@ -161,9 +161,105 @@ enum PreviewFixtures {
         ]
     )
 
-    static var sunTimeline: SunTimeline {
-        SunTimeline(day: Date(), solar: .newSmyrnaBeach,
-                    calendar: easternCalendar, zone: eastern)
+    // MARK: - Video-first ledger fixtures
+
+    /// The five NSB rows, resting state.
+    static let nsbRows: [TVRampRowModel] = [
+        TVRampRowModel(id: "NSB-1", name: "Beachway Ave", nowLabel: "Open",
+                       isClosed: false, nextLabel: "could close on the ~3pm tide"),
+        TVRampRowModel(id: "NSB-2", name: "Crawford Rd", nowLabel: "Open",
+                       isClosed: false, nextLabel: "could close on the ~3pm tide"),
+        TVRampRowModel(id: "NSB-3", name: "Flagler Ave", nowLabel: "Open",
+                       isClosed: false, nextLabel: "Clear all day"),
+        TVRampRowModel(id: "NSB-4", name: "3rd Ave", nowLabel: "Open",
+                       isClosed: false, nextLabel: "closes for the day ~6:30pm"),
+        TVRampRowModel(id: "NSB-5", name: "27th Ave", nowLabel: "Open",
+                       isClosed: false, nextLabel: "Clear all day"),
+    ]
+
+    /// Twelve Daytona rows with two closures sorted to the top — exercises
+    /// the windowed list, the scroll thumb, and the "12 · 7 below" header.
+    static let daytonaRows: [TVRampRowModel] = [
+        TVRampRowModel(id: "DB-1", name: "Harvey Ave", nowLabel: "Closed — high tide",
+                       isClosed: true, nextLabel: "often back open around 5:30pm"),
+        TVRampRowModel(id: "DB-2", name: "Van Ave", nowLabel: "Closed — high tide",
+                       isClosed: true, nextLabel: "often back open around 5:30pm"),
+    ] + (3...12).map { i in
+        TVRampRowModel(id: "DB-\(i)", name: ["Main St", "Seabreeze Blvd", "Auditorium Blvd",
+                                             "University Blvd", "Silver Beach Ave", "Botefuhr Ave",
+                                             "International Speedway", "Hartford Ave", "Emilia Ave",
+                                             "Zelda Blvd"][i - 3],
+                       nowLabel: "Open", isClosed: false,
+                       nextLabel: i.isMultiple(of: 2) ? "could close on the ~3pm tide" : "Clear all day")
     }
+
+    static let overnightLines: [TVOvernightCityLine] = [
+        TVOvernightCityLine(id: "New Smyrna Beach", city: "New Smyrna Beach",
+                            closedLabel: "5 closed", reopenLabel: "opens around 8am"),
+        TVOvernightCityLine(id: "Daytona Beach", city: "Daytona Beach",
+                            closedLabel: "12 closed", reopenLabel: "opens around 8am"),
+        TVOvernightCityLine(id: "Ormond Beach", city: "Ormond Beach",
+                            closedLabel: "4 closed", reopenLabel: "opens around 8am"),
+        TVOvernightCityLine(id: "Ponce Inlet", city: "Ponce Inlet",
+                            closedLabel: "3 closed", reopenLabel: "opens around 8am"),
+    ]
+
+    /// Seven outlook table rows, one all-day risk exercising the red.
+    static let outlookRows: [TVOutlookDayRow] = [
+        TVOutlookDayRow(id: "d0", day: "Today", high: "91°", rain: "10%", surf: "Knee-high",
+                        bestWindow: "9am–1pm", closureRisk: "Mid-day close potential",
+                        isToday: true, isWorstRisk: false),
+        TVOutlookDayRow(id: "d1", day: "Thursday", high: "92°", rain: "20%", surf: "Flat",
+                        bestWindow: "8am–2pm", closureRisk: "Clear all day",
+                        isToday: false, isWorstRisk: false),
+        TVOutlookDayRow(id: "d2", day: "Friday", high: "93°", rain: "20%", surf: "Knee-high",
+                        bestWindow: "8am–1pm", closureRisk: "Late-day close potential",
+                        isToday: false, isWorstRisk: false),
+        TVOutlookDayRow(id: "d3", day: "Saturday", high: "93°", rain: "20%", surf: "Knee-high",
+                        bestWindow: "9am–1pm", closureRisk: "Mid-day close potential",
+                        isToday: false, isWorstRisk: false),
+        TVOutlookDayRow(id: "d4", day: "Sunday", high: "91°", rain: "10%", surf: "Waist-high",
+                        bestWindow: "Any time", closureRisk: "Clear all day",
+                        isToday: false, isWorstRisk: false),
+        TVOutlookDayRow(id: "d5", day: "Monday", high: "89°", rain: "40%", surf: "Waist-high",
+                        bestWindow: "Before 11am", closureRisk: "Morning close potential",
+                        isToday: false, isWorstRisk: false),
+        TVOutlookDayRow(id: "d6", day: "Tuesday", high: "88°", rain: "60%", surf: "Chest-high",
+                        bestWindow: "No real window", closureRisk: "All-day close risk",
+                        isToday: false, isWorstRisk: true),
+    ]
+
+    /// A day with a mid-day tide closure — exercises the today bar segments
+    /// and the event log.
+    static let intervals = RampIntervals(
+        ramp: openRamps[1],
+        windowStart: at(8, 0, dayOffset: -2),
+        windowEnd: Date(),
+        intervals: [
+            RampInterval(status: "OPEN", category: "open",
+                         start: at(8, 4, dayOffset: -2), end: at(11, 0, dayOffset: -2)),
+            RampInterval(status: "CLOSED FOR HIGH TIDE", category: "closed",
+                         start: at(11, 0, dayOffset: -2), end: at(14, 30, dayOffset: -2)),
+            RampInterval(status: "OPEN", category: "open",
+                         start: at(14, 30, dayOffset: -2), end: at(18, 37, dayOffset: -1)),
+            RampInterval(status: "CLOSED", category: "closed",
+                         start: at(18, 37, dayOffset: -1), end: at(7, 2)),
+            RampInterval(status: "CLOSED - CLEARED FOR TURTLES", category: "closed",
+                         start: at(7, 2), end: at(7, 59)),
+            RampInterval(status: "OPEN", category: "open",
+                         start: at(7, 59), end: Date()),
+        ]
+    )
+
+    static let tideChart = TideChartData(
+        currentTime: Date(),
+        highLow: [
+            TidePrediction(time: at(3, 4), type: "H", height: 2.0),
+            TidePrediction(time: at(9, 23), type: "L", height: 0.3),
+            TidePrediction(time: at(15, 51), type: "H", height: 2.5),
+            TidePrediction(time: at(22, 23), type: "L", height: 0.6),
+        ],
+        hourly: []
+    )
 }
 #endif
