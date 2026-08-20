@@ -251,7 +251,9 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   youtube_url needs updating when the county restarts the broadcast.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
   (fixed in ff3a353 + migration 006); could recur.
-- Neither Apple app has ever been submitted — no "live on iOS/tvOS" claim is available yet.
+- Neither Apple app is RELEASED yet — both platforms have been in App Review since
+  2026-08-17 (build 1.0 (18)), so a "live on the App Store" claim is still premature;
+  TestFlight/beta claims are supported.
 - The tvOS record's bundle ID is frozen at com.donwb.BeachRampTV, so that identifier is
   permanent for every platform including iOS and watch. Confirmed 2026-08-15 by the upload
   itself: ASC rejected build 2 with "bundle version must be higher than the previously
