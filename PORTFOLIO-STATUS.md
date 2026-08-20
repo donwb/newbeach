@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 23 — flighted to TestFlight 2026-08-20, tag flight/build-23: the tvOS video-first rebuild; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 24 — flighted to TestFlight 2026-08-20 afternoon, tag flight/build-24: video-first with the bright sun-following sky restored; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -69,7 +69,8 @@ last_verified: 2026-08-20 (tvOS REBUILT AGAIN to the "video first" design — Do
   day phases; the TVSkyGround darkness test was replaced by veil-contrast tests
   sweeping every 2° of sun altitude (white ≥3.5:1 ledger / ≥3.0 header, sand
   ≥2.4 header). Verified noon/golden/night in the sim; all UI tests pass.
-  NOT yet flighted — build 23 (dark grounds) is what TestFlight has.
+  FLIGHTED as build 1.0 (24), tag flight/build-24 — this supersedes build 23's
+  dark grounds and is the build for the physical-remote pass.
   App Store TV screenshots now trail by FOUR designs.
   Prior 08-19 state below.)
 prior_2026_08_19_late: (tvOS gained its TWO-MODE presentation from the
