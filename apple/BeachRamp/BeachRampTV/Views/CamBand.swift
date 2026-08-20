@@ -31,8 +31,6 @@ struct CamBand: View {
     let selectedID: String?
     /// When each offline camera was first seen dark, keyed by camera id.
     let offlineSince: [String: Date]
-    /// Sun below the horizon — the cam is on infrared.
-    let isNight: Bool
     let verdict: TVVerdictDisplay
     let weatherCells: [WeatherCell]
     let time: String
@@ -219,7 +217,6 @@ struct CamBand: View {
                             isActive: camera.id == selectedCamera?.id,
                             isFocused: camera.id == focusedCamera,
                             offlineSince: offlineSince[camera.id],
-                            isNight: isNight,
                             liveNeighborHint: liveNeighborHint(for: camera)
                         )
                     }
@@ -263,13 +260,12 @@ struct CamBand: View {
 
 /// One cam name in the caption strip. Active = 26/heavy with a 4pt white
 /// underline; inactive = 24 at 55%. Offline cams are struck through with an
-/// "offline since" sub-label; the active cam notes infrared after dark.
+/// "offline since" sub-label.
 private struct CamCaption: View {
     let camera: Camera
     let isActive: Bool
     let isFocused: Bool
     let offlineSince: Date?
-    let isNight: Bool
     /// "live ›" / "‹ live" when this cam is the offline-recovery target.
     let liveNeighborHint: String?
 
@@ -319,9 +315,6 @@ private struct CamCaption: View {
             guard let offlineSince else { return "offline right now" }
             return "offline since \(SinceFormatter.string(from: offlineSince))"
         }
-        if isActive && isNight {
-            return "infrared after dark"
-        }
         return nil
     }
 }
@@ -349,7 +342,6 @@ struct CoastPinButtonStyle: ButtonStyle {
             cameras: PreviewFixtures.cameras,
             selectedID: "nsb",
             offlineSince: ["ormond-by-the-sea": PreviewFixtures.at(12, 48)],
-            isNight: false,
             verdict: TVVerdictDisplay(
                 headline: "All five open",
                 subline: "Tide rising · high 2:56 PM · 6h 36m of light left",

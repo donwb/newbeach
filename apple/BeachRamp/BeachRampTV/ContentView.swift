@@ -88,14 +88,6 @@ struct ContentView: View {
                 boardContent
             }
 
-            // Night dimming scrim — darkens the whole board after sunset.
-            // Overlays render above it: they are opaque designed fields, not
-            // part of the sky.
-            Color.black
-                .opacity(palette.dimOverlayOpacity)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-
             overlayLayer
         }
         .environment(\.skyPalette, palette)
@@ -170,7 +162,6 @@ struct ContentView: View {
                 cameras: viewModel.cameras,
                 selectedID: viewModel.selectedCameraID,
                 offlineSince: viewModel.cameraOfflineSince,
-                isNight: sunAltitude < -0.8,
                 verdict: verdictDisplay,
                 weatherCells: weatherCells,
                 time: currentTime,
@@ -181,6 +172,15 @@ struct ContentView: View {
             )
 
             lowerArea
+                // Night dimming scrim — darkens the board after sunset, but
+                // only below the band: the live feed is already dark at
+                // night, and dimming it further reads as a dead cam. The
+                // band has its own designed scrim.
+                .overlay(
+                    Color.black
+                        .opacity(palette.dimOverlayOpacity)
+                        .allowsHitTesting(false)
+                )
         }
         .ignoresSafeArea()
     }
