@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 20 — flighted to TestFlight 2026-08-19 evening with the tvOS design-v3 board, tag flight/build-20; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 21 — flighted to TestFlight 2026-08-19 night, tag flight/build-21: the design-v3 board plus the infrared-after-dark back-out; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -45,8 +45,18 @@ last_verified: 2026-08-19 (night: tvOS board REBUILT to "tvOS design v3" (panora
   Verified in the tvOS simulator against prod (board, forecast, activity
   screenshots) and all 4 XCUIRemote UI tests rewritten for the new focus graph
   (cam strip → heading → day panels) pass. FLIGHTED same evening at Don's
-  direction: build 1.0 (20), both platforms, tag flight/build-20 — the v3 board
-  is on TestFlight. Build 18 stays pinned to the App Review submission.
+  direction: build 1.0 (20), both platforms, tag flight/build-20. Followed the
+  same night by build 21 (tag flight/build-21) backing out the
+  infrared-after-dark cam treatment: the feed now presents identically day and
+  night, and the night dim scrim stops at the cam band. (Build 21's first
+  export attempt failed on a transient home-DNS blip — NSURLError -1003
+  masquerading as the stale-Apple-ID failure; the --no-bump --yes rerun went
+  clean.) Build 18 stays pinned to the App Review submission.
+  Same night: all four live cams went dark at the relay ~7:50–8:00 PM ET — a
+  home-network event stalled every RTMP publish (droplet log: i/o timeouts,
+  then zero reconnects) and the Studio restreamer never recovered; upstream
+  YouTube broadcasts verified still live, resolves verified working from the
+  home IP, Studio up on LAN but SSH-less — needs a hands-on kickstart.
   Earlier same day below.)
 prior_2026_08_19_pm: (tvOS caught up with the predictive features, then
   the band was redesigned the same session — the three stat squares (Tide /
