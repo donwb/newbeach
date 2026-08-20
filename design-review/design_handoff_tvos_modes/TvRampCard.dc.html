@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="height:218px;box-sizing:border-box;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-between;font-family:var(--font-body,Archivo),system-ui,sans-serif;background:{{ bg }};border:2px solid {{ border }};color:{{ fg }};">
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <span style="font-size:22px;letter-spacing:0.08em;opacity:0.6;">{{ index }}</span>
+    <span style="font-size:40px;font-weight:800;line-height:1;letter-spacing:-0.015em;">{{ ramp }}</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="width:14px;height:26px;flex:none;background:{{ mark }};"></span>
+      <span style="font-size:30px;font-weight:800;">{{ word }}</span>
+    </div>
+    <span style="font-size:24px;line-height:1.15;opacity:0.78;">{{ short }}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:330,&quot;height&quot;:218},
+&quot;ramp&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Beachway Av&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;index&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;01&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;status&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;open&quot;,&quot;limited&quot;,&quot;closed&quot;,&quot;overnight&quot;],&quot;default&quot;:&quot;open&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;short&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Could close on the ~3pm tide&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const status = p.status || "open";
+    const field = {
+      open: { bg: "rgba(4,26,40,0.42)", border: "rgba(255,255,255,0.28)", fg: "#ffffff", mark: "#2AE07A", word: "Open" },
+      limited: { bg: "#F5A214", border: "#F5A214", fg: "#241500", mark: "#241500", word: "Limited" },
+      closed: { bg: "#C9301C", border: "#C9301C", fg: "#ffffff", mark: "#ffffff", word: "Closed" },
+      // An expected overnight close is not an alarm: neutral field, red stays
+      // for a closure someone did not plan for.
+      overnight: { bg: "rgba(4,8,20,0.42)", border: "rgba(255,255,255,0.20)", fg: "rgba(255,255,255,0.72)", mark: "rgba(255,255,255,0.45)", word: "Closed" }
+    }[status];
+    return { ...field, index: p.index || "01", ramp: p.ramp || "Ramp", short: p.short || "" };
+  }
+}
+</script>
+</body>
+</html>

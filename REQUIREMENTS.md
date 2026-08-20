@@ -430,79 +430,88 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 ### 10.1 Technology
 
 - SwiftUI
-- tvOS 17+
+- tvOS 18+
 - Shares networking/model code via shared `BeachStatus` package
 
 ### 10.2 Features
 
-- **Ambient dashboard mode** — auto-refreshing full-screen status board designed to stay on screen (beach house / surf shop display)
-- **Full-screen layout** showing all data:
-  - Ramp status grid with large color-coded status indicators
-  - Tide: direction, mini tide curve, water temperature, and next high/low — large type, one detail line
-  - Weather: current temperature, conditions, wind, and tomorrow's forecast — large type, one detail line
-  - Current time plus sunrise / sunset times
+> Redesigned twice since the v1 spec below was written. Current design (August
+> 2026, implemented): **two modes, one D-pad press apart** — the detailed specs
+> live in `design-review/design_handoff_tvos_v3/` (the board and its states)
+> and `design-review/design_handoff_tvos_modes/` (the mode switch).
+
+- **Cam mode (resting state)** — the beach cam at its native height (680pt for
+  the 3222×680 relay stream — 1:1, never upscaled), with the verdict, a
+  one-line surf read, and the five ramp cards below. Nothing else.
+- **Board mode** — the cam settles into a 405pt full-width band (100% of the
+  panorama, 0.596× downscale) and the full board fills in: ramp city heading,
+  five ramp cards, surf panel, two weekend day panels, daylight bar.
+- **The verdict never moves** — brand row, weather cluster, clock, and verdict
+  hold identical coordinates in both modes; only the video's bottom edge
+  travels, with the cam caption strip fixed to it.
+- **Remote model** — Down from Cam mode opens the board; Up from the caption
+  strip (nowhere further to go) closes it; Left/Right belong to the focused
+  row (cam switching on the caption strip, city switching on the heading);
+  Menu returns to Cam mode from the board and exits the app from Cam mode.
+- **Mode memory** — opens in the mode it was last left in; falls back to Cam
+  mode after 10 minutes with no remote activity.
+- **Status carried by card fields**, never tinted text — `open` / `limited` /
+  `closed` / `overnight` (an expected end-of-driving close is neutral; red is
+  reserved for a closure nobody planned).
+- **Server-owned prose** — verdict copy, per-ramp outlook hints, the surf
+  line, and weekend headlines all come from `/api/v2/outlook` +
+  `/api/v2/outlook/weekend` and render verbatim.
 - **Time-of-day ambient sky** — the background tracks the real sun (see §10.4)
-- **Default to New Smyrna Beach** — matches phone/web behavior, with Siri Remote navigation to switch cities
+- **Default to New Smyrna Beach** — matches phone/web behavior
 - **Auto-refresh** — data updates every 60 seconds; the sky/clock tick every 30 seconds
-- **Screensaver prevention** — keeps display active while app is foregrounded
-- **Minimal remote interaction** — Siri Remote can switch between cities
 - **No Top Shelf extension** — just the main dashboard app
-- **Beautiful typography** — designed to be viewed from across the room
 
 ### 10.3 Design Considerations
 
 - Optimized for 1080p / 4K displays
-- Large fonts, high contrast
-- Beach-themed ambient aesthetic — a sun-driven gradient sky (§10.4) behind frosted-glass (`.ultraThinMaterial`) cards
-- Safe area awareness for TV overscan
-- No small text or dense information — everything readable from 10 feet away
+- Large fonts, high contrast — 22pt is the type floor, readable from 10 feet
+- Flat surfaces: 2pt borders and rules, zero corner radius, no materials
+  (the frosted-glass card language of v1 was retired in the 2026-08 redesign)
+- Safe area awareness for TV overscan (64pt side gutters)
 
 ### 10.4 Time-of-Day Ambient Sky
 
 The full-screen background gradient is computed from the **real position of the sun** for New Smyrna Beach, so a dashboard left on a wall all day visibly moves through the day rather than showing one static color.
 
 - **Sun model:** `SolarCalculator` in the shared `BeachStatus` package — a pure, unit-tested value type that computes the sun's altitude (degrees above the horizon) and the day's sunrise/sunset for NSB's fixed coordinates (≈29.03°N, 80.93°W). No backend or network dependency; sunrise/sunset also drive the times shown under the clock.
-- **Seven phases:** the sky moves through `sunrise → morning → noon → afternoon → sunset → evening → night`. Each phase is a three-stop gradient plus a dimming factor (night dims the whole board, including the beach cam).
+- **Sixteen phases** (grown from the original seven in the 2026-08 redesign — three twilights on each side): anchor palettes from night through the twilights, sunrise, morning, noon and back down. Each phase is a gradient plus a dimming factor (night dims the board below the cam band; the live feed is already dark at night and is never dimmed further).
 - **Continuous, not snapping:** phases are anchor palettes keyed by sun altitude; the active palette is linearly interpolated between the two bracketing anchors, and changes are animated (2s ease) so transitions are imperceptible.
 - **Morning ≠ afternoon:** altitude alone is symmetric (8am and 4pm sit at the same height), so the palette also uses the sun's **direction** (`SolarCalculator.isRising`). A rising track (`night → sunrise → morning → noon`) and a falling track (`noon → afternoon → sunset → evening → night`) share identical endpoints at noon and night, so the rising↔falling switch — which only occurs at the solar-noon and solar-midnight extremes — is seamless, while dawn and dusk get distinct personalities (cool fresh mornings, warm afternoons; soft peach sunrises, saturated orange sunsets).
 
-Implementation: `SkyPalette` in `BeachRampTV/TVTheme.swift`; phase selection and animation in `BeachRampTV/ContentView.swift`.
+Implementation: `SkyPalette` in the shared `BeachStatus` package (moved from `TVTheme.swift` in the 2026-08 redesign so iOS/web render pixel-identical skies); phase selection and animation in `BeachRampTV/ContentView.swift`.
 
-### 10.5 Beach Cam Stream — Automatic HLS URL Refresh
+### 10.5 Beach Cam Stream
 
-The beach cam is a YouTube live broadcast. YouTube rotates the underlying HLS manifest URL several times per day, so the cached URL stored in the `video_stream_url` setting goes stale and the AVPlayer fails to load. Refresh is **demand-driven** with a long-interval safety net. yt-dlp is **never** invoked on a fixed short timer (avoids YouTube bot challenges and 429s on cloud-provider IPs).
+> **The v1 mechanism this section originally specified — client-triggered
+> yt-dlp URL re-resolution plus a home-cron URL push
+> (`scripts/update-stream-url.sh`) — was retired in August 2026** when
+> YouTube IP-locked its HLS URLs. Full current architecture and runbook:
+> `docs/CAM-RELAY.md`; summary in `CLAUDE.md` § Beach Cam Relay.
 
-**Resolver (server-side):** `internal/videostream.Refresher`
-- Shells out to `yt-dlp -g -f "best[protocol=m3u8_native]" <YouTube live URL>` to extract the current HLS URL.
-- Persists the result to the `settings` table under `video_stream_url`.
-- **Single-flight coalescing** (`golang.org/x/sync/singleflight`): concurrent refresh requests share one yt-dlp invocation.
-- **60-second cooldown:** after a successful refresh, returns the cached URL without re-invoking yt-dlp until the cooldown elapses. Protects against a misbehaving client driving traffic.
-- 30-second per-invocation timeout on yt-dlp.
+Current model (August 2026):
 
-**On-demand endpoint:** `POST /api/v2/video/refresh`
-- Public (no admin key) — clients call this on playback failure.
-- Returns `{ "video_stream_url": "...", "cached": bool }`.
-- Returns 502 if yt-dlp fails.
-
-**External refresh (primary path):** YouTube bot-blocks yt-dlp from datacenter IPs (the DigitalOcean App Platform host), so there is no server-side polling — a server-side poll fails after YouTube rotates the URL and the stream wedges on the stale value. The refresh is instead driven from a **residential IP** by running `scripts/update-stream-url.sh` on a schedule (a 2-hour cron job on an always-on home machine), which POSTs the freshly-resolved URL to `POST /api/v2/admin/settings`.
-
-**Client (tvOS):** `TVVideoPlayerView` observes:
-- `AVPlayerItem.status == .failed`
-- `AVPlayer.error != nil`
-- `AVPlayerItem.failedToPlayToEndTimeNotification`
-
-Any signal calls `TVViewModel.refreshVideoStream()`, which POSTs to `/api/v2/video/refresh` and swaps `videoStreamURL`. The view model applies its own 30-second client-side throttle and a single-task gate so a tight failure loop cannot fan out into many refresh requests.
-
-**Container:** the API Docker image installs `python3` and the static `yt-dlp` binary at `/usr/local/bin/yt-dlp`; `YT_DLP_PATH` is set in the image and overridable via env var.
-
-**Configuration:**
-
-| Variable | Purpose |
-|----------|---------|
-| `VIDEO_YOUTUBE_URL` | YouTube live page URL (default: hardcoded NSB cam). |
-| `YT_DLP_PATH` | Path to yt-dlp binary (default: `yt-dlp` from PATH; Docker image sets `/usr/local/bin/yt-dlp`). |
-
-The `scripts/update-stream-url.sh` script is the routine refresh mechanism and is expected to run on a schedule from a residential IP (see **External refresh** above).
+- A home Mac runs `scripts/cam-restreamer.sh` (launchd), which downloads each
+  roster camera's YouTube live stream via yt-dlp and republishes it over
+  authenticated RTMP to a MediaMTX relay droplet.
+- The relay serves **stable HLS URLs** at
+  `https://cams.donwb.com/<camera-id>/index.m3u8` — stream URLs no longer
+  rotate, so there is nothing to refresh on a timer.
+- Clients read the camera roster from `GET /api/v2/cameras` (south→north
+  order, per-cam stream URL or `null` when offline).
+- **Client recovery (tvOS):** `TVVideoPlayerView` still observes
+  `AVPlayerItem.status == .failed`, `AVPlayer.error`,
+  `failedToPlayToEndTimeNotification`, plus a stall watcher (no time progress
+  for 15s while playing). Any signal calls `TVViewModel.refreshVideoStream()`,
+  which re-fetches the camera roster and rebuilds the player — throttled to
+  one attempt per 30 seconds.
+- A server-side health poller (`CAM_HEALTH_*` env vars) probes the relay and
+  clears a camera's URL in the roster while its stream is dark; relay hooks
+  (`/api/v2/hooks/*`, `CAM_HOOK_KEY`) provide the instant path.
 
 ---
 
@@ -1232,7 +1241,7 @@ All six implementation phases are complete. Every platform has reached a shippab
 | **Website** | ✅ Production | Responsive dashboard with ramp grid, tide chart, weather, webcam, dark mode, favorites, PWA |
 | **iOS** | ✅ Buildable | Universal SwiftUI app (iPhone + iPad) with ramps, tide chart, weather, webcam, city/status filtering |
 | **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
-| **tvOS** | ✅ Buildable | Ambient dashboard with panoramic beach cam, ramp tile grid, combined tide/weather card, auto-refresh, Siri Remote city navigation |
+| **tvOS** | ✅ On TestFlight | Two-mode board (Aug 2026): Cam mode — native-size beach cam + verdict + surf line + ramp cards; Board mode — full board with weekend outlook and daylight bar; D-pad toggle, mode memory, 10-min idle fallback |
 | **TRMNL OG** | ✅ Live | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
 | **TRMNL X** | ✅ Live (June 2026) | Grayscale dashboard: 5 NSB ramps with since-times, SVG tide curve, weather + forecast, activity feed — via `/api/v2/trmnl` aggregate endpoint |
 

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/modernist-6f404417-37b7-441b-82d2-6f4c6ff870be/styles.css">
+  <script src="_ds/modernist-6f404417-37b7-441b-82d2-6f4c6ff870be/_ds_bundle.js"></script>
+  <style>
+    body{margin:0;background:#c9c7c4;font-family:var(--font-body,Archivo),system-ui,sans-serif;color:#201e1d;-webkit-font-smoothing:antialiased;}
+    a{color:#ec3013;text-decoration:none;}
+    a:hover{color:#c22a10;}
+  </style>
+</helmet>
+
+<section style="padding:56px 56px 90px;display:flex;flex-direction:column;gap:34px;">
+
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1180px;">
+    <div style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">tvOS · two modes</div>
+    <h1 style="margin:0;font-size:40px;font-weight:800;letter-spacing:-0.025em;line-height:1.02;">Cam mode and Board mode, one press apart</h1>
+    <p style="margin:0;font-size:17px;line-height:1.45;color:rgba(32,30,29,0.72);max-width:900px;text-wrap:pretty;">Not a setting — a direction. Cam mode gives the video 680px, the tallest it can go before the source starts to soften. Press Down and the board rises from the bottom; the cam settles back to its 405px band and the ramps, surf and weekend fill in below. Press Up from the top row and it drops away again.</p>
+    <p style="margin:0;font-size:17px;line-height:1.45;color:rgba(32,30,29,0.72);max-width:900px;text-wrap:pretty;">On resolution: the feed is 3222 × 680. At 1920 × 680 every source pixel maps one-to-one — the biggest sharp frame available, keeping 60% of the panorama. Filling 16:9 would have meant a 1.59× upscale of an already soft stream, which is what made the earlier full-bleed treatment mushy. Cam mode stops at native and spends the remaining 400px on the surf sentence and the five ramp cards — the tide and daylight bar stays behind in Board mode.</p>
+    <p style="margin:0;font-size:17px;line-height:1.45;color:rgba(32,30,29,0.72);max-width:900px;text-wrap:pretty;">The rule that makes the switch legible: <span style="font-weight:700;color:#201e1d;">the verdict never moves.</span> Brand row, weather, time and the big call sit at the same coordinates in both modes. Only the video's bottom edge travels — and the cam caption strip rides it down, exactly as it does in v3. Nothing is re-read, nothing is hunted for; information is simply added underneath.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:26px;margin-top:6px;font-size:15px;color:rgba(32,30,29,0.72);">
+      <span><span style="font-weight:700;">Canvas</span> 1920 × 1080</span>
+      <span><span style="font-weight:700;">Verdict baseline</span> y 172 → 291, both modes</span>
+      <span><span style="font-weight:700;">Cam edge</span> 680 ↔ 405</span>
+      <span><span style="font-weight:700;">Cam scale</span> 1:1 native, no upscale</span>
+      <span><span style="font-weight:700;">Toggle</span> D-pad Down / Up</span>
+      <span><span style="font-weight:700;">Min type</span> 22px</span>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:44px;">
+
+    <div data-screen-label="01 Cam mode" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgba(32,30,29,0.85);padding-bottom:10px;width:1920px;">
+        <span style="font-size:15px;font-weight:800;letter-spacing:0.04em;background:#201e1d;color:#fff;padding:3px 9px;">01</span>
+        <span style="font-size:22px;font-weight:800;">Cam mode · the resting state</span>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}"><span style="font-size:15px;color:rgba(32,30,29,0.62);">1920 × 680 — every source pixel at 1:1, 60% of the panorama. Below it, the surf in a sentence and the five ramps; no heading, no weekend, no tide bar</span></sc-if>
+      </div>
+      <div id="m01" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:linear-gradient(170deg,#0E7B9F 0%,#2A9CBC 44%,#63BFD4 76%,#9BDCE7 100%);box-shadow:0 30px 70px rgba(0,0,0,0.28);color:#fff;display:flex;flex-direction:column;">
+        <div style="flex:none;height:680px;position:relative;overflow:hidden;background:#0A1420;">
+        <img src="review/cam-banner.png" alt="New Smyrna Beach cam" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">
+        <div style="position:absolute;left:0;right:0;top:0;height:400px;background:linear-gradient(to bottom,rgba(4,20,32,0.72) 0%,rgba(4,20,32,0.34) 34%,rgba(4,20,32,0) 100%);"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:240px;background:linear-gradient(to top,rgba(4,20,32,0.86) 0%,rgba(4,20,32,0.30) 46%,rgba(4,20,32,0) 100%);"></div>
+        <div style="position:absolute;inset:0;padding:40px 64px 20px;box-sizing:border-box;display:flex;flex-direction:column;">
+          <div style="flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:40px;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span style="width:13px;height:13px;background:#2AE07A;border-radius:50%;"></span>
+              <span style="font-size:26px;font-weight:800;letter-spacing:-0.01em;">Beach Ramp Status</span>
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;padding-left:6px;">Volusia County</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:22px;">
+              <div style="display:flex;border:2px solid rgba(255,255,255,0.34);background:rgba(4,20,32,0.44);">
+                <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;border-right:2px solid rgba(255,255,255,0.22);"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Water</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">82°</span></div>
+                <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;border-right:2px solid rgba(255,255,255,0.22);"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Air</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">91°</span></div>
+                <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Wind</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">SW 5</span></div>
+              </div>
+              <span style="font-size:32px;font-variant-numeric:tabular-nums;">1:23 PM</span>
+            </div>
+          </div>
+          <div style="flex:none;margin-top:40px;display:flex;align-items:flex-end;gap:20px;">
+            <span style="width:20px;height:74px;background:#2AE07A;flex:none;"></span>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+              <span style="font-size:80px;font-weight:800;line-height:0.94;letter-spacing:-0.025em;">All five open</span>
+              <span style="font-size:30px;line-height:1.2;opacity:0.92;">Tide rising · high 2:56 PM · 6h 36m of light left</span>
+            </div>
+          </div>
+          <div style="flex:1;min-height:0;"></div>
+          <div style="flex:none;display:flex;align-items:center;gap:20px;border-top:2px solid rgba(255,255,255,0.34);padding-top:12px;">
+            <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;flex:none;">Watching</span>
+            <div style="display:flex;align-items:baseline;gap:26px;flex:1;min-width:0;">
+              <span style="font-size:26px;font-weight:800;white-space:nowrap;border-bottom:4px solid #fff;padding-bottom:3px;">New Smyrna pier</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ponce Inlet</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Dunlawton</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ormond Beach</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ormond-By-The-Sea</span>
+            </div>
+            <span style="font-size:22px;opacity:0.6;flex:none;white-space:nowrap;">‹ › cam</span>
+            <span style="font-size:22px;font-weight:700;flex:none;white-space:nowrap;border-left:2px solid rgba(255,255,255,0.34);padding-left:20px;">▾ Ramps</span>
+          </div>
+        </div>
+        </div>
+        <div style="flex:1;min-height:0;padding:32px 64px 40px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;gap:24px;background:linear-gradient(to bottom,rgba(4,20,32,0.88) 0%,rgba(4,20,32,0.74) 100%);">
+          <div style="display:flex;align-items:baseline;gap:24px;">
+            <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;flex:none;">Surf</span>
+            <span style="font-size:44px;font-weight:800;letter-spacing:-0.02em;">Pretty much flat out there</span>
+            <span style="font-size:24px;opacity:0.75;">Knee-high · 6s · rip risk low</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px;">
+            <dc-import name="TvRampCard" index="01" ramp="Beachway Av" status="open" short="Could close on the ~3pm tide" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="02" ramp="Crawford Rd" status="open" short="Could close on the ~3pm tide" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="03" ramp="Flagler Av" status="open" short="Tide closure possible soon" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="04" ramp="3rd Av" status="open" short="Tide closure possible soon" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="05" ramp="27th Av" status="open" short="Tide closure possible soon" hint-size="100%,218px"></dc-import>
+          </div>
+        </div>
+        <sc-if value="{{ showGuide }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;right:0;top:172px;height:2px;background:#ec3013;"></div>
+          <div style="position:absolute;left:0;right:0;top:291px;height:2px;background:#ec3013;opacity:0.5;"></div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div data-screen-label="02 Board mode" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgba(32,30,29,0.85);padding-bottom:10px;width:1920px;">
+        <span style="font-size:15px;font-weight:800;letter-spacing:0.04em;background:#201e1d;color:#fff;padding:3px 9px;">02</span>
+        <span style="font-size:22px;font-weight:800;">Board mode · settled</span>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}"><span style="font-size:15px;color:rgba(32,30,29,0.62);">v3 unchanged but for the caption's right end, where ▾ Ramps has become ▴ Full cam</span></sc-if>
+      </div>
+      <div id="m02" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:linear-gradient(170deg,#0E7B9F 0%,#2A9CBC 44%,#63BFD4 76%,#9BDCE7 100%);box-shadow:0 30px 70px rgba(0,0,0,0.28);color:#fff;display:flex;flex-direction:column;">
+        <div style="flex:none;height:405px;position:relative;overflow:hidden;background:#0A1420;">
+          <img src="review/cam-banner.png" alt="New Smyrna Beach cam" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">
+          <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(4,20,32,0.58) 0%,rgba(4,20,32,0.10) 32%,rgba(4,20,32,0.38) 60%,rgba(4,20,32,0.88) 100%);"></div>
+          <div style="position:absolute;inset:0;padding:40px 64px 20px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:40px;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <span style="width:13px;height:13px;background:#2AE07A;border-radius:50%;"></span>
+                <span style="font-size:26px;font-weight:800;letter-spacing:-0.01em;">Beach Ramp Status</span>
+                <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;padding-left:6px;">Volusia County</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:22px;">
+                <div style="display:flex;border:2px solid rgba(255,255,255,0.34);background:rgba(4,20,32,0.44);">
+                  <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;border-right:2px solid rgba(255,255,255,0.22);"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Water</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">82°</span></div>
+                  <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;border-right:2px solid rgba(255,255,255,0.22);"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Air</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">91°</span></div>
+                  <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Wind</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">SW 5</span></div>
+                </div>
+                <span style="font-size:32px;font-variant-numeric:tabular-nums;">1:23 PM</span>
+              </div>
+            </div>
+            <div style="flex:none;margin-top:40px;display:flex;align-items:flex-end;gap:20px;">
+              <span style="width:20px;height:74px;background:#2AE07A;flex:none;"></span>
+              <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+                <span style="font-size:80px;font-weight:800;line-height:0.94;letter-spacing:-0.025em;">All five open</span>
+                <span style="font-size:30px;line-height:1.2;opacity:0.92;">Tide rising · high 2:56 PM · 6h 36m of light left</span>
+              </div>
+            </div>
+            <div style="flex:1;min-height:0;"></div>
+            <div style="flex:none;display:flex;align-items:center;gap:20px;border-top:2px solid rgba(255,255,255,0.34);padding-top:12px;">
+                <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;flex:none;">Watching</span>
+                <div style="display:flex;align-items:baseline;gap:26px;flex:1;min-width:0;">
+                  <span style="font-size:26px;font-weight:800;white-space:nowrap;border-bottom:4px solid #fff;padding-bottom:3px;">New Smyrna pier</span>
+                  <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ponce Inlet</span>
+                  <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Dunlawton</span>
+                  <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ormond Beach</span>
+                  <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ormond-By-The-Sea</span>
+                </div>
+                <span style="font-size:22px;opacity:0.6;flex:none;white-space:nowrap;">‹ › cam</span>
+                <span style="font-size:22px;font-weight:700;flex:none;white-space:nowrap;border-left:2px solid rgba(255,255,255,0.34);padding-left:20px;">▴ Full cam</span>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;padding:20px 64px 40px;box-sizing:border-box;display:flex;flex-direction:column;">
+          <div style="flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:32px;border-bottom:2px solid rgba(255,255,255,0.42);padding-bottom:10px;">
+            <div style="display:flex;align-items:baseline;gap:16px;">
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.68;">Ramps</span>
+              <span style="font-size:38px;font-weight:800;letter-spacing:-0.02em;">New Smyrna Beach</span>
+              <span style="font-size:26px;opacity:0.6;">‹ ›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:26px;">
+              <span style="font-size:24px;opacity:0.75;">5 ramps · all open</span>
+              <span style="font-size:22px;opacity:0.6;">☰ Recent changes</span>
+            </div>
+          </div>
+          <div style="flex:none;margin-top:16px;display:grid;grid-template-columns:repeat(5,1fr);gap:18px;">
+            <dc-import name="TvRampCard" index="01" ramp="Beachway Av" status="open" short="Could close on the ~3pm tide" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="02" ramp="Crawford Rd" status="open" short="Could close on the ~3pm tide" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="03" ramp="Flagler Av" status="open" short="Tide closure possible soon" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="04" ramp="3rd Av" status="open" short="Tide closure possible soon" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="05" ramp="27th Av" status="open" short="Tide closure possible soon" hint-size="100%,218px"></dc-import>
+          </div>
+          <div style="flex:none;margin-top:18px;display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:18px;">
+            <div style="background:rgba(4,26,40,0.42);border:2px solid rgba(255,255,255,0.28);padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.68;">Surf</span><span style="font-size:22px;opacity:0.68;">Rip risk low</span></div>
+              <span style="font-size:48px;font-weight:800;line-height:1.02;letter-spacing:-0.02em;">Pretty much flat out there</span>
+              <span style="font-size:24px;opacity:0.75;">Knee-high · 6s · buoy 41009, 40 min ago</span>
+            </div>
+            <dc-import name="TvDayPanel" label="Saturday" verdict="good" headline="Best around 9 AM to 1 PM, clear of the tide" metrics="93° · rain 20% · SW 8" hint-size="100%,200px"></dc-import>
+            <dc-import name="TvDayPanel" label="Sunday" verdict="good" headline="Wide open — any time works" metrics="91° · rain 10%" cta="All 7 days ›" hint-size="100%,200px"></dc-import>
+          </div>
+          <div style="flex:1;min-height:0;"></div>
+          <div style="flex:none;">
+            <div style="position:relative;height:14px;background:linear-gradient(90deg,#070A14 0%,#0C1230 7%,#1B2A52 12%,#0E6E8C 24%,#0E7FA8 52%,#10657F 69%,#123A52 83.6%,#0A1228 88.5%,#070A14 100%);">
+              <div style="position:absolute;top:-7px;left:38.5%;width:4px;height:28px;background:#fff;transform:translateX(-2px);"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:22px;opacity:0.85;"><span>Sunrise 6:54 AM</span><span style="font-weight:600;">Golden hour 7:27 PM · 6h 36m of daylight left</span><span>Sunset 7:59 PM</span></div>
+          </div>
+        </div>
+        <sc-if value="{{ showGuide }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;right:0;top:172px;height:2px;background:#ec3013;"></div>
+          <div style="position:absolute;left:0;right:0;top:291px;height:2px;background:#ec3013;opacity:0.5;"></div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div data-screen-label="03 Cam mode after dark" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgba(32,30,29,0.85);padding-bottom:10px;width:1920px;">
+        <span style="font-size:15px;font-weight:800;letter-spacing:0.04em;background:#201e1d;color:#fff;padding:3px 9px;">03</span>
+        <span style="font-size:22px;font-weight:800;">Cam mode · after dark</span>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}"><span style="font-size:15px;color:rgba(32,30,29,0.62);">The cam runs 24/7 and gets no special handling overnight — same frame, same 1:1 scale, just a darker picture. This is when the app is most likely to be left running and there is least to read</span></sc-if>
+      </div>
+      <div id="m03" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:linear-gradient(165deg,#0A1228 0%,#2E2A52 48%,#6E3C58 100%);box-shadow:0 30px 70px rgba(0,0,0,0.28);color:#fff;display:flex;flex-direction:column;">
+        <div style="flex:none;height:680px;position:relative;overflow:hidden;background:#05080F;">
+        <img src="review/cam-banner.png" alt="New Smyrna Beach cam after dark" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:brightness(0.34) saturate(0.72) contrast(1.06);">
+        <div style="position:absolute;left:0;right:0;top:0;height:400px;background:linear-gradient(to bottom,rgba(6,10,24,0.76) 0%,rgba(6,10,24,0.36) 34%,rgba(6,10,24,0) 100%);"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:240px;background:linear-gradient(to top,rgba(6,10,24,0.90) 0%,rgba(6,10,24,0.34) 46%,rgba(6,10,24,0) 100%);"></div>
+        <div style="position:absolute;inset:0;padding:40px 64px 20px;box-sizing:border-box;display:flex;flex-direction:column;">
+          <div style="flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:40px;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span style="width:13px;height:13px;background:#2AE07A;border-radius:50%;"></span>
+              <span style="font-size:26px;font-weight:800;letter-spacing:-0.01em;">Beach Ramp Status</span>
+              <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;padding-left:6px;">Volusia County</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:22px;">
+              <div style="display:flex;border:2px solid rgba(255,255,255,0.34);background:rgba(6,10,24,0.52);">
+                <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;border-right:2px solid rgba(255,255,255,0.22);"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Water</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">80°</span></div>
+                <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;border-right:2px solid rgba(255,255,255,0.22);"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Air</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">76°</span></div>
+                <div style="padding:9px 20px;display:flex;flex-direction:column;gap:2px;"><span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Wind</span><span style="font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;">NE 7</span></div>
+              </div>
+              <span style="font-size:32px;font-variant-numeric:tabular-nums;">9:34 PM</span>
+            </div>
+          </div>
+          <div style="flex:none;margin-top:40px;display:flex;align-items:flex-end;gap:20px;">
+            <span style="width:20px;height:74px;background:rgba(255,255,255,0.55);flex:none;"></span>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+              <span style="font-size:80px;font-weight:800;line-height:0.94;letter-spacing:-0.025em;">Driving is done for today</span>
+              <span style="font-size:30px;line-height:1.2;opacity:0.92;">Gates closed 7:44 PM · ramps reopen around sunrise, 6:54 AM</span>
+            </div>
+          </div>
+          <div style="flex:1;min-height:0;"></div>
+          <div style="flex:none;display:flex;align-items:center;gap:20px;border-top:2px solid rgba(255,255,255,0.34);padding-top:12px;">
+            <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;flex:none;">Watching</span>
+            <div style="display:flex;align-items:baseline;gap:26px;flex:1;min-width:0;">
+              <span style="font-size:26px;font-weight:800;white-space:nowrap;border-bottom:4px solid #fff;padding-bottom:3px;">New Smyrna pier</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ponce Inlet</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Dunlawton</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ormond Beach</span>
+              <span style="font-size:24px;opacity:0.55;white-space:nowrap;">Ormond-By-The-Sea</span>
+            </div>
+            <span style="font-size:22px;opacity:0.6;flex:none;white-space:nowrap;">‹ › cam</span>
+            <span style="font-size:22px;font-weight:700;flex:none;white-space:nowrap;border-left:2px solid rgba(255,255,255,0.34);padding-left:20px;">▾ Ramps</span>
+          </div>
+        </div>
+        </div>
+        <div style="flex:1;min-height:0;padding:32px 64px 40px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;gap:24px;background:linear-gradient(to bottom,rgba(4,20,32,0.88) 0%,rgba(4,20,32,0.74) 100%);">
+          <div style="display:flex;align-items:baseline;gap:24px;">
+            <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;flex:none;">Surf</span>
+            <span style="font-size:44px;font-weight:800;letter-spacing:-0.02em;opacity:0.72;">No surf read right now</span>
+            <span style="font-size:24px;opacity:0.6;">Buoy 41009 last reported 7 hours ago</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px;">
+            <dc-import name="TvRampCard" index="01" ramp="Beachway Av" status="overnight" short="Reopens around 6:54 AM" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="02" ramp="Crawford Rd" status="overnight" short="Reopens around 6:54 AM" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="03" ramp="Flagler Av" status="overnight" short="Reopens around 6:54 AM" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="04" ramp="3rd Av" status="overnight" short="Reopens around 6:54 AM" hint-size="100%,218px"></dc-import>
+            <dc-import name="TvRampCard" index="05" ramp="27th Av" status="overnight" short="Reopens around 6:54 AM" hint-size="100%,218px"></dc-import>
+          </div>
+        </div>
+        <sc-if value="{{ showGuide }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;right:0;top:172px;height:2px;background:#ec3013;"></div>
+          <div style="position:absolute;left:0;right:0;top:291px;height:2px;background:#ec3013;opacity:0.5;"></div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgba(32,30,29,0.85);padding-bottom:10px;width:1920px;">
+        <span style="font-size:15px;font-weight:800;letter-spacing:0.04em;background:#201e1d;color:#fff;padding:3px 9px;">04</span>
+        <span style="font-size:22px;font-weight:800;">The rules</span>
+      </div>
+      <div style="width:1920px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:2px solid rgba(32,30,29,0.85);background:#f3f2f2;">
+        <div style="padding:26px 30px;border-right:2px solid rgba(32,30,29,0.85);display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">Remote</span>
+          <span style="font-size:19px;line-height:1.45;">Up/Down are not taken over. The board has four focus rows — cam caption, ramp city heading, ramp cards, surf and weekend — and Up/Down move between them normally. Only Up with nowhere further to go, from the caption strip, falls through and closes the board; in Cam mode nothing else is focusable, so Down always opens it. Left/Right belong to the focused row, which is how cam switching, city switching and card-to-card coexist. Menu exits from Cam mode and returns to it from anywhere else.</span>
+        </div>
+        <div style="padding:26px 30px;border-right:2px solid rgba(32,30,29,0.85);display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">Memory</span>
+          <span style="font-size:19px;line-height:1.45;">The app opens in the mode it was last left in, so the choice is made once and not re-made every launch. After 10 minutes with no remote activity it falls back to Cam mode — the picture is the better thing to leave on a television.</span>
+        </div>
+        <div style="padding:26px 30px;display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">Interruption</span>
+          <span style="font-size:19px;line-height:1.45;">A ramp closing while Cam mode is up changes the verdict line in place and flashes the accent bar once. It does not open the board — a status change is not a reason to take the beach off the screen.</span>
+        </div>
+      </div>
+      <div style="width:1920px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:2px solid rgba(32,30,29,0.85);border-top:none;background:#f3f2f2;">
+        <div style="padding:26px 30px;border-right:2px solid rgba(32,30,29,0.85);display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">What holds still</span>
+          <span style="font-size:19px;line-height:1.45;">Brand row, weather cluster, clock, accent bar, verdict headline and its detail line. Same size, same coordinates, both modes. They are the reason the switch does not feel like a different screen.</span>
+        </div>
+        <div style="padding:26px 30px;border-right:2px solid rgba(32,30,29,0.85);display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">What moves</span>
+          <span style="font-size:19px;line-height:1.45;">Only the video's bottom edge, 680 to 405, with the cam caption strip fixed to it. The finished board is translated up as one block behind that edge — never reflowed — so mid-rise it simply hangs below the frame. The surf sentence dissolves as the board's heading and panels arrive; the ramp cards are common to both modes and ride up with it. 340ms, ease-out, one motion.</span>
+        </div>
+        <div style="padding:26px 30px;display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:14px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#ec3013;">The crop, honestly</span>
+          <span style="font-size:19px;line-height:1.45;">Cam mode shows 1920 of the source's 3222 columns — 60% of the panorama, centred on the pier, at 1:1. Board mode fits the full width and downscales to 0.60×. So the trade is 60% of the view at full size against 100% of it at 405px. Neither upscales.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showGuide&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Review aids&quot;},&quot;showNotes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Review aids&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showGuide: this.props.showGuide ?? false,
+      showNotes: this.props.showNotes ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>

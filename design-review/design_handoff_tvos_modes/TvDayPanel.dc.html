@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="box-sizing:border-box;padding:20px 24px;display:flex;flex-direction:column;gap:12px;font-family:var(--font-body,Archivo),system-ui,sans-serif;background:rgba(4,26,40,0.52);border:2px solid rgba(255,255,255,0.28);color:#ffffff;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <span style="font-size:22px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.68;">{{ label }}</span>
+    <div style="display:flex;align-items:center;gap:10px;flex:none;">
+      <span style="width:13px;height:22px;background:{{ mark }};"></span>
+      <span style="font-size:26px;font-weight:800;">{{ word }}</span>
+    </div>
+  </div>
+  <span style="font-size:30px;font-weight:700;line-height:1.12;letter-spacing:-0.01em;">{{ headline }}</span>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <span style="font-size:24px;opacity:0.75;font-variant-numeric:tabular-nums;">{{ metrics }}</span>
+    <span style="font-size:24px;font-weight:700;color:#FFC48A;">{{ cta }}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:180},
+&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Saturday&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;verdict&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;great&quot;,&quot;good&quot;,&quot;mixed&quot;,&quot;rough&quot;,&quot;no_call&quot;],&quot;default&quot;:&quot;good&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;headline&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Best around 9 AM to 1 PM, clear of the tide&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;metrics&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;93° · rain 20% · SW 8&quot;,&quot;tsType&quot;:&quot;string&quot;},
+&quot;cta&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const verdict = p.verdict || "good";
+    const v = {
+      great: { mark: "#2AE07A", word: "Great" },
+      good: { mark: "#2AE07A", word: "Good" },
+      mixed: { mark: "#F5A214", word: "Mixed" },
+      rough: { mark: "#FF5240", word: "Rough" },
+      no_call: { mark: "rgba(255,255,255,0.45)", word: "No call" }
+    }[verdict];
+    return {
+      ...v,
+      label: p.label || "Saturday",
+      headline: p.headline || "",
+      metrics: p.metrics || "",
+      cta: p.cta || ""
+    };
+  }
+}
+</script>
+</body>
+</html>

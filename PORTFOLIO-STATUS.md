@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 21 — flighted to TestFlight 2026-08-19 night, tag flight/build-21: the design-v3 board plus the infrared-after-dark back-out; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 22 — flighted to TestFlight 2026-08-19 late night, tag flight/build-22: the tvOS Cam mode / Board mode presentation; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -44,9 +44,16 @@ last_verified: 2026-08-19 (late night: tvOS gained its TWO-MODE presentation fro
   than rebuild, board chrome crossfades. Caption strip right end hints the mode
   ("▾ Ramps" / "▴ Full cam"). Verified in the tvOS simulator against prod: cam/board
   screenshots plus a scripted D-pad walk (down-open, row order, up-close, both Menu
-  behaviors); UI tests rewritten for the two-mode focus graph, all passing. NOT
-  flighted — needs a re-flight to reach devices; build 21 remains current on
-  TestFlight. New QA args: --mode-cam / --mode-board. Earlier same night below.)
+  behaviors); UI tests rewritten for the two-mode focus graph, all passing.
+  FLIGHTED at Don's direction: build 1.0 (22), both platforms, tag
+  flight/build-22 — TestFlight-only, build 18 stays pinned to the App Review
+  submission. Docs tied up the same session: the tvOS v3 + modes design-handoff
+  READMEs and modes design sources checked into design-review/, REQUIREMENTS.md
+  §10 rewritten for the two-mode board (and §10.5's retired yt-dlp URL-push spec
+  replaced with the cam-relay summary), §19 tvOS row updated. Note the submitted
+  App Store TV screenshots now trail the app by three designs (v2 tiles → v3 →
+  modes) — recapture whenever listing assets are next touched. New QA args:
+  --mode-cam / --mode-board. Earlier same night below.)
 prior_2026_08_19_night: (tvOS board REBUILT to "tvOS design v3" (panorama
   header, inline selectors — implemented from the Claude Design project handoff).
   New structure: the cam holds the top 405pt full-bleed at its true 4.74:1 aspect
