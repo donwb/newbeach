@@ -25,7 +25,29 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-19 (night: tvOS board REBUILT to "tvOS design v3" (panorama
+last_verified: 2026-08-19 (late night: tvOS gained its TWO-MODE presentation from the
+  "tvOS modes" Claude Design handoff — Cam mode and Board mode, one D-pad press apart.
+  Cam mode is the new resting state: the video at its native 680pt (1:1 — the 3222×680
+  source's largest sharp frame, 60% of the panorama; Board mode's 405pt band shows 100%
+  at 0.596×; neither upscales — resizeAspectFill produces both automatically), below it
+  a surf sentence and the five ramp cards on a dark ambient ground; no heading, weekend
+  panels, or daylight bar. The band's verdict block moved to fixed top-anchored
+  coordinates so brand row / weather / clock / verdict hold identical positions in both
+  modes — only the video's bottom edge travels, with the caption strip riding it. Down
+  opens the board (invisible focus catcher below the band), Up from the caption strip
+  falls through and closes it (catcher above the strip, Home-screen style), Menu
+  returns to Cam mode from the board and exits the app from Cam mode — Recent changes
+  now opens ONLY from the heading button. Mode persists across launches (tvDisplayMode
+  default) and falls back to Cam after 10 idle minutes; a verdict change while Cam
+  mode is up flashes the accent bar in place and never opens the board. The board is
+  one translated block (340ms ease-out) — the ramp cards ride between modes rather
+  than rebuild, board chrome crossfades. Caption strip right end hints the mode
+  ("▾ Ramps" / "▴ Full cam"). Verified in the tvOS simulator against prod: cam/board
+  screenshots plus a scripted D-pad walk (down-open, row order, up-close, both Menu
+  behaviors); UI tests rewritten for the two-mode focus graph, all passing. NOT
+  flighted — needs a re-flight to reach devices; build 21 remains current on
+  TestFlight. New QA args: --mode-cam / --mode-board. Earlier same night below.)
+prior_2026_08_19_night: (tvOS board REBUILT to "tvOS design v3" (panorama
   header, inline selectors — implemented from the Claude Design project handoff).
   New structure: the cam holds the top 405pt full-bleed at its true 4.74:1 aspect
   and carries the verdict (80pt headline + subline) plus a WATCHING caption strip

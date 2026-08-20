@@ -8,13 +8,38 @@
 import SwiftUI
 import BeachStatus
 
-/// tvOS board, design v3: panorama header, inline selectors. The cam holds
-/// the top 405pt at its true aspect and carries the verdict; cam switching
-/// is a caption strip on the video's own bottom edge; ramp-city switching
-/// is the heading above the ramp cards. The recovered space below goes to
-/// surf and the weekend, with the daylight band closing the screen.
+/// UserDefaults key for the persisted display mode — the choice is made
+/// once, not re-made every launch.
+private let tvModeKey = "tvDisplayMode"
+
+/// The tvOS board: two presentations of the same moment, one D-pad press
+/// apart. Cam mode rests on the video at its native 680pt with only the
+/// verdict, the surf sentence and the five ramp cards; press Down and the
+/// board rises from the bottom — the cam settles to its v3 405pt band and
+/// the heading, weekend panels and daylight band fill in. Press Up from the
+/// caption strip and it drops away. The rule that makes the switch legible:
+/// the verdict never moves — brand row, weather, clock and the big call sit
+/// at the same coordinates in both modes; only the video's bottom edge
+/// travels, and the ramp cards ride between modes rather than rebuild.
 struct ContentView: View {
     @State private var viewModel = TVViewModel()
+    /// The display mode, persisted across launches. Falls back to Cam mode
+    /// after 10 idle minutes — the picture is the better thing to leave on
+    /// a television.
+    @AppStorage(tvModeKey) private var modeRaw = TVBoardMode.cam.rawValue
+    /// Invisible focus target just below the cam band in Cam mode — a Down
+    /// press from the caption strip lands here and opens the board.
+    @FocusState private var expandCatcherFocused: Bool
+    /// Measured top of the ramp-card grid within the board block, so the
+    /// parked block in Cam mode puts the cards exactly at the ambient
+    /// section's card position.
+    @State private var cardsTopInBlock: CGFloat = 109
+    /// Bumped when the verdict headline changes while Cam mode is up — the
+    /// band flashes its accent bar once, in place. Never opens the board.
+    @State private var verdictFlashToken = 0
+    /// Last remote interaction we can observe (focus moves, selects,
+    /// overlay traffic) — drives the 10-minute fallback to Cam mode.
+    @State private var lastRemoteActivity = Date()
     @FocusState private var focusedCamera: String?
     @State private var currentTime = ""
     @State private var sunAltitude: Double = 30
@@ -55,6 +80,16 @@ struct ContentView: View {
 
     private var palette: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
 
+    private var mode: TVBoardMode { TVBoardMode(rawValue: modeRaw) ?? .cam }
+
+    /// The mode switch: 340ms, ease-out, one motion.
+    private static let modeTransition: TimeInterval = 0.34
+    /// Idle remote time before the board falls back to Cam mode.
+    private static let idleFallback: TimeInterval = 10 * 60
+    /// Card height + the ambient section's 40pt bottom inset — where the
+    /// card row's top edge sits in Cam mode, measured from the screen bottom.
+    private static let ambientCardsBottomInset: CGFloat = 40 + 218
+
     #if DEBUG
     /// QA hooks (simulator screenshot verification, DEBUG only):
     /// --overlay-* opens an overlay directly; --sky-minutes N renders the
@@ -70,6 +105,14 @@ struct ContentView: View {
     init() {
         #if DEBUG
         let args = Self.launchArgs
+        // --mode-cam / --mode-board force the persisted mode for screenshots;
+        // overlays open from the board, so they imply Board mode.
+        if args.contains("--mode-cam") {
+            UserDefaults.standard.set(TVBoardMode.cam.rawValue, forKey: tvModeKey)
+        }
+        if args.contains("--mode-board") || args.contains("--overlay-outlook") || args.contains("--overlay-activity") {
+            UserDefaults.standard.set(TVBoardMode.board.rawValue, forKey: tvModeKey)
+        }
         if args.contains("--overlay-outlook") { _showForecast = State(initialValue: true) }
         if args.contains("--overlay-activity") { _showActivity = State(initialValue: true) }
         #endif
@@ -92,13 +135,7 @@ struct ContentView: View {
         }
         .environment(\.skyPalette, palette)
         .animation(.easeInOut(duration: 2.0), value: sunAltitude)
-        .onExitCommand {
-            // Menu on the board opens Recent changes (an open overlay's own
-            // handler wins while it has focus). Home still exits the app.
-            if !showForecast && !showActivity {
-                showActivity = true
-            }
-        }
+        .onExitCommand(perform: menuAction)
         .task {
             await viewModel.loadAll()
             viewModel.startAutoRefresh()
@@ -111,12 +148,30 @@ struct ContentView: View {
             #endif
         }
         .onChange(of: focusedCamera) { _, id in
+            noteActivity()
             // Channel-flip feel: moving focus across the caption strip
             // switches the active stream live. selectCamera is a no-op when
             // the id is unchanged or the camera's URL isn't resolved yet.
             if let id { viewModel.selectCamera(id) }
         }
+        .onChange(of: expandCatcherFocused) { _, focused in
+            // Down from the caption strip in Cam mode — the board rises.
+            if focused { expandToBoard() }
+        }
+        .onChange(of: verdictDisplay) { old, new in
+            // A ramp closing while Cam mode is up changes the verdict line
+            // in place and flashes the accent bar once. It does not open the
+            // board — a status change is not a reason to take the beach off
+            // the screen.
+            if mode == .cam, old.headline != new.headline {
+                verdictFlashToken &+= 1
+            }
+        }
+        .onChange(of: focusedDay) { _, _ in noteActivity() }
+        .onChange(of: cityFocused) { _, _ in noteActivity() }
+        .onChange(of: recentChangesButtonFocused) { _, _ in noteActivity() }
         .onChange(of: showForecast) { _, open in
+            noteActivity()
             // Hand focus back to the day panel that opened the overlay,
             // deferred a runloop so the panel is back in the focus hierarchy
             // after the overlay (which grabbed focus on appear) tears down.
@@ -126,11 +181,47 @@ struct ContentView: View {
             }
         }
         .onChange(of: showActivity) { _, open in
+            noteActivity()
             if !open && activityOpenedFromButton {
                 activityOpenedFromButton = false
                 DispatchQueue.main.async { recentChangesButtonFocused = true }
             }
         }
+    }
+
+    // MARK: - Mode Switching
+
+    /// Menu returns to Cam mode from the board (an open overlay's own
+    /// handler wins while it has focus); from Cam mode it is unhandled, so
+    /// the system exits to the Home screen. Recent changes stays reachable
+    /// through the heading's button.
+    private var menuAction: (() -> Void)? {
+        guard mode == .board, !showForecast, !showActivity else { return nil }
+        return { collapseToCam() }
+    }
+
+    private func noteActivity() {
+        lastRemoteActivity = Date()
+    }
+
+    private func expandToBoard() {
+        guard mode == .cam, !showForecast, !showActivity else { return }
+        noteActivity()
+        withAnimation(.easeOut(duration: Self.modeTransition)) {
+            modeRaw = TVBoardMode.board.rawValue
+        }
+        // The catcher that got us here just went unfocusable; hand focus
+        // back to the caption strip — row 0 of the board's focus rows.
+        DispatchQueue.main.async { focusedCamera = viewModel.selectedCamera?.id }
+    }
+
+    private func collapseToCam() {
+        guard mode == .board else { return }
+        noteActivity()
+        withAnimation(.easeOut(duration: Self.modeTransition)) {
+            modeRaw = TVBoardMode.cam.rawValue
+        }
+        DispatchQueue.main.async { focusedCamera = viewModel.selectedCamera?.id }
     }
 
     // MARK: - Overlays
@@ -153,37 +244,110 @@ struct ContentView: View {
 
     // MARK: - Board Layout
 
+    /// The two-mode composition. The cam band tops a vertical stack whose
+    /// remainder is the Cam-mode ambient section (surf sentence on its own
+    /// dark ground); the board is one absolutely-positioned block that
+    /// slides between its parked Cam-mode position (only its card row
+    /// visible, landing at the ambient card slot) and y = 405. The cards
+    /// therefore ride between modes rather than rebuild, while the board's
+    /// heading, panels and daylight band crossfade in during the rise.
     private var boardContent: some View {
-        VStack(spacing: 0) {
-            CamBand(
-                streamURL: viewModel.videoStreamURL,
-                rebuildToken: viewModel.videoStreamGeneration,
-                isPlaying: $viewModel.isVideoPlaying,
-                cameras: viewModel.cameras,
-                selectedID: viewModel.selectedCameraID,
-                offlineSince: viewModel.cameraOfflineSince,
-                verdict: verdictDisplay,
-                weatherCells: weatherCells,
-                time: currentTime,
-                staleMinutes: staleMinutes,
-                focusedCamera: $focusedCamera,
-                onSelectCamera: { viewModel.selectCamera($0) },
-                onPlaybackFailure: { viewModel.refreshVideoStream() }
-            )
-
-            lowerArea
-                // Night dimming scrim — darkens the board after sunset, but
-                // only below the band: the live feed is already dark at
-                // night, and dimming it further reads as a dead cam. The
-                // band has its own designed scrim.
-                .overlay(
-                    Color.black
-                        .opacity(palette.dimOverlayOpacity)
-                        .allowsHitTesting(false)
-                )
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    camBand
+                    ambientArea
+                }
+                boardBlock(screenHeight: geo.size.height)
+            }
         }
         .ignoresSafeArea()
     }
+
+    private var camBand: some View {
+        CamBand(
+            streamURL: viewModel.videoStreamURL,
+            rebuildToken: viewModel.videoStreamGeneration,
+            isPlaying: $viewModel.isVideoPlaying,
+            cameras: viewModel.cameras,
+            selectedID: viewModel.selectedCameraID,
+            offlineSince: viewModel.cameraOfflineSince,
+            verdict: verdictDisplay,
+            weatherCells: weatherCells,
+            time: currentTime,
+            staleMinutes: staleMinutes,
+            mode: mode,
+            flashToken: verdictFlashToken,
+            focusedCamera: $focusedCamera,
+            onSelectCamera: { viewModel.selectCamera($0); noteActivity() },
+            onPlaybackFailure: { viewModel.refreshVideoStream() },
+            onCollapse: { collapseToCam() }
+        )
+    }
+
+    /// Cam mode's lower 400pt: the surf sentence on its own ground (white
+    /// type needs to clear the pale end of the sky gradient). The ramp cards
+    /// that appear to live here belong to the board block above. Constant
+    /// day and night — the after-dark treatment is the feed's own darkness.
+    private var ambientArea: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AmbientSurfLine(model: surfPanel)
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 32)
+        .padding(.horizontal, 64)
+        .padding(.bottom, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            LinearGradient(
+                colors: [Color(boardHex: 0x041420).opacity(0.88),
+                         Color(boardHex: 0x041420).opacity(0.74)],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+        .overlay(alignment: .top) { expandCatcher }
+        .opacity(mode == .cam ? 1 : 0)
+    }
+
+    /// Invisible focus target on the band's bottom edge, live only in Cam
+    /// mode while the caption strip has focus (the `focusedCamera` gate
+    /// keeps launch-time initial focus off it): nothing else is focusable
+    /// down there, so a Down press always lands here and opens the board.
+    private var expandCatcher: some View {
+        Color(boardHex: 0x041420).opacity(0.02)
+            .frame(maxWidth: .infinity)
+            .frame(height: 10)
+            .focusable(mode == .cam && focusedCamera != nil)
+            .focused($expandCatcherFocused)
+    }
+
+    /// The board as one block — never reflowed mid-rise, only translated.
+    private func boardBlock(screenHeight: CGFloat) -> some View {
+        lowerArea
+            .frame(height: screenHeight - CamBand.boardModeHeight)
+            // Night dimming scrim — darkens the board after sunset, but
+            // only below the band: the live feed is already dark at
+            // night, and dimming it further reads as a dead cam. The
+            // band has its own designed scrim. Cam mode's ambient ground
+            // is already dark, so the dim rides the mode crossfade.
+            .overlay(
+                Color.black
+                    .opacity(mode == .board ? palette.dimOverlayOpacity : 0)
+                    .allowsHitTesting(false)
+            )
+            .offset(y: boardOffset(screenHeight: screenHeight))
+    }
+
+    private func boardOffset(screenHeight: CGFloat) -> CGFloat {
+        if mode == .board { return CamBand.boardModeHeight }
+        // Cam mode: park the block so its card row lands at the ambient
+        // section's card slot; everything else in it is faded and disabled.
+        return (screenHeight - Self.ambientCardsBottomInset) - cardsTopInBlock
+    }
+
+    /// Board chrome (heading, ahead band, daylight band) dissolves in Cam
+    /// mode — the cards are the only part of the block both modes share.
+    private var boardChromeOpacity: Double { mode == .board ? 1 : 0 }
 
     private var lowerArea: some View {
         VStack(spacing: 0) {
@@ -192,14 +356,19 @@ struct ContentView: View {
                 summary: viewModel.rampSummary,
                 cityFocused: $cityFocused,
                 recentChangesFocused: $recentChangesButtonFocused,
-                onNextCity: { viewModel.nextCity() },
+                onNextCity: { viewModel.nextCity(); noteActivity() },
                 onRecentChanges: {
                     activityOpenedFromButton = true
                     showActivity = true
                 }
             )
+            .opacity(boardChromeOpacity)
+            .disabled(mode != .board)
 
             RampGridView(cards: rampCards, staleAsOf: staleAsOf)
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.frame(in: .named("tvBoardBlock")).minY
+                } action: { cardsTopInBlock = $0 }
                 .padding(.top, 18)
 
             AheadBand(
@@ -212,6 +381,8 @@ struct ContentView: View {
                 }
             )
             .padding(.top, 20)
+            .opacity(boardChromeOpacity)
+            .disabled(mode != .board)
 
             // A single spacer absorbs slack above the daylight band — no
             // band is ever centered into a shrinkable track.
@@ -222,11 +393,13 @@ struct ContentView: View {
                 nowFraction: nowFraction,
                 isStale: viewModel.isStale
             )
+            .opacity(boardChromeOpacity)
         }
         .padding(.top, 24)
         .padding(.horizontal, 64)
         .padding(.bottom, 44)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .coordinateSpace(name: "tvBoardBlock")
     }
 
     // MARK: - Derived Display Data
@@ -306,6 +479,13 @@ struct ContentView: View {
             if let period = context?.dominantPeriodS {
                 parts.append("\(Int(period.rounded()))s")
             }
+            // Cam mode's sentence keeps height/period and folds a calm rip
+            // read into the prose; the buoy-read time stays on the board
+            // panel. An elevated rip is rendered separately, in amber.
+            var sentenceParts = parts
+            if let ripLabel, !elevated {
+                sentenceParts.append(ripLabel.prefix(1).lowercased() + ripLabel.dropFirst())
+            }
             if let at = report.observedAt ?? context?.observedAt {
                 parts.append("buoy read \(agoText(at))")
             }
@@ -314,6 +494,7 @@ struct ContentView: View {
                 ripLabel: ripLabel,
                 ripElevated: elevated,
                 detail: parts.isEmpty ? " " : parts.joined(separator: " · "),
+                sentenceDetail: sentenceParts.isEmpty ? " " : sentenceParts.joined(separator: " · "),
                 hasRead: true
             )
         }
@@ -327,6 +508,7 @@ struct ContentView: View {
             ripLabel: "No read",
             ripElevated: false,
             detail: detail,
+            sentenceDetail: detail,
             hasRead: false
         )
     }
@@ -418,6 +600,46 @@ struct ContentView: View {
         if solarDay == nil || !calendar.isDate(solarDay!, inSameDayAs: now) {
             solarDay = now
             sunTimeline = SunTimeline(day: now, solar: solar, calendar: calendar, zone: Self.easternZone)
+        }
+
+        // 10 idle minutes on the board fall back to Cam mode, closing any
+        // overlay on the way — the picture is the better thing to leave on
+        // a television. Real wall clock on purpose: --sky-minutes scrubs
+        // `now` for screenshots and must not fake idleness.
+        if mode == .board, Date().timeIntervalSince(lastRemoteActivity) > Self.idleFallback {
+            showForecast = false
+            showActivity = false
+            collapseToCam()
+        }
+    }
+}
+
+/// Cam mode's surf read — a baseline sentence, not a panel: kicker, the
+/// server's line verbatim, and the height/period/rip facts. An elevated rip
+/// risk enters the prose in amber; the no-read state mutes the line.
+private struct AmbientSurfLine: View {
+    let model: SurfPanelModel
+
+    var body: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 24) {
+            Text("Surf")
+                .kickerStyle(opacity: 0.6)
+            Text(model.line)
+                .font(.system(size: 44, weight: .heavy))
+                .tracking(44 * -0.02)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .foregroundStyle(.white.opacity(model.hasRead ? 1.0 : 0.72))
+            Text(model.sentenceDetail)
+                .font(.system(size: 24))
+                .lineLimit(1)
+                .foregroundStyle(.white.opacity(model.hasRead ? 0.75 : 0.6))
+            if model.ripElevated, let rip = model.ripLabel {
+                Text(rip)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(BoardColor.amberAccent)
+            }
+            Spacer(minLength: 0)
         }
     }
 }

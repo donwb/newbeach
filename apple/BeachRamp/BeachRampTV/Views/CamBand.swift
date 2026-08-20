@@ -17,13 +17,24 @@ struct WeatherCell: Identifiable {
     var id: String { label }
 }
 
-/// The panorama header of design v3: the cam holds the top 405pt at its true
-/// aspect and carries the brand row, the weather strip, the verdict, and the
-/// cam caption strip on its own bottom edge. When the selected cam is
-/// offline the band falls back to the sky gradient and the caption strip
-/// does the recovery itself — the dead cam is struck through and the
-/// nearest live one is named in amber. No separate banner.
+/// The panorama header, two heights one press apart (the modes handoff):
+/// Cam mode gives the video its native 680pt — the tallest sharp frame the
+/// 3222×680 source can fill — and Board mode settles it into the v3 405pt
+/// band. The brand row, weather strip and verdict sit at identical
+/// coordinates in both modes; only the bottom edge travels, with the cam
+/// caption strip fixed to it. When the selected cam is offline the band
+/// falls back to the sky gradient and the caption strip does the recovery
+/// itself — the dead cam is struck through and the nearest live one is
+/// named in amber. No separate banner.
 struct CamBand: View {
+    /// Cam mode: the feed's native height (source is 3222×680) — 1:1, every
+    /// source pixel mapped to one display pixel, 60% of the panorama.
+    /// Filling 16:9 would upscale an already-soft stream 1.59× — never.
+    /// If the feed's resolution changes, this changes with it.
+    static let camModeHeight: CGFloat = 680
+    /// Board mode: the full source width fits 1920 at a 0.596× downscale.
+    static let boardModeHeight: CGFloat = 405
+
     let streamURL: URL?
     let rebuildToken: Int
     @Binding var isPlaying: Bool
@@ -36,11 +47,19 @@ struct CamBand: View {
     let time: String
     /// Minutes since the ramps feed last loaded, once stale. Nil = live.
     let staleMinutes: Int?
+    let mode: TVBoardMode
+    /// Bumps when the verdict changes while Cam mode is up — the accent bar
+    /// flashes once in place. A status change never opens the board.
+    let flashToken: Int
     @FocusState.Binding var focusedCamera: String?
     let onSelectCamera: (String) -> Void
     let onPlaybackFailure: () -> Void
+    /// Up from the caption strip with nowhere further to go — close the board.
+    let onCollapse: () -> Void
 
     @Environment(\.skyPalette) private var sky
+    @FocusState private var collapseCatcherFocused: Bool
+    @State private var verdictFlash = false
 
     private var selectedCamera: Camera? {
         cameras.first { $0.id == selectedID } ?? cameras.first
@@ -58,8 +77,17 @@ struct CamBand: View {
             scrim
             content
         }
-        .frame(height: 405)
+        .frame(height: mode == .cam ? Self.camModeHeight : Self.boardModeHeight)
         .clipped()
+        .onChange(of: flashToken) { _, _ in
+            verdictFlash = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.easeOut(duration: 0.8)) { verdictFlash = false }
+            }
+        }
+        .onChange(of: collapseCatcherFocused) { _, focused in
+            if focused { onCollapse() }
+        }
     }
 
     // MARK: - Layers
@@ -78,31 +106,78 @@ struct CamBand: View {
         }
     }
 
-    /// Bottom-heavy gradient protecting the caption strip; a lighter wash up
-    /// top keeps the brand row readable without hiding the panorama.
+    /// Both modes' scrims stay in the tree and crossfade with the height
+    /// animation. Board mode: the v3 single full-height wash. Cam mode:
+    /// separate top and bottom protections with ~300pt of clear picture
+    /// between the verdict and the caption strip.
     private var scrim: some View {
-        LinearGradient(
-            stops: [
-                .init(color: Color(boardHex: 0x041420).opacity(0.58), location: 0),
-                .init(color: Color(boardHex: 0x041420).opacity(0.10), location: 0.32),
-                .init(color: Color(boardHex: 0x041420).opacity(0.38), location: 0.60),
-                .init(color: Color(boardHex: 0x041420).opacity(0.88), location: 1.0),
-            ],
-            startPoint: .top, endPoint: .bottom
-        )
+        ZStack {
+            LinearGradient(
+                stops: [
+                    .init(color: Color(boardHex: 0x041420).opacity(0.58), location: 0),
+                    .init(color: Color(boardHex: 0x041420).opacity(0.10), location: 0.32),
+                    .init(color: Color(boardHex: 0x041420).opacity(0.38), location: 0.60),
+                    .init(color: Color(boardHex: 0x041420).opacity(0.88), location: 1.0),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .opacity(mode == .board ? 1 : 0)
+
+            ZStack {
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(boardHex: 0x041420).opacity(0.72), location: 0),
+                        .init(color: Color(boardHex: 0x041420).opacity(0.34), location: 0.34),
+                        .init(color: Color(boardHex: 0x041420).opacity(0), location: 1.0),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 400)
+                .frame(maxHeight: .infinity, alignment: .top)
+
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(boardHex: 0x041420).opacity(0), location: 0),
+                        .init(color: Color(boardHex: 0x041420).opacity(0.30), location: 0.54),
+                        .init(color: Color(boardHex: 0x041420).opacity(0.86), location: 1.0),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 240)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+            }
+            .opacity(mode == .cam ? 1 : 0)
+        }
     }
 
+    /// The chrome row and verdict are top-anchored so they hold identical
+    /// coordinates in both modes — the rule that makes the switch legible.
+    /// Only the flexible spacer (the picture) grows and shrinks.
     private var content: some View {
         VStack(spacing: 0) {
             topRow
-            Spacer(minLength: 0)
             verdictBlock
+                .padding(.top, 40)
+            Spacer(minLength: 0)
+            collapseCatcher
             captionStrip
-                .padding(.top, 16)
         }
         .padding(.top, 40)
         .padding(.horizontal, 64)
         .padding(.bottom, 20)
+    }
+
+    /// Invisible focus target directly above the caption strip, live only in
+    /// Board mode while the strip itself has focus: an Up press from the
+    /// strip has nowhere else to go, lands here, and closes the board — the
+    /// same fall-through tvOS uses on the Home screen's top row. Gating on
+    /// `focusedCamera` keeps launch-time initial focus off it.
+    private var collapseCatcher: some View {
+        Color(boardHex: 0x041420).opacity(0.02)
+            .frame(maxWidth: .infinity)
+            .frame(height: 10)
+            .focusable(mode == .board && focusedCamera != nil)
+            .focused($collapseCatcherFocused)
     }
 
     // MARK: - Top row
@@ -175,6 +250,7 @@ struct CamBand: View {
         HStack(alignment: .bottom, spacing: 20) {
             Rectangle()
                 .fill(verdict.barColor)
+                .overlay(Rectangle().fill(.white).opacity(verdictFlash ? 0.9 : 0))
                 .frame(width: 20, height: 74)
             VStack(alignment: .leading, spacing: 8) {
                 Text(verdict.headline)
@@ -226,10 +302,19 @@ struct CamBand: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text("‹ › switches cam")
+            Text("‹ › cam")
                 .font(.system(size: 22))
                 .foregroundStyle(.white.opacity(0.6))
                 .padding(.top, 4)
+
+            Text(mode == .cam ? "▾ Ramps" : "▴ Full cam")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.top, 4)
+                .padding(.leading, 20)
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(.white.opacity(0.34)).frame(width: 2)
+                }
         }
         .padding(.top, 12)
         .overlay(alignment: .top) {
@@ -354,9 +439,48 @@ struct CoastPinButtonStyle: ButtonStyle {
             ],
             time: "1:23 PM",
             staleMinutes: nil,
+            mode: .board,
+            flashToken: 0,
             focusedCamera: $focused,
             onSelectCamera: { _ in },
-            onPlaybackFailure: {}
+            onPlaybackFailure: {},
+            onCollapse: {}
+        )
+        Spacer()
+    }
+    .background(Color(red: 0.05, green: 0.5, blue: 0.66))
+    .ignoresSafeArea()
+}
+
+#Preview("Cam mode") {
+    @Previewable @FocusState var focused: String?
+    @Previewable @State var playing = false
+    VStack(spacing: 0) {
+        CamBand(
+            streamURL: nil,
+            rebuildToken: 0,
+            isPlaying: $playing,
+            cameras: PreviewFixtures.cameras,
+            selectedID: "nsb",
+            offlineSince: [:],
+            verdict: TVVerdictDisplay(
+                headline: "All five open",
+                subline: "Tide rising · high 2:56 PM · 6h 36m of light left",
+                barColor: BoardColor.verdictGood
+            ),
+            weatherCells: [
+                WeatherCell(label: "Water", value: "82°"),
+                WeatherCell(label: "Air", value: "91°"),
+                WeatherCell(label: "Wind", value: "SW 5"),
+            ],
+            time: "1:23 PM",
+            staleMinutes: nil,
+            mode: .cam,
+            flashToken: 0,
+            focusedCamera: $focused,
+            onSelectCamera: { _ in },
+            onPlaybackFailure: {},
+            onCollapse: {}
         )
         Spacer()
     }

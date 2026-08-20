@@ -10,6 +10,10 @@ struct SurfPanelModel {
     let ripElevated: Bool
     /// "Knee-high · 6s · buoy read 40 min ago"
     let detail: String
+    /// Cam mode's one-line variant — the buoy-read time stays on the board
+    /// panel; the sentence carries height, period and rip: "Knee-high · 6s ·
+    /// rip risk low".
+    let sentenceDetail: String
     let hasRead: Bool
 }
 
@@ -185,6 +189,7 @@ private struct DayPanelButtonStyle: ButtonStyle {
                 ripLabel: "Rip risk low",
                 ripElevated: false,
                 detail: "Knee-high · 6s · buoy read 40 min ago",
+                sentenceDetail: "Knee-high · 6s · rip risk low",
                 hasRead: true
             ),
             days: [

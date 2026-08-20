@@ -29,6 +29,16 @@ enum BoardColor {
     static let limitedInk = Color(boardHex: 0x241500)
 }
 
+// MARK: - Display Modes
+
+/// The two presentations of the board, one D-pad press apart (the modes
+/// handoff): Cam mode rests on the picture at its largest sharp size; Board
+/// mode settles the cam into a header band and fills in the full board.
+/// Not a setting — a direction. Raw value is persisted across launches.
+enum TVBoardMode: String {
+    case cam, board
+}
+
 // MARK: - Design v3 Tokens
 // From "tvOS design v3" (panorama header, inline selectors). The board's
 // status palette is specified per-field in the handoff and carried here as
