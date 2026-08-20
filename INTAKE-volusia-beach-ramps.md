@@ -52,10 +52,12 @@ come from the National Weather Service API for New Smyrna Beach coordinates
 (api/internal/weather/client.go:14-21). The same binary serves the vanilla
 JS + Tailwind website at `/` and JSON at `/api/v2/*` to the iPhone, iPad,
 Apple Watch, Apple TV, and two TRMNL e-ink displays. Live beach cams are
-YouTube streams whose HLS URLs are resolved by yt-dlp running on a cron on a
-residential-IP home machine — because YouTube blocks datacenter IPs — and
-pushed back into the database (scripts/update-stream-url.sh:1-6,
-api/cmd/server/main.go:131-135).
+YouTube streams pulled by yt-dlp on a residential-IP home Mac Studio — because
+YouTube blocks datacenter IPs — and re-published over RTMP to a MediaMTX relay
+droplet that serves stable HLS at `cams.donwb.com`, so the roster's
+`stream_url` values no longer rotate (scripts/cam-restreamer.sh, CLAUDE.md
+"Beach Cam Relay"). The earlier resolve-and-push-URL cron was retired
+2026-08-14 (scripts/update-stream-url.sh, api/cmd/server/main.go:131-135).
 
 ## 2. Shipped features
 
@@ -207,10 +209,16 @@ api/cmd/server/main.go:131-135).
   strings and ships them as JSON, so the TRMNL's Liquid template stays
   near logic-free (api/internal/handlers/trmnl.go:309-311,55-62).
 - **The beach cams are kept alive by a Mac at home.** YouTube blocks yt-dlp
-  from datacenter IPs, so a cron on a residential-IP home machine resolves
-  every camera's HLS URL and pushes it to the API — the cloud literally can't
-  refresh its own video streams (scripts/update-stream-url.sh:1-6,
-  main.go:131-135).
+  from datacenter IPs, so a residential-IP home Mac Studio downloads each
+  stream with yt-dlp and re-publishes it over RTMP to a MediaMTX relay droplet
+  (`beach-cam-relay`), which serves stable HLS at
+  `https://cams.donwb.com/<camera-id>/index.m3u8` — the cloud literally can't
+  SOURCE its own video, but the URLs it serves no longer expire, so the roster's
+  `stream_url` values are effectively permanent (scripts/cam-restreamer.sh,
+  CLAUDE.md "Beach Cam Relay"). The older URL-push cron — resolve the
+  googlevideo HLS URL and push it to the API — was RETIRED 2026-08-14 when
+  YouTube IP-locked those URLs, which made a pushed URL play black for every
+  viewer (scripts/update-stream-url.sh, kept for reference only).
 - **The county once renumbered every ramp under the app's feet.** Volusia's
   GIS renumbered its OBJECTIDs, stranding stale statuses; fixed with a
   migration and upsert change (commit ff3a353, migrations/006).
