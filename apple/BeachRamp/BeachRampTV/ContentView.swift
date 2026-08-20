@@ -14,8 +14,10 @@ import BeachStatus
 /// Two rules carry the design: a pull surface (Beach outlook, Ramp detail)
 /// replaces the ledger and never the picture, and red means closed and
 /// nothing else — focus, selection and the all-open verdict are dry sand.
-/// The ground behind it all follows the sun through sixteen dark day-part
-/// gradients (TVSkyGround); there is no mode toggle any more.
+/// The ground behind it all is the shared sixteen-phase SkyPalette at full
+/// brightness — the evolving sky Don asked back — with TVSky's ink veils
+/// over the header and ledger keeping type legible on the pale day phases;
+/// there is no mode toggle any more.
 struct ContentView: View {
     @State private var viewModel = TVViewModel()
     @FocusState private var focus: RootFocus?
@@ -45,7 +47,6 @@ struct ContentView: View {
         return cal
     }
 
-    private var ground: TVSkyGround { TVSkyGround.forSun(altitude: sunAltitude, isRising: sunRising) }
     private var sky: SkyPalette { SkyPalette.forSun(altitude: sunAltitude, isRising: sunRising) }
 
     /// Idle remote time before surfaces close and focus clears.
@@ -76,7 +77,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            ground.gradient
+            sky.gradient
                 .ignoresSafeArea()
 
             if viewModel.isLoading && viewModel.ramps.isEmpty {
@@ -131,6 +132,7 @@ struct ContentView: View {
                 focus: $focus,
                 onOpenOutlook: { openSurface(.outlook) }
             )
+            .background(TVSky.headerVeil)
 
             PictureBand(
                 streamURL: viewModel.videoStreamURL,
@@ -141,6 +143,7 @@ struct ContentView: View {
             )
 
             bottomArea
+                .background(TVSky.ledgerVeil)
         }
         .ignoresSafeArea()
     }

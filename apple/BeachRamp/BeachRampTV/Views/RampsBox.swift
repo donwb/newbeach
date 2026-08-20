@@ -299,7 +299,7 @@ struct OvernightCitiesBox: View {
         onActivity: {}
     )
     .padding(40)
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 
 #Preview("Twelve rows, windowed", traits: .fixedLayout(width: 990, height: 420)) {
@@ -316,12 +316,12 @@ struct OvernightCitiesBox: View {
         onActivity: {}
     )
     .padding(40)
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 
 #Preview("Overnight", traits: .fixedLayout(width: 990, height: 420)) {
     OvernightCitiesBox(lines: PreviewFixtures.overnightLines)
         .padding(40)
-        .background(TVSkyGround.night.gradient)
+        .background(TVSky.previewNight)
 }
 #endif

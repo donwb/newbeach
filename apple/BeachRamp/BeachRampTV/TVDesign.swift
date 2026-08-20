@@ -6,8 +6,11 @@ import BeachStatus
 // everywhere; structure is carried by 2pt rules, not rounding or materials.
 // Two rules carry the palette: red means closed and nothing else, and every
 // interactive accent (focus, active cam, scroll thumb, the outlook button)
-// is dry sand — which holds on every day-part ground because all of them
-// are dark by construction (see TVSkyGround).
+// is dry sand — which holds on every ground because the type never sits on
+// the bare sky: the ground is the shared full-brightness SkyPalette (Don's
+// call, 2026-08-20 — the dark TVSkyGround re-voicing was reverted), and the
+// header and ledger regions lay a translucent ink veil (TVSky) over it so
+// the sky's sixteen phases glow through while type keeps its contrast.
 
 enum TVInk {
     /// Base frame under the day-part gradient.
@@ -35,6 +38,42 @@ enum TVInk {
     static let barMuted = type.opacity(0.40)
     /// Ink on a sand fill (focused outlook button).
     static let onSand = Color(boardHex: 0x100F0E)
+}
+
+/// The sun-following ground and its legibility veils. The sky itself is the
+/// shared sixteen-phase SkyPalette — bright midday blues, amber golden hours
+/// — rendered at full strength; the veils are what let #F3F2F2 type and sand
+/// accents sit on it. The ledger's veil runs heavier toward the screen
+/// bottom, countering the sky gradient's pale bottom stops; the picture band
+/// is never veiled.
+enum TVSky {
+    /// Veil ink — the v3 board's panel-field hue.
+    static let veilInk = Color(boardHex: 0x041A28)
+    static let headerVeilOpacity = 0.32
+    static let ledgerVeilTopOpacity = 0.42
+    static let ledgerVeilBottomOpacity = 0.62
+
+    static var headerVeil: some View {
+        veilInk.opacity(headerVeilOpacity)
+    }
+
+    static var ledgerVeil: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: veilInk.opacity(ledgerVeilTopOpacity), location: 0),
+                .init(color: veilInk.opacity(ledgerVeilBottomOpacity), location: 1),
+            ],
+            startPoint: .top, endPoint: .bottom
+        )
+    }
+
+    // Preview grounds — the shared palette's noon and deep night.
+    static var previewNoon: LinearGradient {
+        SkyPalette.forSun(altitude: 48, isRising: true).gradient
+    }
+    static var previewNight: LinearGradient {
+        SkyPalette.forSun(altitude: -30, isRising: false).gradient
+    }
 }
 
 enum TVMetrics {

@@ -86,6 +86,6 @@ struct SurfWeekendBox: View {
         ]
     )
     .padding(40)
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 #endif

@@ -151,6 +151,6 @@ private struct CamStripName: View {
         offlineSince: ["ormond-by-the-sea": PreviewFixtures.at(12, 48)],
         focus: $focus
     )
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 #endif

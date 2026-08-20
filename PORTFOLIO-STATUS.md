@@ -61,7 +61,16 @@ last_verified: 2026-08-20 (tvOS REBUILT AGAIN to the "video first" design — Do
   verified same afternoon (Don asked): the follow-the-sun ground IS live in
   video-first — TVSkyGround keeps all 16 phases on SkyPalette's anchors, deliberately
   re-voiced dark (teal noon, amber golden hour), confirmed by --sky-minutes
-  noon-vs-golden screenshots. App Store TV screenshots now trail by FOUR designs.
+  noon-vs-golden screenshots. Don then called the dark re-voicing WRONG — he wants
+  the bright evolving sky back — so later the same afternoon the ground was
+  reverted to the shared full-brightness SkyPalette (TVSkyGround DELETED) with a
+  new TVSky ink-veil layer (v3's panel hue 0x041A28: header flat 0.32, ledger
+  gradient 0.42→0.62, picture never veiled) keeping type legible on the pale
+  day phases; the TVSkyGround darkness test was replaced by veil-contrast tests
+  sweeping every 2° of sun altitude (white ≥3.5:1 ledger / ≥3.0 header, sand
+  ≥2.4 header). Verified noon/golden/night in the sim; all UI tests pass.
+  NOT yet flighted — build 23 (dark grounds) is what TestFlight has.
+  App Store TV screenshots now trail by FOUR designs.
   Prior 08-19 state below.)
 prior_2026_08_19_late: (tvOS gained its TWO-MODE presentation from the
   "tvOS modes" Claude Design handoff — Cam mode and Board mode, one D-pad press apart.

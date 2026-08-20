@@ -107,7 +107,7 @@ struct HeaderBand: View {
         focus: $focus,
         onOpenOutlook: {}
     )
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 
 #Preview("Header · stale", traits: .fixedLayout(width: 1920, height: 110)) {
@@ -124,6 +124,6 @@ struct HeaderBand: View {
         focus: $focus,
         onOpenOutlook: {}
     )
-    .background(TVSkyGround.night.gradient)
+    .background(TVSky.previewNight)
 }
 #endif

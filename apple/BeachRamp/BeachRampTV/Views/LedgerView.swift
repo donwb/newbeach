@@ -139,7 +139,7 @@ struct LedgerView: View {
         onSelect: { _ in },
         onActivity: {}
     )
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 
 #Preview("Something shut", traits: .fixedLayout(width: 1920, height: 574)) {
@@ -174,7 +174,7 @@ struct LedgerView: View {
         onSelect: { _ in },
         onActivity: {}
     )
-    .background(TVSkyGround.noon.gradient)
+    .background(TVSky.previewNoon)
 }
 
 #Preview("Overnight", traits: .fixedLayout(width: 1920, height: 574)) {
@@ -209,6 +209,6 @@ struct LedgerView: View {
         onSelect: { _ in },
         onActivity: {}
     )
-    .background(TVSkyGround.night.gradient)
+    .background(TVSky.previewNight)
 }
 #endif
