@@ -237,6 +237,63 @@ func headlineCovers(lowerHeadline, driver string) bool {
 	return false
 }
 
+// closureRiskLabel is the day's closure story as one short phrase for table
+// cells. It grades the beach day, never a ramp: this far out the tide is
+// knowable and the individual gates are not, so no ramp name may ever appear
+// here (the ledger names ramps, where it is same-day and real). Placement
+// comes from the tide windows' midpoints against thirds of the driving frame.
+func closureRiskLabel(facts dayFacts) string {
+	if facts.pressure == PressureNone {
+		return "Clear all day"
+	}
+	if facts.anyHardClose {
+		return "All-day close risk"
+	}
+
+	opens, closes := *facts.frame.OpensAt, *facts.frame.ClosesAt
+	span := closes.Sub(opens)
+	if span <= 0 {
+		return "Some close potential"
+	}
+
+	buckets := [3]bool{} // morning / mid-day / late-day
+	for _, w := range facts.tideWindows {
+		// A single window swallowing most of the day is its own answer.
+		if w.end.Sub(w.start) >= span*2/3 {
+			return "All-day close risk"
+		}
+		mid := w.start.Add(w.end.Sub(w.start) / 2)
+		idx := int(mid.Sub(opens) * 3 / span)
+		if idx < 0 {
+			idx = 0
+		}
+		if idx > 2 {
+			idx = 2
+		}
+		buckets[idx] = true
+	}
+
+	names := []string{"Morning", "Mid-day", "Late-day"}
+	var hit []string
+	for i, b := range buckets {
+		if b {
+			hit = append(hit, names[i])
+		}
+	}
+	switch len(hit) {
+	case 0:
+		// Pressure without a placeable window (the closure math clamped it
+		// away) — still a real warning, just not a timed one.
+		return "Some close potential"
+	case 1:
+		return hit[0] + " close potential"
+	case 2:
+		return hit[0] + " and " + strings.ToLower(hit[1]) + " close potential"
+	default:
+		return "All-day close risk"
+	}
+}
+
 // peakClause renders "around the ~1:30pm high tide" for the day's worst peak,
 // or a timeless fallback.
 func peakClause(facts dayFacts) string {

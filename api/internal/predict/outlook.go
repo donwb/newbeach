@@ -84,6 +84,7 @@ type Reopen struct {
 type RampOutlook struct {
 	AccessID   string  `json:"access_id"`
 	RampID     int64   `json:"ramp_id"`
+	City       string  `json:"city,omitempty"` // raw GIS key, matches ramp .city
 	Risk       string  `json:"risk"`
 	Reason     string  `json:"reason,omitempty"`
 	Confidence string  `json:"confidence"`
@@ -131,6 +132,7 @@ type Outlook struct {
 	Surf        *SurfContext  `json:"surf,omitempty"`
 	SurfReport  *SurfReport   `json:"surf_report,omitempty"`
 	Ramps       []RampOutlook `json:"ramps"`
+	Cities      []CityVerdict `json:"cities,omitempty"`
 }
 
 // inTurtleSeason reports whether the Eastern date falls in Volusia County's
@@ -465,6 +467,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		ro := RampOutlook{
 			AccessID:   ramp.AccessID,
 			RampID:     ramp.ID,
+			City:       ramp.City,
 			Confidence: confidence(rp, learned),
 		}
 
@@ -534,5 +537,6 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		out.Ramps = append(out.Ramps, ro)
 	}
 
+	out.Cities = buildCityVerdicts(now, ramps, out.Ramps, sched, season, out.Tide)
 	return out
 }

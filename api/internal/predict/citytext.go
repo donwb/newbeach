@@ -1,0 +1,216 @@
+package predict
+
+import (
+	"strconv"
+	"strings"
+	"time"
+)
+
+// City verdict prose. Same voice rules as text.go: predicted times are
+// half-hour rounded and hedged, facts (a ramp's closed-since time, the day's
+// close label) may be quoted as they are, every line names its reason, and
+// the pair always looks forward — what is true right now, and the next thing
+// that changes it.
+
+// countWord spells small counts the way the verdict reads aloud.
+func countWord(n int) string {
+	words := []string{"zero", "one", "two", "three", "four", "five", "six",
+		"seven", "eight", "nine", "ten", "eleven", "twelve"}
+	if n >= 0 && n < len(words) {
+		return words[n]
+	}
+	return strconv.Itoa(n)
+}
+
+// capFirst uppercases the first letter of an ASCII word.
+func capFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// joinNames renders "A", "A and B", or "A, B and C".
+func joinNames(names []string) string {
+	switch len(names) {
+	case 0:
+		return ""
+	case 1:
+		return names[0]
+	case 2:
+		return names[0] + " and " + names[1]
+	default:
+		return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+	}
+}
+
+// peakPhrase names the tide peak the at-risk clause hangs on.
+func peakPhrase(tide TideContext) string {
+	if tide.NextPeakAt == nil {
+		return "the next high tide"
+	}
+	return "the ~" + fmtClock(roundNearest30(*tide.NextPeakAt)) + " high"
+}
+
+// cityAllOpenText: every ramp open, driving day in full swing.
+func cityAllOpenText(now time.Time, agg *cityAgg, sched Schedule, tide TideContext) (headline, detail string) {
+	headline = "All " + countWord(agg.rampCount) + " open"
+	if agg.rampCount == 1 {
+		headline = "The ramp is open"
+	}
+
+	if agg.atRisk == 0 {
+		return headline, "No tide trouble expected · open for driving until " + sched.ClosesLabel
+	}
+
+	peak := peakPhrase(tide)
+	switch {
+	case agg.atRisk == agg.rampCount && agg.rampCount > 1:
+		detail = "Any of them could shut on " + peak
+	case agg.atRisk == 1:
+		detail = "One could shut on " + peak
+	default:
+		detail = capFirst(countWord(agg.atRisk)) + " could shut on " + peak
+	}
+	if agg.atRisk > 1 && agg.earliestWindow != nil {
+		if agg.earliestWindow.After(now) {
+			detail += " · first around " + fmtClock(*agg.earliestWindow)
+		} else {
+			detail += " · could go any time now"
+		}
+	}
+	return headline, detail
+}
+
+// citySomeClosedText: at least one ramp is not plain open right now.
+func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headline, detail string) {
+	if agg.openCount == 0 {
+		headline = "All " + countWord(agg.rampCount) + " closed"
+	} else {
+		headline = capFirst(countWord(agg.openCount)) + " of " + countWord(agg.rampCount) + " open"
+	}
+
+	var closed, limited []notOpenRamp
+	for _, r := range agg.notOpen {
+		if r.category == "closed" {
+			closed = append(closed, r)
+		} else {
+			limited = append(limited, r)
+		}
+	}
+
+	var clauses []string
+	if len(closed) > 0 {
+		cause := "closed"
+		allTide := true
+		for _, r := range closed {
+			if r.status != tideClosedStatus {
+				allTide = false
+			}
+		}
+		if allTide {
+			cause = "closed for the tide"
+		}
+		var clause string
+		if len(closed) <= 3 {
+			clause = joinNames(namesOf(closed)) + " " + cause
+		} else {
+			clause = capFirst(countWord(len(closed))) + " ramps " + cause
+		}
+		if since := sharedSince(closed); since != nil {
+			clause += " since " + fmtClock(*since)
+		}
+		clauses = append(clauses, clause)
+	}
+	if len(limited) > 0 {
+		if len(limited) <= 2 {
+			clauses = append(clauses, joinNames(namesOf(limited))+" limited")
+		} else {
+			clauses = append(clauses, countWord(len(limited))+" limited")
+		}
+	}
+	switch {
+	case agg.atRisk > 0:
+		clauses = append(clauses, countWord(agg.atRisk)+" more could shut on "+peakPhrase(tide))
+	case agg.openCount > 0:
+		clauses = append(clauses, "the rest look clear until "+sched.ClosesLabel)
+	}
+
+	return headline, capFirst(strings.Join(clauses, " · "))
+}
+
+// cityGoldenText: everything open, the day's close inside goldenWindow.
+func cityGoldenText(now time.Time, agg *cityAgg, season string, sched Schedule) (headline, detail string) {
+	// In turtle season the fixed close comes well before dark, so the story
+	// is the driving day, not the light.
+	subject := "light"
+	if season == "turtle" {
+		subject = "driving"
+	}
+	rem := time.Duration(0)
+	if sched.ClosesAt != nil {
+		rem = sched.ClosesAt.Sub(now)
+	}
+	if rem <= 35*time.Minute {
+		headline = "About half an hour of " + subject + " left"
+	} else {
+		headline = "Under an hour of " + subject + " left"
+	}
+
+	allOpen := "All " + countWord(agg.rampCount) + " open"
+	if agg.rampCount == 1 {
+		allOpen = "The ramp is open"
+	}
+	closeClause := "gates close at " + sched.ClosesLabel
+	if season == "turtle" {
+		closeClause = "gates close around " + sched.ClosesLabel
+	}
+	return headline, allOpen + " · " + closeClause
+}
+
+// cityOvernightText: outside driving hours entirely — the next thing that
+// happens is the morning open.
+func cityOvernightText(now time.Time, season string, sched Schedule) (headline, detail string) {
+	headline = "Driving is done for the day"
+	if sched.OpensAt != nil {
+		nowET, opensET := now.In(eastern), sched.OpensAt.In(eastern)
+		if nowET.Year() == opensET.Year() && nowET.YearDay() == opensET.YearDay() {
+			headline = "Closed until morning"
+		}
+	}
+	if season == "turtle" {
+		detail = "Every ramp reopens " + sched.OpensLabel
+	} else {
+		detail = "Every ramp reopens at " + sched.OpensLabel
+	}
+	return headline, detail
+}
+
+// namesOf projects the display names.
+func namesOf(ramps []notOpenRamp) []string {
+	names := make([]string, len(ramps))
+	for i, r := range ramps {
+		names[i] = r.name
+	}
+	return names
+}
+
+// sharedSince returns the group's common status-since time — only when every
+// ramp has one and they agree to the minute, so "closed since 11:40am" is
+// never claimed for a ramp it isn't true of.
+func sharedSince(ramps []notOpenRamp) *time.Time {
+	var since *time.Time
+	for _, r := range ramps {
+		if r.since == nil {
+			return nil
+		}
+		if since == nil {
+			since = r.since
+			continue
+		}
+		if !r.since.Truncate(time.Minute).Equal(since.Truncate(time.Minute)) {
+			return nil
+		}
+	}
+	return since
+}

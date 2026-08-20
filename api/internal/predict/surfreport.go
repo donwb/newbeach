@@ -59,6 +59,19 @@ func surfHeightLabel(ft float64) string {
 	}
 }
 
+// surfDayLabel renders a forecast day's max wave height as one card word,
+// reusing the report's height vocabulary so the app speaks one surf language.
+func surfDayLabel(ft *float64) string {
+	if ft == nil {
+		return ""
+	}
+	label := surfHeightLabel(*ft)
+	if label == "" {
+		return "Flat"
+	}
+	return strings.ToUpper(label[:1]) + label[1:]
+}
+
 // windShore classifies a wind direction (degrees FROM) against the coast:
 // "onshore", "offshore", or "cross".
 func windShore(dirDeg float64) string {

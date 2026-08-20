@@ -90,7 +90,7 @@ func TestWeekendMidweekHorizon(t *testing.T) {
 	now, preds, land := quietWeek(t)
 	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
 
-	require.Len(t, out.Days, 6)
+	require.Len(t, out.Days, 7)
 	assert.Equal(t, "2026-08-19", out.Days[0].Date, "today stays in the list while its driving day is live")
 	assert.Equal(t, "Wednesday", out.Days[0].Weekday)
 
@@ -391,4 +391,90 @@ func TestWeekendCopyRules(t *testing.T) {
 			checkDay(t, d)
 		}
 	}
+}
+
+// setSaturdayPeaks replaces every Saturday peak height in preds.
+func setSaturdayPeaks(preds []models.TidePrediction, ft float64) {
+	for i := range preds {
+		if preds[i].Time.In(eastern).Weekday() == time.Saturday {
+			h := ft
+			preds[i].Height = &h
+		}
+	}
+}
+
+func TestWeekendClosureRiskLabel(t *testing.T) {
+	now, preds, land := quietWeek(t)
+	build := func() WeekendOutlook {
+		return BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	}
+
+	// Quiet baseline: clear everywhere, and the label never names a ramp.
+	nameRe := regexp.MustCompile(`3rd Ave|Crawford|Silver Beach`)
+	for _, d := range build().Days {
+		assert.Equal(t, "Clear all day", d.ClosureRiskLabel, d.Weekday)
+	}
+
+	// A possible-band peak at 1pm places the risk mid-day.
+	setSaturdayPeaks(preds, 2.7)
+	sat := day(t, build(), "Saturday")
+	require.NotNil(t, sat)
+	assert.Equal(t, "Mid-day close potential", sat.ClosureRiskLabel)
+	assert.False(t, nameRe.MatchString(sat.ClosureRiskLabel), "the outlook must never name ramps")
+
+	// A hard-close peak is an all-day story.
+	setSaturdayPeaks(preds, 3.8)
+	sat = day(t, build(), "Saturday")
+	require.NotNil(t, sat)
+	assert.Equal(t, "All-day close risk", sat.ClosureRiskLabel)
+	assert.False(t, nameRe.MatchString(sat.ClosureRiskLabel))
+
+	// Morning and late-day peaks together name both buckets.
+	setSaturdayPeaks(preds, 2.0)
+	for i := range preds {
+		if preds[i].Time.In(eastern).Weekday() == time.Saturday {
+			day := preds[i].Time.In(eastern)
+			h1, h2 := 2.7, 2.7
+			preds[i] = highAt(t, day.Format("2006-01-02")+" 09:00", h1)
+			preds = append(preds, highAt(t, day.Format("2006-01-02")+" 17:30", h2))
+			break
+		}
+	}
+	sat = day(t, build(), "Saturday")
+	require.NotNil(t, sat)
+	assert.Equal(t, "Morning and late-day close potential", sat.ClosureRiskLabel)
+}
+
+func TestWeekendSurfLabel(t *testing.T) {
+	now, preds, land := quietWeek(t)
+
+	// No marine coverage: the label is absent.
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	for _, d := range out.Days {
+		assert.Empty(t, d.SurfLabel, d.Weekday)
+	}
+
+	// Per-day blocks map through the surf-report height words.
+	flat, knee := 1.0, 2.0
+	blockFor := func(weekday string, ft *float64) nwsfc.WaveBlock {
+		for _, d := range out.Days {
+			if d.Weekday == weekday {
+				return nwsfc.WaveBlock{Start: d.Schedule.OpensAt.UTC(), End: d.Schedule.ClosesAt.UTC(), HeightFt: ft}
+			}
+		}
+		t.Fatalf("no %s in outlook", weekday)
+		return nwsfc.WaveBlock{}
+	}
+	marine := &nwsfc.MarineForecast{Blocks: []nwsfc.WaveBlock{
+		blockFor("Saturday", &flat),
+		blockFor("Sunday", &knee),
+	}}
+	out = BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, marine)
+
+	sat, sun := day(t, out, "Saturday"), day(t, out, "Sunday")
+	require.NotNil(t, sat)
+	require.NotNil(t, sun)
+	assert.Equal(t, "Flat", sat.SurfLabel)
+	assert.Equal(t, "Knee-high", sun.SurfLabel)
+	assert.Empty(t, day(t, out, "Monday").SurfLabel, "no block, no label")
 }

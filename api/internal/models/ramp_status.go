@@ -130,6 +130,31 @@ func StatusToShort(status string) string {
 	}
 }
 
+// PrettyCityName converts a GIS city like "NEW SMYRNA BEACH" or
+// "WILBUR-BY-THE-SEA" to display casing ("New Smyrna Beach",
+// "Wilbur-by-the-Sea"). Connector words stay lowercase except when leading.
+func PrettyCityName(name string) string {
+	small := map[string]bool{"by": true, "the": true, "of": true, "at": true}
+	capitalize := func(s string, lead bool) string {
+		if s == "" {
+			return s
+		}
+		if !lead && small[s] {
+			return s
+		}
+		return strings.ToUpper(s[:1]) + s[1:]
+	}
+	words := strings.Fields(strings.ToLower(strings.TrimSpace(name)))
+	for i, w := range words {
+		parts := strings.Split(w, "-")
+		for j, p := range parts {
+			parts[j] = capitalize(p, i == 0 && j == 0)
+		}
+		words[i] = strings.Join(parts, "-")
+	}
+	return strings.Join(words, " ")
+}
+
 // PrettyRampName converts a GIS ramp name like "3RD AV" or "CRAWFORD RD" to a
 // display name like "3rd Ave" or "Crawford Rd".
 func PrettyRampName(name string) string {

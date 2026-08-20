@@ -85,8 +85,10 @@ func DefaultVerdictParams() VerdictParams {
 	}
 }
 
-// weekendHorizonDays is how many days the weekend outlook covers.
-const weekendHorizonDays = 6
+// weekendHorizonDays is how many days the weekend outlook covers. Day seven
+// usually sits past the NWS gridpoint horizon and degrades to the honest
+// tide-only path ("No weather call for this day yet").
+const weekendHorizonDays = 7
 
 // WeekendDay is one future day's answer. Headline/Detail are rendered
 // verbatim; the typed fields exist so clients can branch (pill color,
@@ -104,6 +106,15 @@ type WeekendDay struct {
 	BestWindow      *Window  `json:"best_window,omitempty"`
 	ClosurePressure string   `json:"closure_pressure"`
 	Schedule        Schedule `json:"schedule"`
+
+	// ClosureRiskLabel is the day's closure story in one casual phrase
+	// ("Mid-day close potential", "Clear all day"). Deliberately vague about
+	// which ramps: this far out the tide is knowable and the individual gates
+	// are not, so it warns about the beach day and never names a ramp.
+	// SurfLabel is the day's forecast surf in the surf report's height words
+	// ("Flat", "Knee-high"); absent without marine coverage.
+	ClosureRiskLabel string `json:"closure_risk_label"`
+	SurfLabel        string `json:"surf_label,omitempty"`
 
 	// Supporting attributes for the day cards — they back the verdict, they
 	// are not a forecast page. FeelsLikeF is the day's max heat index, sent
@@ -143,6 +154,9 @@ type dayFacts struct {
 	firstStormAt  *time.Time // start of the first storm-blocked hour
 	tidePeaks     []models.TidePrediction
 	blockedRanges []timeRange
+	tideWindows   []timeRange // tide closure windows only, for the risk label
+	anyHardClose  bool        // a peak at/above the hard-close cutoff
+	marineMaxFt   *float64    // day's max forecast wave height
 }
 
 type timeRange struct{ start, end time.Time }
@@ -191,6 +205,8 @@ func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, para
 		day.BestWindow = bestWindow(now, i, frame, facts, vp)
 		day.Headline, day.Detail = dayText(day.Verdict, facts, day.BestWindow, vp)
 		day.Why = whyText(day.Verdict, day.Drivers, facts, vp, day.Headline)
+		day.ClosureRiskLabel = closureRiskLabel(facts)
+		day.SurfLabel = surfDayLabel(facts.marineMaxFt)
 		out.Days = append(out.Days, day)
 	}
 
@@ -256,6 +272,7 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 	if marine != nil {
 		if h := marine.MaxHeightFtBetween(opens.UTC(), closes.UTC()); h != nil {
 			facts.hasMarine = true
+			facts.marineMaxFt = h
 			dayShift = forecastDayShift(params, h, daysOut)
 		}
 	}
@@ -267,10 +284,10 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 	}
 	var dicey []diceyRamp
 	likelyCount, rampCount := 0, 0
-	anyPossible, anyHardClose := false, false
+	anyPossible := false
 	for _, p := range facts.tidePeaks {
 		if *p.Height >= params.hardClose() {
-			anyHardClose = true
+			facts.anyHardClose = true
 		}
 	}
 	for _, ramp := range ramps {
@@ -299,7 +316,7 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 		}
 	}
 	switch {
-	case anyHardClose || (rampCount > 0 && likelyCount*2 > rampCount):
+	case facts.anyHardClose || (rampCount > 0 && likelyCount*2 > rampCount):
 		facts.pressure = PressureHigh
 	case anyPossible:
 		facts.pressure = PressureSome
@@ -311,6 +328,8 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 	}
 
 	// Tide closure windows block best-window slots (county default lead/lag).
+	// Kept separately in tideWindows too, so the closure-risk label can place
+	// them in the day without confusing them with storm blocks.
 	if facts.pressure != PressureNone {
 		for _, p := range facts.tidePeaks {
 			if riskForPeak(*p.Height, dayShift, params.Default, params.hardOpen(), params.hardClose()) == RiskNone {
@@ -318,6 +337,7 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 			}
 			if w := closureWindow(p, params.Default, frame); w != nil {
 				facts.blockedRanges = append(facts.blockedRanges, timeRange{w.Start, w.End})
+				facts.tideWindows = append(facts.tideWindows, timeRange{w.Start, w.End})
 			}
 		}
 	}
