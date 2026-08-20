@@ -424,7 +424,7 @@ func degreesToCardinal(degrees float64) string {
 		"S", "SSW", "SW", "WSW",
 		"W", "WNW", "NW", "NNW",
 	}
-	idx := int((degrees + 11.25) / 22.5) % 16
+	idx := int((degrees+11.25)/22.5) % 16
 	if idx < 0 {
 		idx += 16
 	}

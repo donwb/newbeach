@@ -27,11 +27,11 @@ type WaterTemp struct {
 
 // TideInfo is the combined tide and water temperature data for the current moment.
 type TideInfo struct {
-	Direction          string                `json:"tide_direction"`
-	Percentage         int                   `json:"tide_percentage"`
-	WaterTempAvg       float64               `json:"water_temp_avg"`
-	WaterTemps         []WaterTemp           `json:"water_temps"`
-	Predictions        []TidePrediction      `json:"predictions"`
-	HourlyPredictions  []TidePredictionPoint `json:"hourly_predictions,omitempty"`
-	RetrievedAt        time.Time             `json:"retrieved_at"`
+	Direction         string                `json:"tide_direction"`
+	Percentage        int                   `json:"tide_percentage"`
+	WaterTempAvg      float64               `json:"water_temp_avg"`
+	WaterTemps        []WaterTemp           `json:"water_temps"`
+	Predictions       []TidePrediction      `json:"predictions"`
+	HourlyPredictions []TidePredictionPoint `json:"hourly_predictions,omitempty"`
+	RetrievedAt       time.Time             `json:"retrieved_at"`
 }
