@@ -1121,7 +1121,7 @@ These items are not in scope for the initial rebuild but the architecture should
 - `Item.swift` (SwiftData template) left in project for user to remove in Xcode
 - `.gitignore` updated with Xcode/Swift exclusions (xcuserdata, DerivedData, .build, .swiftpm, Package.resolved)
 
-**Not yet built from Phase 4 requirements:** Favorites system, push notifications, widgets, Live Activities, haptic feedback, settings screen, SwiftData caching
+**Not yet built from Phase 4 requirements:** Push notifications, Live Activities, haptic feedback, settings screen, SwiftData caching
 
 ### Phase 5 — Apple Watch & Apple TV ✅ Complete (March 11, 2026)
 
@@ -1247,7 +1247,7 @@ All six implementation phases are complete. Every platform has reached a shippab
 
 **Known loose ends (not blocking v1):**
 - Historical analytics dashboard (ramp open/close pattern visualization)
-- iOS: favorites, push notifications, widgets, Live Activities, settings screen, SwiftData caching
+- iOS: push notifications, Live Activities, settings screen, SwiftData caching
 - watchOS: complications, background refresh
 - PWA offline page
 - Apple apps submitted to the App Store and IN REVIEW since 2026-08-17 — build 1.0 (18),
