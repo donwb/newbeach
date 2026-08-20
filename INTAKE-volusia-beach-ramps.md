@@ -186,11 +186,15 @@ api/cmd/server/main.go:131-135).
 
 ## 6. In progress / near future
 
-- Web multi-camera switcher: the backend camera roster (5 cams,
-  /api/v2/cameras) and the iOS/tvOS switchers are shipped, but the website
-  still plays the single default stream from `settings.video_stream_url`
-  (web/app.js:359 reads `state.config.video_stream_url`; no camera UI in
-  web/app.js). Don't claim multi-cam for the web yet.
+- Web multi-camera switcher: SHIPPED 2026-08-16 (b3c9817). The board renders cam
+  chips off the /api/v2/cameras roster — `updateCamTabs()` builds a `.cam-tab`
+  button per camera into the `#cam-tabs` container, hidden until the roster has a
+  second cam and disabled for cams with no stream_url (web/js/views/board.js:609-627,
+  container at :131), and a click handler sets `selectedCameraId` on the store
+  (web/js/views/board.js:222-225); the roster is fetched in web/js/api.js:33,52.
+  Verified live: beach.donwb.com serves the same board.js with `updateCamTabs`, and
+  /api/v2/cameras returns the roster with cams.donwb.com stream URLs. Multi-cam is
+  safe to claim on ALL platforms — web, iOS, and tvOS.
 - No feature flags, WIP branches with commits, or TODO/FIXME markers found in
   api/, web/, or trmnl/ (grep clean; only branch is an empty worktree).
 - Working copy note: only `.claude/` local config was dirty at intake time —
