@@ -197,12 +197,12 @@ func HandleV2Config(pool *pgxpool.Pool) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"webcam_url":        os.Getenv("WEBCAM_URL"),
-			"tide_station":      os.Getenv("NOAA_TIDE_STATION"),
-			"temp_stations":     os.Getenv("NOAA_TEMP_STATIONS"),
-			"water_temp_avg":    true,
-			"default_city":      "New Smyrna Beach",
-			"video_stream_url":  videoStreamURL,
+			"webcam_url":       os.Getenv("WEBCAM_URL"),
+			"tide_station":     os.Getenv("NOAA_TIDE_STATION"),
+			"temp_stations":    os.Getenv("NOAA_TEMP_STATIONS"),
+			"water_temp_avg":   true,
+			"default_city":     "New Smyrna Beach",
+			"video_stream_url": videoStreamURL,
 		})
 	}
 }

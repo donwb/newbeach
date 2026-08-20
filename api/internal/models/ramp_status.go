@@ -2,8 +2,8 @@ package models
 
 import (
 	"strings"
-	"unicode"
 	"time"
+	"unicode"
 )
 
 // RampStatus represents the current status of a beach access ramp.
