@@ -1,8 +1,13 @@
 #!/bin/bash
+# RETIRED 2026-08-14 — superseded by scripts/cam-restreamer.sh (MediaMTX relay).
+# YouTube IP-locked its googlevideo HLS URLs in Aug 2026, so pushing resolved
+# URLs to viewers yields a black player. Kept for reference only; do NOT cron
+# this. See CLAUDE.md "Beach Cam Relay".
+#
 # Resolves the live HLS URL for every camera in the roster and pushes each back
 # to the API. Runs on a residential-IP host (home Mac Studio) on a cron, because
-# YouTube filters datacenter IPs — so this, not the server-side refresher, is the
-# real freshness mechanism.
+# YouTube filters datacenter IPs — so this, not the server-side refresher, WAS
+# the freshness mechanism before the relay took over.
 #
 # The roster is pulled from the API (GET /api/v2/admin/cameras), so adding or
 # removing a camera is a database change, never an edit to this script.
