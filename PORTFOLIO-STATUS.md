@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 22 — flighted to TestFlight 2026-08-19 late night, tag flight/build-22: the tvOS Cam mode / Board mode presentation; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.0 (build 23 — flighted to TestFlight 2026-08-20, tag flight/build-23: the tvOS video-first rebuild; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -55,8 +55,13 @@ last_verified: 2026-08-20 (tvOS REBUILT AGAIN to the "video first" design — Do
   now --surface-outlook / --surface-ramp-detail (+ --stream-url); screenshots.sh
   updated. Sim quirk noted in-commit: the tvOS Simulator renders the relay's mpegts
   video slowly/black at first (audio leads) — real hardware is fine, fmp4 renders
-  instantly. NOT yet flighted — Don flights; the physical-remote pass (item 2) should
-  ride that build. App Store TV screenshots now trail by FOUR designs.
+  instantly. FLIGHTED at Don's direction 2026-08-20 afternoon: build 1.0 (23), both
+  platforms, tag flight/build-23 — TestFlight-only, build 18 stays pinned to the App
+  Review submission. The physical-remote pass (item 2) should ride this build. Also
+  verified same afternoon (Don asked): the follow-the-sun ground IS live in
+  video-first — TVSkyGround keeps all 16 phases on SkyPalette's anchors, deliberately
+  re-voiced dark (teal noon, amber golden hour), confirmed by --sky-minutes
+  noon-vs-golden screenshots. App Store TV screenshots now trail by FOUR designs.
   Prior 08-19 state below.)
 prior_2026_08_19_late: (tvOS gained its TWO-MODE presentation from the
   "tvOS modes" Claude Design handoff — Cam mode and Board mode, one D-pad press apart.
