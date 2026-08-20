@@ -233,8 +233,11 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    gallery captured at store sizes (iPhone 6.9" ×3 sky phases, iPad 13" ×2, watch ×1) via
    the new `make screenshots` automation into design/app-store-screenshots/ (5a972ab);
    slides/screenshots/ itself still stale.
-8. Site-copy fixes from the claim audit — "Beville" ramp doesn't exist in the live feed;
-   "six screens" is now seven. INTAKE §5 (V3, V8).
+8. DONE 2026-08-19 — Site-copy fixes from the claim audit ("Beville" ramp doesn't exist in
+   the live feed; "six screens" is now seven). Verified against live donwb.com: the beach
+   page renders GRANADA / DUNLAWTON / HARTFORD / MILSAP / FLAGLER — Beville is gone,
+   replaced by Flagler — and the body copy carries no screen-count claim at all. The copy
+   itself lives in the donwb-com repo, so nothing remains to do here. INTAKE §5 (V3, V8).
 
 ## Blockers & risks
 - Beach cams still depend on a home machine (residential IP): YouTube IP-locked its
