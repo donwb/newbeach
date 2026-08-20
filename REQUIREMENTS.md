@@ -1250,8 +1250,9 @@ All six implementation phases are complete. Every platform has reached a shippab
 - iOS: favorites, push notifications, widgets, Live Activities, settings screen, SwiftData caching
 - watchOS: complications, background refresh
 - PWA offline page
-- Apple apps not yet submitted to App Store — one consolidated App Store Connect record
-  (bundle ID `com.donwb.BeachRampTV`, iOS + tvOS); `make flight` handles archive + upload
+- Apple apps submitted to the App Store and IN REVIEW since 2026-08-17 — build 1.0 (18),
+  both iOS/iPadOS and tvOS, on one consolidated App Store Connect record (Apple ID
+  6761724123, bundle ID `com.donwb.BeachRampTV`); `make flight` handles archive + upload
 
 **What's next:** Polish, test on real devices, submit Apple apps, iterate on TRMNL template after live testing.
 
