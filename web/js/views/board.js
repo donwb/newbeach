@@ -176,8 +176,8 @@ export function createBoardView(store) {
     const sub = (keys, fn) => unsubs.push(store.subscribe(keys, fn));
     sub(['now', 'phase'], updateClock);
     sub(['ramps', 'selectedCity'], updateCityControls);
-    sub(['ramps', 'selectedCity', 'selectedStatus', 'favoritesOnly', 'favorites', 'stale'], updateFiltersAndGrid);
-    sub(['ramps', 'tide', 'selectedCity', 'stale', 'dataAgeMs'], updateVerdict);
+    sub(['ramps', 'outlook', 'selectedCity', 'selectedStatus', 'favoritesOnly', 'favorites', 'stale'], updateFiltersAndGrid);
+    sub(['ramps', 'tide', 'outlook', 'selectedCity', 'stale', 'dataAgeMs'], updateVerdict);
     sub(['tide', 'weather'], updateStats);
     sub(['tide', 'now'], updateTideSection);
     sub(['weather'], updateForecast);
@@ -305,8 +305,14 @@ export function createBoardView(store) {
     updateGrid(s);
   }
 
+  // Overnight the outlook is authoritative: a card that says Open next to
+  // "opens around 8am" contradicts itself (same rule as tvOS/iOS).
+  const cardCategory = (ramp, s) =>
+    isOvernightClosed(ramp, s) ? 'closed' : (ramp.status_category || categoryFromStatus(ramp.access_status));
+
   function cardHTML(ramp, index, s) {
-    const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
+    const cat = cardCategory(ramp, s);
+    const word = cat === 'closed' && isOvernightClosed(ramp, s) ? 'Closed' : statusWord(ramp.access_status);
     const name = prettyRampName(ramp.ramp_name);
     const since = sinceLine(ramp, s);
     const risk = riskHint(ramp, s);
@@ -319,7 +325,7 @@ export function createBoardView(store) {
         <div class="card-since-inline">${escapeHTML(since)}</div>
       </div>
       <div class="card-bottom">
-        <div class="card-status"><span class="card-mark"></span><span class="card-word">${escapeHTML(statusWord(ramp.access_status))}</span></div>
+        <div class="card-status"><span class="card-mark"></span><span class="card-word">${escapeHTML(word)}</span></div>
         ${risk ? `<div class="card-risk">${escapeHTML(risk)}</div>` : `<div class="card-since">${escapeHTML(since)}</div>`}
       </div>
     `;
@@ -376,7 +382,7 @@ export function createBoardView(store) {
     list.forEach((ramp, index) => {
       seen.add(ramp.access_id);
       let el = cardEls.get(ramp.access_id);
-      const cat = ramp.status_category || categoryFromStatus(ramp.access_status);
+      const cat = cardCategory(ramp, s);
       const print = [cat, ramp.access_status, ramp.status_since, index,
         s.favorites.has(ramp.access_id), s.stale, riskHint(ramp, s)].join('|');
 
@@ -418,9 +424,54 @@ export function createBoardView(store) {
     }
   }
 
+  /**
+   * The outlook entry proving the beach is in its overnight window —
+   * outside driving hours every ramp is closed_now/overnight, so any one
+   * speaks for the board. The county feed may still read OPEN after the
+   * turtle sweep; the outlook is authoritative for this display.
+   */
+  const overnightOutlook = (s) =>
+    (s.outlook?.ramps || []).find((r) => r.risk === 'closed_now' && r.reason === 'overnight');
+
+  const isOvernightClosed = (ramp, s) => {
+    const ro = (s.outlook?.ramps || []).find((r) => r.access_id === ramp.access_id);
+    return !!ro && ro.risk === 'closed_now' && ro.reason === 'overnight';
+  };
+
+  /** The bar color for a server verdict stays a client fact: red only when a ramp is shut. */
+  function serverVerdictCategory(state, ramps) {
+    const cats = ramps.map((r) => r.status_category || categoryFromStatus(r.access_status));
+    const anyClosed = cats.includes('closed');
+    const anyLimited = cats.includes('limited');
+    switch (state) {
+      case 'all_open':
+      case 'golden': return 'open';
+      case 'some_closed': return anyClosed ? 'closed' : 'limited';
+      case 'overnight': return 'limited';
+      default: return anyClosed ? 'closed' : anyLimited ? 'limited' : 'open';
+    }
+  }
+
+  /**
+   * The verdict: the server's city copy (outlook.cities) rendered verbatim
+   * when the board is live — the same headline tvOS and iOS show, so every
+   * device tells one story — and buildVerdict otherwise (older server, or
+   * stale data, where the client builder carries the stale voice).
+   */
   function updateVerdict(s) {
-    const verdict = buildVerdict({
-      ramps: cityRamps(s),
+    const ramps = cityRamps(s);
+    let verdict = null;
+    if (!s.stale && ramps.length) {
+      const cv = (s.outlook?.cities || []).find((c) => (c.city || '').toUpperCase() === s.selectedCity);
+      const overnight = overnightOutlook(s);
+      if (cv) {
+        verdict = { category: serverVerdictCategory(cv.state, ramps), headline: cv.headline, subline: cv.detail };
+      } else if (overnight) {
+        verdict = { category: 'limited', headline: 'Driving is done for today', subline: overnight.detail || overnight.headline };
+      }
+    }
+    verdict ??= buildVerdict({
+      ramps,
       tide: s.tide,
       sunset: solarEvents(s.now).sunset,
       now: s.now,

@@ -129,6 +129,68 @@ func TestCityVerdictSomeClosed(t *testing.T) {
 	assert.Equal(t, 1, cv.OpenCount)
 }
 
+// "Closed" is reserved for shut ramps: a city of limited ramps is limited,
+// and a one-ramp city is named, never "all one".
+func TestCityVerdictNoneOpenHeadlines(t *testing.T) {
+	now := et(1, 12, 0)
+	preds := []models.TidePrediction{h(et(1, 13, 0), 2.7)}
+	beachSt := "Beach St"
+
+	cases := []struct {
+		name     string
+		ramps    []models.RampStatusWithSince
+		headline string
+		detail   string
+	}{
+		{
+			name: "all limited",
+			ramps: []models.RampStatusWithSince{
+				cityRamp(1, "OB-1", "4X4 ONLY", "ORMOND BEACH", nil),
+				cityRamp(2, "OB-2", "4X4 ONLY", "ORMOND BEACH", nil),
+			},
+			headline: "All two limited",
+		},
+		{
+			name: "all closed",
+			ramps: []models.RampStatusWithSince{
+				cityRamp(1, "OB-1", "CLOSED", "ORMOND BEACH", nil),
+				cityRamp(2, "OB-2", "CLOSED", "ORMOND BEACH", nil),
+			},
+			headline: "All two closed",
+		},
+		{
+			name: "mixed closed and limited",
+			ramps: []models.RampStatusWithSince{
+				cityRamp(1, "OB-1", "CLOSED", "ORMOND BEACH", nil),
+				cityRamp(2, "OB-2", "4X4 ONLY", "ORMOND BEACH", nil),
+			},
+			headline: "None of two open",
+		},
+		{
+			name: "single limited ramp",
+			ramps: []models.RampStatusWithSince{
+				cityRamp(1, "OB-1", "4X4 ONLY", "ORMOND BEACH", nil),
+			},
+			headline: "Beach St limited",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for i := range tc.ramps {
+				n := beachSt
+				tc.ramps[i].ShortName = &n
+			}
+			out := BuildOutlook(now, tc.ramps, Params{Default: DefaultParams}, preds, nil)
+			cv := verdictFor(t, out, "ORMOND BEACH")
+			assert.Equal(t, CityStateSomeClosed, cv.State)
+			assert.Equal(t, tc.headline, cv.Headline)
+			assert.NotContains(t, cv.Detail, "All ", "detail must not repeat the headline")
+			assert.NotEmpty(t, cv.Detail, "the subline never goes blank")
+			assert.NotContains(t, strings.ToLower(cv.Headline), "all one")
+		})
+	}
+}
+
 func TestCityVerdictGolden(t *testing.T) {
 	now := et(1, 18, 30) // 30 min before the 7pm turtle close
 	ramps := []models.RampStatusWithSince{

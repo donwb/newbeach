@@ -87,12 +87,6 @@ func cityAllOpenText(now time.Time, agg *cityAgg, sched Schedule, tide TideConte
 
 // citySomeClosedText: at least one ramp is not plain open right now.
 func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headline, detail string) {
-	if agg.openCount == 0 {
-		headline = "All " + countWord(agg.rampCount) + " closed"
-	} else {
-		headline = capFirst(countWord(agg.openCount)) + " of " + countWord(agg.rampCount) + " open"
-	}
-
 	var closed, limited []notOpenRamp
 	for _, r := range agg.notOpen {
 		if r.category == "closed" {
@@ -100,6 +94,22 @@ func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headlin
 		} else {
 			limited = append(limited, r)
 		}
+	}
+
+	// Nothing plain-open: say what the ramps actually are. "Closed" is
+	// reserved for ramps that are shut — a city of limited ramps is
+	// limited, and a one-ramp city gets its name, never "all one".
+	switch {
+	case agg.openCount > 0:
+		headline = capFirst(countWord(agg.openCount)) + " of " + countWord(agg.rampCount) + " open"
+	case agg.rampCount == 1 && len(agg.notOpen) == 1:
+		headline = agg.notOpen[0].name + " " + agg.notOpen[0].category
+	case len(closed) == 0:
+		headline = "All " + countWord(agg.rampCount) + " limited"
+	case len(limited) == 0:
+		headline = "All " + countWord(agg.rampCount) + " closed"
+	default:
+		headline = "None of " + countWord(agg.rampCount) + " open"
 	}
 
 	var clauses []string
@@ -125,7 +135,9 @@ func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headlin
 		}
 		clauses = append(clauses, clause)
 	}
-	if len(limited) > 0 {
+	// When the headline already said "All N limited" / "<name> limited",
+	// the limited clause would only repeat it.
+	if len(limited) > 0 && !(agg.openCount == 0 && len(closed) == 0) {
 		if len(limited) <= 2 {
 			clauses = append(clauses, joinNames(namesOf(limited))+" limited")
 		} else {
@@ -137,6 +149,9 @@ func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headlin
 		clauses = append(clauses, countWord(agg.atRisk)+" more could shut on "+peakPhrase(tide))
 	case agg.openCount > 0:
 		clauses = append(clauses, "the rest look clear until "+sched.ClosesLabel)
+	case len(closed) == 0:
+		// Every ramp limited, nothing more to add: the day is still on.
+		clauses = append(clauses, "driving with limits until "+sched.ClosesLabel)
 	}
 
 	return headline, capFirst(strings.Join(clauses, " · "))
