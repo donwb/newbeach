@@ -36,7 +36,15 @@ last_verified: 2026-08-21 (Physical-remote pass on build 24 found one bug: Don
   overnightCityLines DELETED. Reproduced and verified in the tvOS sim against
   prod while prod was still in the overnight state (07:58–08:00 ET): all 8 UI
   tests pass incl. the ledger walk and row Select → detail → Menu restore.
-  NOT yet flighted — Don flights; the next build carries this fix.
+  NOT yet flighted — Don flights; the next build carries this fix. Same morning,
+  second remote-pass bug, server-side: the city verdict detail said "first around
+  1:30pm" (the risk WINDOW start) while every ramp row said 2:30pm (peak minus
+  learned lead). Fixed in predict: each RampOutlook now carries the close time its
+  own copy quotes (likely → peak−lead, possible → the peak) and the city line
+  aggregates that — it can never name an hour no ramp line names; when the
+  earliest is the peak itself the suffix is dropped rather than repeated. Pinned
+  by TestCityVerdictFirstAroundMatchesRampCopy. Deployed via main; no client
+  change needed (clients render the strings verbatim).
   Earlier 2026-08-20: tvOS REBUILT AGAIN to the "video first" design — Don lived
   with the two-mode board on a real device one evening and killed it: he watches the
   video far more than expected, and the mode toggle made the information fight the

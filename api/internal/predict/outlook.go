@@ -93,6 +93,12 @@ type RampOutlook struct {
 	Short      string  `json:"short,omitempty"`
 	Window     *Window `json:"window,omitempty"`
 	Reopen     *Reopen `json:"reopen,omitempty"`
+
+	// quotedClose is the clock time this ramp's own copy quotes for the
+	// tide closure (peak minus lead when likely, the peak itself when only
+	// possible). The city verdict aggregates it so "first around" never
+	// names an hour no ramp line mentions. Not serialized.
+	quotedClose *time.Time
 }
 
 // Schedule is the driving-hours frame for the day: fixed clock hours in
@@ -522,6 +528,8 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			ro.Risk = risk
 			ro.Reason = ReasonHighTide
 			ro.Window = closureWindow(*riskPeak, rp, sched)
+			qc := quotedCloseAt(risk, *riskPeak, rp)
+			ro.quotedClose = &qc
 			ro.Headline, ro.Detail, ro.Short = tideText(now, risk, *riskPeak, rp, sched, laterPeakRisky)
 		case sched.ClosesAt != nil:
 			// No tide story, so the next scheduled thing is the day ending.

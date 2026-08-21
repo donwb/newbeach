@@ -1,6 +1,7 @@
 package predict
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -70,9 +71,37 @@ func TestCityVerdictAtRisk(t *testing.T) {
 
 	assert.Equal(t, CityStateAllOpen, cv.State)
 	assert.Equal(t, "All two open", cv.Headline)
-	// Every ramp is at risk, so the copy says so, hedged to the half hour,
-	// with the earliest predicted window start.
-	assert.Equal(t, "Any of them could shut on the ~1pm high · first around 10:30am", cv.Detail)
+	// Every ramp is at risk, so the copy says so. In the possible band each
+	// ramp's own line quotes the peak itself, so the city line names the
+	// peak once and does not tack on a "first around" that repeats it.
+	assert.Equal(t, "Any of them could shut on the ~1pm high", cv.Detail)
+}
+
+func TestCityVerdictFirstAroundMatchesRampCopy(t *testing.T) {
+	// Bug 2026-08-21: the city line said "first around 1:30pm" (the risk
+	// window's start) while every ramp row said 2:30pm (peak minus lead).
+	// The city must quote the earliest time a ramp line quotes — no other.
+	now := et(1, 8, 30)
+	ramps := []models.RampStatusWithSince{
+		cityRamp(1, "NS-141", "OPEN", "NEW SMYRNA BEACH", nil),
+		cityRamp(2, "NS-106", "OPEN", "NEW SMYRNA BEACH", nil),
+	}
+	preds := []models.TidePrediction{h(et(1, 13, 0), 3.4)} // likely band
+
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
+	require.Equal(t, RiskLikely, out.Ramps[0].Risk)
+
+	// The ramp's short copy is "tide closure possible ~H:MM" — lift the time.
+	short := out.Ramps[0].Short
+	idx := strings.LastIndex(short, "~")
+	require.GreaterOrEqual(t, idx, 0, short)
+	quoted := short[idx+1:]
+
+	assert.Equal(t, "Any of them could shut on the ~1pm high · first around "+quoted, cv.Detail)
+	// And it is not the window start, which sits earlier.
+	require.NotNil(t, out.Ramps[0].Window)
+	assert.NotEqual(t, fmtClock(out.Ramps[0].Window.Start), quoted)
 }
 
 func TestCityVerdictSomeClosed(t *testing.T) {

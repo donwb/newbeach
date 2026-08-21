@@ -92,6 +92,18 @@ func endOfDayText(season string, sched Schedule) (headline, detail, short string
 	return headline, detail, short
 }
 
+// quotedCloseAt is the clock time the ramp copy quotes for a tide closure:
+// the learned close (peak minus lead) when the tide is likely to shut the
+// ramp, the peak itself when a closure is only possible. Rounded to the half
+// hour like every time in the copy. The city verdict reuses it so the two
+// layers never disagree about when trouble starts.
+func quotedCloseAt(risk string, peak models.TidePrediction, rp RampParams) time.Time {
+	if risk == RiskLikely {
+		return roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
+	}
+	return roundNearest30(peak.Time)
+}
+
 // tideText builds the headline, detail, and short board hint for a ramp the
 // tide might close. The copy is time-aware: a learned close time the clock
 // has already passed is never quoted back — the ramp is visibly still open,
@@ -99,7 +111,7 @@ func endOfDayText(season string, sched Schedule) (headline, detail, short string
 // us it moves to the falling-tide voice. Every string names the tide as the
 // cause, so a reader always knows why the closure is coming.
 func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
-	closeAt := roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
+	closeAt := quotedCloseAt(RiskLikely, peak, rp)
 	reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
 	reopenCopy := "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
 	if sched.ClosesAt != nil && reopenAt.After(*sched.ClosesAt) {

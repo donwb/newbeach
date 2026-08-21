@@ -45,11 +45,11 @@ type notOpenRamp struct {
 
 // cityAgg collects one city's facts during the verdict pass.
 type cityAgg struct {
-	rampCount      int
-	openCount      int
-	notOpen        []notOpenRamp
-	atRisk         int        // open ramps the tide could still close today
-	earliestWindow *time.Time // start of the earliest at-risk window
+	rampCount     int
+	openCount     int
+	notOpen       []notOpenRamp
+	atRisk        int        // open ramps the tide could still close today
+	earliestClose *time.Time // earliest close time any at-risk ramp's copy quotes
 }
 
 // buildCityVerdicts groups the built outlook by city and writes each city's
@@ -84,10 +84,10 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 		ro := &outlooks[i]
 		if cat == "open" && ro.Reason == ReasonHighTide && riskRank(ro.Risk) >= 1 {
 			agg.atRisk++
-			if ro.Window != nil {
-				if agg.earliestWindow == nil || ro.Window.Start.Before(*agg.earliestWindow) {
-					t := ro.Window.Start
-					agg.earliestWindow = &t
+			if ro.quotedClose != nil {
+				if agg.earliestClose == nil || ro.quotedClose.Before(*agg.earliestClose) {
+					t := *ro.quotedClose
+					agg.earliestClose = &t
 				}
 			}
 		}

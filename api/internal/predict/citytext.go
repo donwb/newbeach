@@ -72,11 +72,16 @@ func cityAllOpenText(now time.Time, agg *cityAgg, sched Schedule, tide TideConte
 	default:
 		detail = capFirst(countWord(agg.atRisk)) + " could shut on " + peak
 	}
-	if agg.atRisk > 1 && agg.earliestWindow != nil {
-		if agg.earliestWindow.After(now) {
-			detail += " · first around " + fmtClock(*agg.earliestWindow)
-		} else {
+	// "first around" quotes the earliest time any ramp's own line quotes,
+	// so the city never promises an hour the ramp rows don't. When that is
+	// the peak itself the sentence already said it — don't repeat it.
+	if agg.atRisk > 1 && agg.earliestClose != nil {
+		atPeak := tide.NextPeakAt != nil && agg.earliestClose.Equal(roundNearest30(*tide.NextPeakAt))
+		switch {
+		case !agg.earliestClose.After(now):
 			detail += " · could go any time now"
+		case !atPeak:
+			detail += " · first around " + fmtClock(*agg.earliestClose)
 		}
 	}
 	return headline, detail
