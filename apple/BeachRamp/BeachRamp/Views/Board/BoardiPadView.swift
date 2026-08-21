@@ -339,32 +339,9 @@ struct BoardiPadView: View {
     // MARK: - Shared pieces
 
     private var filterRow: some View {
-        let t = ground.tokens
-        return HStack {
+        HStack {
             FilterBarView(viewModel: viewModel)
             Spacer()
-            Button {
-                viewModel.favoritesOnly.toggle()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: viewModel.favoritesOnly ? "star.fill" : "star")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("Favorites")
-                        .font(.archivo(14, weight: .extraBold))
-                }
-                .foregroundStyle(viewModel.favoritesOnly ? .white : t.ink)
-                .padding(.horizontal, 12)
-                .frame(height: 34)
-                .background(viewModel.favoritesOnly ? t.accent : .clear)
-                .overlay {
-                    if !viewModel.favoritesOnly {
-                        Rectangle().strokeBorder(t.rule, lineWidth: 2)
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(PressTintButtonStyle())
-            .accessibilityAddTraits(viewModel.favoritesOnly ? .isSelected : [])
         }
     }
 
@@ -380,11 +357,9 @@ struct BoardiPadView: View {
                     RampGridTile(
                         ramp: ramp,
                         stale: viewModel.isStale,
-                        isFavorite: viewModel.isFavorite(ramp),
                         minHeight: minHeight,
                         outlookHint: viewModel.outlookHint(for: ramp),
-                        overnight: viewModel.isOvernightClosed(ramp),
-                        toggleFavorite: { viewModel.toggleFavorite(ramp) }
+                        overnight: viewModel.isOvernightClosed(ramp)
                     )
                 }
                 .buttonStyle(PressTintButtonStyle())
@@ -393,17 +368,15 @@ struct BoardiPadView: View {
     }
 }
 
-/// One ramp as a grid card: kicker + star, name, status mark + word + since.
+/// One ramp as a grid card: kicker, name, status mark + word + since.
 struct RampGridTile: View {
     let ramp: Ramp
     let stale: Bool
-    let isFavorite: Bool
     var minHeight: CGFloat = 152
     /// Server prediction hint; replaces the since line when set.
     var outlookHint: String? = nil
     /// Overnight per the outlook: reads Closed regardless of the feed.
     var overnight: Bool = false
-    let toggleFavorite: () -> Void
     @Environment(\.ground) private var ground
 
     private var category: StatusCategory {
@@ -424,23 +397,13 @@ struct RampGridTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(ramp.sortOrder.map { String(format: "Ramp %02d", $0) } ?? " ")
-                    .font(.archivo(10, weight: .bold))
-                    .tracking(10 * ArchivoTracking.kicker)
-                    .textCase(.uppercase)
-                    .foregroundStyle(field.text2)
-                Spacer()
-                Button(action: toggleFavorite) {
-                    Image(systemName: isFavorite ? "star.fill" : "star")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(field.text.opacity(isFavorite ? 1 : 0.55))
-                        .frame(width: 34, height: 34)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
-            }
+            Text(ramp.sortOrder.map { String(format: "Ramp %02d", $0) } ?? " ")
+                .font(.archivo(10, weight: .bold))
+                .tracking(10 * ArchivoTracking.kicker)
+                .textCase(.uppercase)
+                .foregroundStyle(field.text2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 10)
             Text(ramp.rampDisplayName)
                 .font(.archivo(27, weight: .extraBold))
                 .tracking(27 * ArchivoTracking.rampName)

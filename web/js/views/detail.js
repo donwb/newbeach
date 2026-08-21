@@ -39,7 +39,6 @@ export function createDetailView(store) {
       <header class="topbar">
         <a class="back-link" href="/" id="back-link"><span class="arrow">←</span> All ramps</a>
         <div class="topbar-right">
-          <button class="fav-toggle" id="detail-fav" aria-pressed="false"><span class="star">☆</span> Favorite</button>
           <span class="clock tabular" id="detail-clock"></span>
         </div>
       </header>
@@ -106,11 +105,6 @@ export function createDetailView(store) {
       </section>
     `;
 
-    $('#detail-fav').addEventListener('click', () => {
-      const ramp = currentRamp();
-      if (ramp) store.toggleFavorite(ramp.access_id);
-    });
-
     $('#detail-cam-tabs').addEventListener('click', (e) => {
       const tab = e.target.closest('.cam-tab');
       if (tab && !tab.disabled) store.set({ selectedCameraId: tab.dataset.cam });
@@ -118,7 +112,7 @@ export function createDetailView(store) {
 
     const sub = (keys, fn) => unsubs.push(store.subscribe(keys, fn));
     sub(['now'], updateClock);
-    sub(['ramps', 'tide', 'favorites', 'now', 'stale'], updateAll);
+    sub(['ramps', 'tide', 'now', 'stale'], updateAll);
     sub(['config', 'cameras', 'selectedCameraId'], updateCam);
 
     updateClock(store.state);
@@ -170,11 +164,6 @@ export function createDetailView(store) {
     $('#back-link').innerHTML = `<span class="arrow">←</span> All ${escapeHTML(city)} ramps`;
     $('#hero-kicker').textContent = `Ramp ${String(index + 1).padStart(2, '0')} · ${city}`;
     $('#hero-name').textContent = name;
-
-    const fav = $('#detail-fav');
-    const isFav = s.favorites.has(ramp.access_id);
-    fav.setAttribute('aria-pressed', String(isFav));
-    fav.querySelector('.star').textContent = isFav ? '★' : '☆';
 
     // Status field band.
     const band = $('#status-band');

@@ -54,16 +54,9 @@ struct RampDetailSheet: View {
                                 .foregroundStyle(t.ink)
                         }
                         Spacer()
-                        Button {
-                            viewModel.toggleFavorite(ramp)
-                        } label: {
-                            Image(systemName: viewModel.isFavorite(ramp) ? "star.fill" : "star")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(viewModel.isFavorite(ramp) ? t.accent : t.ink2)
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
+                        PinToWidgetButton(isPinned: viewModel.isPinned(ramp)) {
+                            viewModel.togglePin(ramp)
                         }
-                        .buttonStyle(.plain)
                         Button(action: dismiss) {
                             Text("Done")
                                 .font(.archivo(16, weight: .extraBold))

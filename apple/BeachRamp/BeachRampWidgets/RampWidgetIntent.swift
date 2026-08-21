@@ -22,13 +22,15 @@ struct RampWidgetIntent: WidgetConfigurationIntent {
 
 enum ShowMode: String, AppEnum {
     case allRamps
+    /// Ramps pinned from the app's detail screen ("Pin to widget"). The
+    /// case name is historical — renaming it would break saved widget configs.
     case favoritesOnly
     case oneRamp
 
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Show")
     static let caseDisplayRepresentations: [ShowMode: DisplayRepresentation] = [
         .allRamps: "All ramps",
-        .favoritesOnly: "Favorites only",
+        .favoritesOnly: "Pinned ramps",
         .oneRamp: "One ramp",
     ]
 }
@@ -135,6 +137,7 @@ enum WidgetData {
         await snapshot()?.ramps ?? []
     }
 
+    /// Pinned ramp ids; the key name is historical.
     static func favorites() -> Set<String> {
         Set(SnapshotStore.sharedDefaults?.stringArray(forKey: "favoriteRampIDs") ?? [])
     }

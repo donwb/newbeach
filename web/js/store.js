@@ -4,18 +4,6 @@
  * notifies only the subscribers of keys that actually changed.
  */
 
-const FAVORITES_KEY = 'beach-favorites';
-
-function loadFavorites() {
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(list) ? list : []);
-  } catch {
-    return new Set();
-  }
-}
-
 export function createStore() {
   const state = {
     ramps: null,          // /api/v2/ramps payload
@@ -33,8 +21,6 @@ export function createStore() {
     stale: false,
     selectedCity: 'NEW SMYRNA BEACH',
     selectedStatus: 'all',
-    favoritesOnly: false,
-    favorites: loadFavorites(),
     now: new Date(),      // the UI clock (scrubber-aware)
   };
 
@@ -73,18 +59,5 @@ export function createStore() {
     if (changed.length) notify(changed);
   }
 
-  function toggleFavorite(accessId) {
-    const next = new Set(state.favorites);
-    if (next.has(accessId)) {
-      next.delete(accessId);
-    } else {
-      next.add(accessId);
-    }
-    try {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
-    } catch { /* private mode — favorites just don't persist */ }
-    set({ favorites: next });
-  }
-
-  return { state, set, subscribe, toggleFavorite };
+  return { state, set, subscribe };
 }

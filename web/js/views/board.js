@@ -37,9 +37,6 @@ export function createBoardView(store) {
     if (s.selectedStatus !== 'all') {
       list = list.filter((r) => (r.status_category || categoryFromStatus(r.access_status)) === s.selectedStatus);
     }
-    if (s.favoritesOnly) {
-      list = list.filter((r) => s.favorites.has(r.access_id));
-    }
     return list;
   }
 
@@ -98,7 +95,6 @@ export function createBoardView(store) {
         <button class="filter-btn" data-status="open" aria-pressed="false">Open <span class="count">0</span></button>
         <button class="filter-btn" data-status="limited" aria-pressed="false">Limited <span class="count">0</span></button>
         <button class="filter-btn" data-status="closed" aria-pressed="false">Closed <span class="count">0</span></button>
-        <button class="fav-toggle" id="fav-toggle" aria-pressed="false"><span class="star">☆</span> Favorites only</button>
       </div>
 
       <section class="ramp-grid" id="ramp-grid" aria-live="polite"></section>
@@ -176,7 +172,7 @@ export function createBoardView(store) {
     const sub = (keys, fn) => unsubs.push(store.subscribe(keys, fn));
     sub(['now', 'phase'], updateClock);
     sub(['ramps', 'selectedCity'], updateCityControls);
-    sub(['ramps', 'outlook', 'selectedCity', 'selectedStatus', 'favoritesOnly', 'favorites', 'stale'], updateFiltersAndGrid);
+    sub(['ramps', 'outlook', 'selectedCity', 'selectedStatus', 'stale'], updateFiltersAndGrid);
     sub(['ramps', 'tide', 'outlook', 'selectedCity', 'stale', 'dataAgeMs'], updateVerdict);
     sub(['tide', 'weather'], updateStats);
     sub(['tide', 'now'], updateTideSection);
@@ -209,9 +205,6 @@ export function createBoardView(store) {
     $('#filters').addEventListener('click', (e) => {
       const btn = e.target.closest('.filter-btn');
       if (btn) store.set({ selectedStatus: btn.dataset.status });
-      if (e.target.closest('#fav-toggle')) {
-        store.set({ favoritesOnly: !store.state.favoritesOnly });
-      }
     });
 
     $('#citytabs').addEventListener('click', (e) => {
@@ -230,15 +223,6 @@ export function createBoardView(store) {
       if (cities.length < 2) return;
       const i = cities.indexOf(store.state.selectedCity);
       store.set({ selectedCity: cities[(i + 1) % cities.length] });
-    });
-
-    $('#ramp-grid').addEventListener('click', (e) => {
-      const star = e.target.closest('.card-star');
-      if (star) {
-        e.preventDefault();
-        e.stopPropagation();
-        store.toggleFavorite(star.closest('.ramp-card').dataset.accessId);
-      }
     });
   }
 
@@ -298,10 +282,6 @@ export function createBoardView(store) {
       btn.querySelector('.count').textContent = counts[btn.dataset.status];
       btn.setAttribute('aria-pressed', String(btn.dataset.status === s.selectedStatus));
     }
-    const fav = $('#fav-toggle');
-    fav.setAttribute('aria-pressed', String(s.favoritesOnly));
-    fav.querySelector('.star').textContent = s.favoritesOnly ? '★' : '☆';
-
     updateGrid(s);
   }
 
@@ -318,8 +298,6 @@ export function createBoardView(store) {
     const risk = riskHint(ramp, s);
     return `
       <span class="card-index tabular">${String(index + 1).padStart(2, '0')}</span>
-      <button class="card-star" aria-pressed="${s.favorites.has(ramp.access_id)}"
-        aria-label="Favorite ${escapeHTML(name)}">${s.favorites.has(ramp.access_id) ? '★' : '☆'}</button>
       <div class="card-main">
         <div class="card-name">${escapeHTML(name)}</div>
         <div class="card-since-inline">${escapeHTML(since)}</div>
@@ -384,7 +362,7 @@ export function createBoardView(store) {
       let el = cardEls.get(ramp.access_id);
       const cat = cardCategory(ramp, s);
       const print = [cat, ramp.access_status, ramp.status_since, index,
-        s.favorites.has(ramp.access_id), s.stale, riskHint(ramp, s)].join('|');
+        s.stale, riskHint(ramp, s)].join('|');
 
       if (!el) {
         el = document.createElement('a');

@@ -96,17 +96,9 @@ struct RampDetailView: View {
             }
             .buttonStyle(PressTintButtonStyle())
             Spacer()
-            Button {
-                viewModel.toggleFavorite(ramp)
-            } label: {
-                Image(systemName: viewModel.isFavorite(ramp) ? "star.fill" : "star")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(viewModel.isFavorite(ramp) ? t.accent : t.ink2)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+            PinToWidgetButton(isPinned: viewModel.isPinned(ramp)) {
+                viewModel.togglePin(ramp)
             }
-            .buttonStyle(PressTintButtonStyle())
-            .accessibilityLabel(viewModel.isFavorite(ramp) ? "Remove favorite" : "Add favorite")
         }
     }
 

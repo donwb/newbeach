@@ -29,15 +29,15 @@ final class BeachViewModel {
     /// Current status filter — nil means "All".
     var selectedStatus: StatusCategory?
 
-    /// iPad: show only favorited ramps.
-    var favoritesOnly = false
-
     /// Recent city-wide status changes for the iPad board's Recent Changes
     /// section.
     var recentActivity: [ActivityEntry] = []
 
-    /// Favorited ramp access ids, shared with the widgets via the App Group.
-    var favorites: Set<String> = BeachViewModel.loadFavorites()
+    /// Ramps pinned to the widget's "Pinned ramps" view, shared via the App
+    /// Group. This is the only thing a pin does — it is not a board filter
+    /// and it does not travel to other devices or the web (the storage key
+    /// keeps its historical name so existing pins survive).
+    var pinned: Set<String> = BeachViewModel.loadPinned()
 
     /// Whether the landscape live-cam view is presented (iPhone).
     var camPresented = false
@@ -63,13 +63,9 @@ final class BeachViewModel {
         ramps.filter { selectedCity == nil || $0.cityDisplay == selectedCity }.boardOrdered()
     }
 
-    /// Ramps filtered by current city, status, and favorites selection, in
-    /// board order.
+    /// Ramps filtered by current city and status, in board order.
     var filteredRamps: [Ramp] {
-        cityRamps.filter {
-            (selectedStatus == nil || $0.category == selectedStatus)
-                && (!favoritesOnly || favorites.contains($0.accessID))
-        }
+        cityRamps.filter { selectedStatus == nil || $0.category == selectedStatus }
     }
 
     /// Counts per status category, scoped to the selected city.
@@ -275,31 +271,32 @@ final class BeachViewModel {
         return entry.detail ?? entry.headline
     }
 
-    // MARK: - Favorites
+    // MARK: - Widget pins
 
-    func isFavorite(_ ramp: Ramp) -> Bool {
-        favorites.contains(ramp.accessID)
+    func isPinned(_ ramp: Ramp) -> Bool {
+        pinned.contains(ramp.accessID)
     }
 
     @MainActor
-    func toggleFavorite(_ ramp: Ramp) {
-        if !favorites.insert(ramp.accessID).inserted {
-            favorites.remove(ramp.accessID)
+    func togglePin(_ ramp: Ramp) {
+        if !pinned.insert(ramp.accessID).inserted {
+            pinned.remove(ramp.accessID)
         }
-        Self.favoritesDefaults?.set(Array(favorites), forKey: Self.favoritesKey)
+        Self.pinDefaults?.set(Array(pinned), forKey: Self.pinKey)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    private static let favoritesKey = "favoriteRampIDs"
+    /// Historical key name — the widget reads the same one.
+    private static let pinKey = "favoriteRampIDs"
 
     /// App Group defaults once the entitlement exists; standard until then so
-    /// favorites survive either way.
-    private static var favoritesDefaults: UserDefaults? {
+    /// pins survive either way.
+    private static var pinDefaults: UserDefaults? {
         SnapshotStore.sharedDefaults ?? .standard
     }
 
-    private static func loadFavorites() -> Set<String> {
-        Set(favoritesDefaults?.stringArray(forKey: favoritesKey) ?? [])
+    private static func loadPinned() -> Set<String> {
+        Set(pinDefaults?.stringArray(forKey: pinKey) ?? [])
     }
 
     // MARK: - Beach Cam Video

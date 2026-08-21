@@ -250,7 +250,10 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    height/period/rip/buoy-age facts; iPhone gained the forecast strip and the city
    recent-changes feed the iPad already had. Web followed the same afternoon (9392995):
    server city verdict + overnight override, so all three platforms now share one
-   headline. Remaining gaps: tvOS has no favorites; web detail has no threshold line.
+   headline. Favorites pulled 2026-08-21 (Don: they never synced across web/iOS/TV, so
+   confusing) — web dropped entirely; iOS keeps the mechanism only as "Pin to
+   widget" on the detail screen feeding the widget's "Pinned ramps" mode. Remaining
+   gap: web detail has no threshold line.
 1. DONE 2026-08-15 — iOS/iPadOS redesign shipped to main (commits e6689ce…7ab6210):
    sun-following sky boards on iPhone + iPad, verdict hero, field-carried status,
    ramp detail (push on iPhone, 760×762 panel on iPad), forced-landscape live cam,

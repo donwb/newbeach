@@ -493,24 +493,6 @@ html[data-ground='night'] .filter-btn[aria-pressed='true'] {
   opacity: 0.85;
 }
 
-.fav-toggle {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--ink2);
-}
-.fav-toggle[aria-pressed='true'] {
-  color: var(--accent);
-}
-.fav-toggle .star {
-  font-size: 15px;
-}
 
 /* ---------- Ramp grid ---------- */
 
@@ -551,20 +533,6 @@ html[data-ground='night'] .filter-btn[aria-pressed='true'] {
   font-variant-numeric: tabular-nums;
 }
 
-.ramp-card .card-star {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  font-size: 17px;
-  opacity: 0.55;
-}
-.ramp-card .card-star[aria-pressed='true'] {
-  opacity: 1;
-}
 
 .ramp-card .card-name {
   margin-top: 8px;
@@ -1308,11 +1276,6 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   }
   .ramp-card .card-index {
     display: none;
-  }
-  .ramp-card .card-star {
-    position: static;
-    order: 3;
-    margin-left: 4px;
   }
   .ramp-card .card-name {
     margin-top: 0;
