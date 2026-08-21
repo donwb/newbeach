@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.0 (build 24 — flighted to TestFlight 2026-08-20 afternoon, tag flight/build-24: video-first with the bright sun-following sky restored; build 18 remains the one submitted for App Review 2026-08-17), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.1 (build 25 — tvOS flighted to TestFlight 2026-08-21 08:39 ET, tag flight/build-25: overnight-focus fix over build 24's video-first board; iOS has NOT been flighted since 1.0 (24). MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -10,7 +10,17 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  IN REVIEW as of 2026-08-17 — build 1.0 (18) flighted and submitted (Don), BOTH
+  APPARENTLY APPROVED — 2026-08-21 08:37 ET the tvOS TestFlight upload of 1.0 (25) was
+  REJECTED by App Store Connect with "CFBundleShortVersionString [1.0] must contain a
+  higher version than that of the previously approved version [1.0]" and "Invalid
+  Pre-Release Train. The train version '1.0' is closed for new build submissions" —
+  i.e. Apple has approved version 1.0 (build 18). NOT YET CONFIRMED in ASC by a human:
+  Don should check whether 1.0 is Ready for Sale or Pending Developer Release, and on
+  which platforms. Consequence already acted on: MARKETING_VERSION is now 1.1 and build
+  25 went up under 1.1; every future flight is a 1.1 build. The App Store listing still
+  shows the build-18 design (pre-video-first) — the TV screenshots trail by four designs
+  and a 1.1 submission is how the current app reaches the store.
+  History: IN REVIEW as of 2026-08-17 — build 1.0 (18) flighted and submitted (Don), BOTH
   platforms: iOS/iPadOS and tvOS each submitted as their own platform version under
   the one record. First submission ever for this app; the record has never carried a
   released version.
@@ -36,7 +46,9 @@ last_verified: 2026-08-21 (Physical-remote pass on build 24 found one bug: Don
   overnightCityLines DELETED. Reproduced and verified in the tvOS sim against
   prod while prod was still in the overnight state (07:58–08:00 ET): all 8 UI
   tests pass incl. the ledger walk and row Select → detail → Menu restore.
-  NOT yet flighted — Don flights; the next build carries this fix. Same morning,
+  FLIGHTED at Don's direction 2026-08-21 08:39 ET as 1.1 (25), tvOS only (iOS is
+  unchanged since 24), tag flight/build-25 — after the first attempt as 1.0 (25)
+  bounced off ASC's closed 1.0 train, which is how we learned 1.0 was approved. Same morning,
   second remote-pass bug, server-side: the city verdict detail said "first around
   1:30pm" (the risk WINDOW start) while every ramp row said 2:30pm (peak minus
   learned lead). Fixed in predict: each RampOutlook now carries the close time its
