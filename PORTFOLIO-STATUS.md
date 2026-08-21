@@ -10,7 +10,7 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  tvOS 1.1 (25) SUBMITTED FOR REVIEW 2026-08-21 ~09:30 ET (Don) on the tvOS track —
+  tvOS 1.1 (25) SUBMITTED FOR REVIEW 2026-08-21 ~13:30 ET (Don) on the tvOS track —
   WAITING FOR REVIEW. The video-first board, overnight-focus fix, regenerated 4K
   screenshots (board / outlook / ramp detail), new What's New, and the redrafted
   description (drafts: docs/APP-STORE-LISTING.md §"tvOS 1.1"). 1.0 (18) stays live
@@ -43,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-21 09:30 (tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-21 13:30 (tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -231,7 +231,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 ---
 
 ## Top open items
-0. App Store — 1.0 (18) APPROVED (both platforms, learned 2026-08-21). tvOS 1.1 (25) SUBMITTED 2026-08-21, waiting for review. iOS still 1.0.
+0. App Store — 1.0 (18) APPROVED (learned 2026-08-21 from the closed 1.0 train). tvOS 1.1 (25) SUBMITTED 2026-08-21, waiting for review. iOS still 1.0.
    Metadata as submitted is checked in at docs/APP-STORE-LISTING.md; /privacy and
    /support are live and verified. Screenshots done for iPhone 6.9", iPad 13", and
    Apple TV (3840x2160, design/app-store-screenshots/appletv/). If review comes back
