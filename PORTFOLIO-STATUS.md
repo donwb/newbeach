@@ -18,8 +18,10 @@ app_review_state: |
   Don confirmed 2026-08-21: 1.0 (18) is the only thing Apple has approved — the
   design that has since been replaced. DECISION (Don, 2026-08-21): submit build 1.1 (25)
   as version 1.1; initial review is slow right now (submission volume). Open before
-  submitting: (a) tvOS App Store screenshots still show the build-18 design, four
-  redesigns old — regenerate from build 25; (b) 1.1 is tvOS-only so far — iOS needs a
+  submitting: (a) DONE 2026-08-21 09:01 ET — tvOS screenshots regenerated from build 25
+  (design/app-store-screenshots/appletv/: board, outlook, ramp detail) and What's New +
+  a redrafted tvOS description are in docs/APP-STORE-LISTING.md §"tvOS 1.1"; (b) 1.1 is
+  tvOS-only so far — iOS needs a
   1.1 build (`make flight-ios`, no code change) if the 1.1 version covers both
   platforms. Consequence already acted on: MARKETING_VERSION is now 1.1 and build
   25 went up under 1.1; every future flight is a 1.1 build. The App Store listing still
