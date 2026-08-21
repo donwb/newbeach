@@ -43,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-21 14:00 (iOS/iPadOS parity pass landed on main — weekend outlook section, server city verdict + overnight "Driving is done for today", surf facts block, iPhone forecast strip + recent-changes feed; NOT yet flighted, needs `make flight-ios` when Don wants an iOS 1.1. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-21 14:30 (web verdict now server city copy + overnight override, deployed; city headline bug fixed server-side — all-limited cities no longer read "All N closed". iOS/iPadOS parity pass landed on main — weekend outlook section, server city verdict + overnight "Driving is done for today", surf facts block, iPhone forecast strip + recent-changes feed; NOT yet flighted, needs `make flight-ios` when Don wants an iOS 1.1. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -248,9 +248,9 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    server city verdict (outlook.cities) now the phone/iPad headline when live, with the
    overnight override and overnight rows forced to Closed like tvOS; surf block with
    height/period/rip/buoy-age facts; iPhone gained the forecast strip and the city
-   recent-changes feed the iPad already had. Remaining cross-platform gaps are the
-   other direction (web/tvOS lack favorites-on-tv, threshold line on web detail) and
-   web's client-side verdict still differs from the server copy overnight.
+   recent-changes feed the iPad already had. Web followed the same afternoon (9392995):
+   server city verdict + overnight override, so all three platforms now share one
+   headline. Remaining gaps: tvOS has no favorites; web detail has no threshold line.
 1. DONE 2026-08-15 — iOS/iPadOS redesign shipped to main (commits e6689ce…7ab6210):
    sun-following sky boards on iPhone + iPad, verdict hero, field-carried status,
    ramp detail (push on iPhone, 760×762 panel on iPad), forced-landscape live cam,
