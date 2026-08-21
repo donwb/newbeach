@@ -202,32 +202,39 @@ struct TodayStatusBandView: View {
     }
 }
 
-/// 2×2 facts: Address, Driving hours, Closes above, Nearest cam. Cells with
-/// no data show a dash — nulls are expected until the metadata is curated.
+/// The ramp's facts — Address, Driving hours, Closes above, Nearest cam —
+/// showing only the ones that have a value: empty cells are noise, and the
+/// curated metadata (address, closure height) is filled in ramp by ramp.
+/// Driving hours fall back to the server's day schedule when the ramp has
+/// no curated hours of its own.
 struct FactsGrid: View {
     let ramp: Ramp
     let nearestCam: String?
-    /// 2×2 on iPhone; 4 across in the iPad sheet.
+    /// The day's driving frame from the outlook schedule ("~8am–6:30pm").
+    var scheduleHours: String? = nil
+    /// 2 on iPhone; 4 across in the iPad sheet.
     var columns: Int = 2
     @Environment(\.ground) private var ground
 
+    private var facts: [(label: String, value: String)] {
+        var list: [(String, String)] = []
+        if let address = ramp.address, !address.isEmpty { list.append(("Address", address)) }
+        if let hours = ramp.drivingHours ?? scheduleHours, !hours.isEmpty { list.append(("Driving hours", hours)) }
+        if let ft = ramp.closureHeightFt { list.append(("Closes above", String(format: "%.1f ft tide", ft))) }
+        if let nearestCam, !nearestCam.isEmpty { list.append(("Nearest cam", nearestCam)) }
+        return list.map { (label: $0.0, value: $0.1) }
+    }
+
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 18) {
-            if columns == 4 {
-                GridRow {
-                    fact("Address", ramp.address)
-                    fact("Driving hours", ramp.drivingHours)
-                    fact("Closes above", ramp.closureHeightFt.map { String(format: "%.1f ft tide", $0) })
-                    fact("Nearest cam", nearestCam)
-                }
-            } else {
-                GridRow {
-                    fact("Address", ramp.address)
-                    fact("Driving hours", ramp.drivingHours)
-                }
-                GridRow {
-                    fact("Closes above", ramp.closureHeightFt.map { String(format: "%.1f ft tide", $0) })
-                    fact("Nearest cam", nearestCam)
+        let rows = stride(from: 0, to: facts.count, by: columns).map { Array(facts[$0..<min($0 + columns, facts.count)]) }
+        if !rows.isEmpty {
+            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 18) {
+                ForEach(rows.indices, id: \.self) { r in
+                    GridRow {
+                        ForEach(rows[r].indices, id: \.self) { i in
+                            fact(rows[r][i].label, rows[r][i].value)
+                        }
+                    }
                 }
             }
         }

@@ -4,8 +4,9 @@ import BeachStatus
 /// "When should I go?" — the server's weekend outlook, one row per day.
 /// Every string is server copy rendered verbatim (headline, why, window
 /// label, wind label); the only client mapping is verdict → pill color,
-/// the same contract the web and tvOS use. Weekend days carry the accent
-/// rule so Saturday and Sunday read first at a glance.
+/// the same contract the web and tvOS use. Weekend days carry an ink rule
+/// so Saturday and Sunday read first at a glance — ink, never the red
+/// accent, which on this board means a closure.
 struct WeekendSectionView: View {
     let weekend: WeekendOutlook?
     @Environment(\.ground) private var ground
@@ -61,7 +62,7 @@ struct WeekendDayRow: View {
         let t = ground.tokens
         HStack(alignment: .top, spacing: 12) {
             Rectangle()
-                .fill(day.isWeekend ? t.accent : .clear)
+                .fill(day.isWeekend ? t.ink : .clear)
                 .frame(width: 3)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {

@@ -163,6 +163,27 @@ final class BeachViewModel {
         return entry.risk == "closed_now" && entry.reason == "overnight"
     }
 
+    /// The day's driving frame for the detail facts ("~8am–6:30pm"): the
+    /// schedule's open instant, approximate (the morning turtle sweep sets
+    /// the real minute), and the server's own close label, which already
+    /// carries the learned early-close offset.
+    var scheduleHours: String? {
+        guard let schedule = outlook?.schedule else { return nil }
+        let opens = schedule.opensAt.map { "~" + Self.casualClock($0) } ?? schedule.opensLabel
+        guard !opens.isEmpty, !schedule.closesLabel.isEmpty else { return nil }
+        return "\(opens)–\(schedule.closesLabel)"
+    }
+
+    /// "8am" / "6:30pm" — the outlook copy's clock style, Eastern.
+    private static func casualClock(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = SinceFormatter.eastern
+        let minute = Calendar(identifier: .gregorian).dateComponents(in: SinceFormatter.eastern, from: date).minute ?? 0
+        f.dateFormat = minute == 0 ? "ha" : "h:mma"
+        return f.string(from: date).lowercased()
+    }
+
     // MARK: - Surf
 
     /// The beach-wide casual surf line, server-built and verbatim; nil when

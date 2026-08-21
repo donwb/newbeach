@@ -884,8 +884,9 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
+/* Weekend days read in ink, not the accent — red on this board means a closure. */
 .wk-day.wk-weekend .wk-name {
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .wk-pill {

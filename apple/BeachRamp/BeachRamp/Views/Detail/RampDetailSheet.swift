@@ -86,7 +86,7 @@ struct RampDetailSheet: View {
                     TodayStatusBandView(intervals: viewModel.intervalsByRamp[ramp.accessID])
                         .padding(.top, 22)
 
-                    FactsGrid(ramp: ramp, nearestCam: viewModel.selectedCamera?.name, columns: 4)
+                    FactsGrid(ramp: ramp, nearestCam: viewModel.selectedCamera?.name, scheduleHours: viewModel.scheduleHours, columns: 4)
                         .padding(.top, 22)
 
                     HStack(alignment: .top, spacing: 28) {

@@ -33,7 +33,7 @@ struct RampDetailView: View {
                     .padding(.horizontal, 18)
                     .padding(.top, 22)
 
-                FactsGrid(ramp: ramp, nearestCam: viewModel.selectedCamera?.name)
+                FactsGrid(ramp: ramp, nearestCam: viewModel.selectedCamera?.name, scheduleHours: viewModel.scheduleHours)
                     .padding(.horizontal, 18)
                     .padding(.top, 22)
 
