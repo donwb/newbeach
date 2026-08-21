@@ -2,7 +2,7 @@
 app: Beach Ramp Status
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.1 (build 25 — tvOS flighted to TestFlight 2026-08-21 08:39 ET, tag flight/build-25: overnight-focus fix over build 24's video-first board; iOS has NOT been flighted since 1.0 (24). MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -43,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-21 14:30 (web verdict now server city copy + overnight override, deployed; city headline bug fixed server-side — all-limited cities no longer read "All N closed". iOS/iPadOS parity pass landed on main — weekend outlook section, server city verdict + overnight "Driving is done for today", surf facts block, iPhone forecast strip + recent-changes feed; NOT yet flighted, needs `make flight-ios` when Don wants an iOS 1.1. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-21 14:10 (iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -231,7 +231,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 ---
 
 ## Top open items
-0. App Store — 1.0 (18) APPROVED (learned 2026-08-21 from the closed 1.0 train). tvOS 1.1 (25) SUBMITTED 2026-08-21, waiting for review. iOS still 1.0.
+0. App Store — 1.0 (18) APPROVED. tvOS 1.1 (25) SUBMITTED 2026-08-21, waiting for review. iOS 1.1 (26) UPLOADED 2026-08-21 14:08 ET, not yet submitted — paste the iOS 1.1 section of docs/APP-STORE-LISTING.md and submit once ASC finishes processing.
    Metadata as submitted is checked in at docs/APP-STORE-LISTING.md; /privacy and
    /support are live and verified. Screenshots done for iPhone 6.9", iPad 13", and
    Apple TV (3840x2160, design/app-store-screenshots/appletv/). If review comes back

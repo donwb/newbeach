@@ -151,6 +151,68 @@ Support URL, Marketing URL, Copyright, Version: same as iOS.
 
 ---
 
+## Version metadata — iOS / iPadOS 1.1 (build 26, drafted 2026-08-21)
+
+Context: the 2026-08-21 parity pass brought the phone and iPad up to the web and
+tvOS feature set (weekend outlook, server-built city verdict, surf line, forecast
+strip, recent changes) and pulled favorites in favor of "Pin to widget". Flighted
+as 1.1 (26), iOS only — tvOS 1.1 (25) is already in review. Screenshots: the
+existing iPhone 6.9" / iPad 13" sets still match the board; recapture only if the
+review asks. Note the 1.0 description quoted "closure likely around 1:30pm" —
+the product rule is that a tide closure is always *possible*, never *likely*, so
+the 1.1 copy says so.
+
+### What's New in This Version
+
+```
+The board now plans ahead.
+
+• When should I go? — the next seven days, each graded for the beach with the best driving window, closure risk, high, rain chance, and wind. Saturday and Sunday first.
+• One verdict, every screen — the headline for your city is now the same on the phone, the iPad, the TV, and the website, right down to "Driving is done for today" after the evening sweep.
+• Surf, in a sentence — the buoy read for Ponce Inlet with height, period, rip current risk, and how fresh it is.
+• Forecast and recent changes on the iPhone board, not just the iPad.
+• Pin to widget — choose the ramps your Home Screen widget shows from the ramp's own screen.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
+```
+
+(≈780 characters; limit 4000.)
+
+### Description (redrafted for 1.1)
+
+```
+Can you drive on the beach right now? Volusia Beach Info answers that in one glance — and tells you when to come back.
+
+Volusia County opens and closes its beach access ramps all day long — high tide, turtles, weather, crowds. This app watches the county's own live feed and shows every ramp's status the moment it changes, with the tide, the water temperature, the forecast, the surf, and a live look at the beach itself.
+
+WHAT YOU GET
+
+• Every ramp, every status — all 27 county access ramps from Ormond Beach down to New Smyrna Beach, marked open, limited, or closed, checked against the county feed every minute.
+• A plain-English verdict for your city — "Five for five", "Two of eight open", "Driving is done for today" — the same line on every device.
+• What's likely next — the app learns how each ramp behaves around high tide and says when a closure is possible, in plain language: "tide closure possible ~2:30pm", or simply the end of the driving day.
+• When should I go? — the next seven days graded for the beach: best driving window, closure risk, high, rain chance, wind.
+• Tide chart — today's highs and lows and which way the tide is running.
+• Water, weather, surf — water temperature from NOAA, the forecast from the National Weather Service, and the Ponce Inlet buoy's surf read with rip current risk.
+• Live beach cams — five cameras up and down the coast. Turn your phone sideways for full screen.
+• Ramp history — today's timeline and the last 48 hours of changes for every ramp.
+• Widgets — the board on your Home Screen or Lock Screen, in every size; pin the ramps you care about.
+• A sky that follows the sun — the screen shifts from dawn purple through midday blue to golden evening, tracking the real sunrise and sunset.
+
+FREE, AND IT STAYS THAT WAY
+
+No account. No sign-in. No ads. No tracking and no analytics — nothing about you is collected or uploaded. The app downloads public beach data and shows it to you.
+
+WHERE THE DATA COMES FROM
+
+Ramp status: Volusia County's public GIS feed. Tides and water temperature: NOAA. Weather: the National Weather Service. Surf: the NOAA Ponce Inlet buoy. Beach cams: public live cameras along the Volusia coast. Closure outlooks are estimates learned from past county closures — the county makes the call.
+
+Volusia Beach Info is an independent app and is not affiliated with or endorsed by Volusia County. Conditions on the beach change fast — always follow posted signs and the direction of Beach Safety officers on scene.
+```
+
+Promotional text, keywords, URLs, copyright: unchanged from iOS 1.0.
+
+---
+
 ## Version metadata — tvOS 1.1 (build 25, drafted 2026-08-21)
 
 Context: 1.0 (18) was approved; ASC closed the 1.0 train, so the video-first

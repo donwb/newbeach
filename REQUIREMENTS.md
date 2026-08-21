@@ -346,7 +346,7 @@ CRAWFORD RD is : CLOSED
 - **Last updated timestamp** — visible in the header or footer
 - **Webcam embed** — optional section showing the live webcam image (configurable URL)
 - **Tide chart** — simple visual showing today's tide curve with current position marked
-- **Favorites** — allow users to star/pin specific ramps (stored in localStorage)
+- ~~**Favorites**~~ — *removed 2026-08-21: favorites never synced across web/iOS/tvOS, so a star read as a shared feature it was not. No starring on any surface; the iOS widget's "Pin to widget" covers the "my ramp" case on-device.*
 - **PWA support** — installable on mobile home screens, offline-capable with cached last-known data
 
 ### 7.4 Design Direction
@@ -382,9 +382,9 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **All cities view** — browse all Volusia County ramps (matching website)
 - **City filtering** — same filter pills as website
 - **Status filtering**
-- **Favorites** — pin ramps, shown at top
-- **Push notifications** — alert when a favorited ramp changes status (requires backend support)
-- **Widgets** — iOS home screen widgets showing favorite ramp status
+- ~~**Favorites**~~ — *removed 2026-08-21 (see §7.3). What remains: "Pin to widget" on the ramp detail screen, feeding the widget's "Pinned ramps" mode on that device only.*
+- **Push notifications** — alert when a pinned ramp changes status (requires backend support)
+- **Widgets** — iOS home screen widgets showing pinned-ramp status ✅ shipped
 - **Live Activities** — show ramp status on Dynamic Island / Lock Screen (when at the beach)
 - **Haptic feedback** on status changes
 - **Settings screen** — default city, notification preferences, units (°F/°C)
@@ -412,7 +412,7 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Ramps only** — no tide or weather data on watch (phone/iPad handles that)
 - **Complications (both styles):**
   - Count-based: show open/closed/limited counts (e.g., "8 Open")
-  - Single ramp: show a favorite ramp's name and current status
+  - Single ramp: show a chosen ramp's name and current status
 - **Background refresh** — update data on a schedule (every 15 min)
 - **Works independently** — does not require iPhone nearby (uses WiFi/cellular)
 
@@ -934,7 +934,7 @@ These items are not in scope for the initial rebuild but the architecture should
 
 1. **Multi-region support** — Could this expand beyond Volusia County to other beach areas?
 2. **Surf conditions** — Integration with surf forecast APIs (Surfline, Magic Seaweed)? *Update 2026-08-16: free NDBC buoy wave data (station 41113) is now snapshotted to `beach_conditions` every 30 min by the API's conditions logger, as future training input for the tide-closure prediction feature (`/api/v2/outlook`, see CLAUDE.md "Prediction"). No paid surf API planned.*
-3. **User accounts** — Would persistent favorites across devices (via iCloud or API) be valuable?
+3. **User accounts** — Would persistent pins across devices (via iCloud or API) be valuable? *Update 2026-08-21: favorites were pulled rather than synced; the site stays anonymous.*
 4. **Android app** — Is there interest in an Android version, or is Apple-only sufficient?
 5. **Notification backend** — APNs infrastructure for push notifications (requires server-side work)
 
@@ -950,7 +950,7 @@ These items are not in scope for the initial rebuild but the architecture should
 
 ### Phase 2 — Website ✅
 - Rebuild website with Tailwind CSS
-- All existing features + dark mode, favorites, tide chart
+- All existing features + dark mode, tide chart (favorites later removed, 2026-08-21)
 - Weather conditions display (NWS API, including wind speed/gusts)
 - PWA support
 
@@ -1027,8 +1027,8 @@ These items are not in scope for the initial rebuild but the architecture should
 - Summary cards with color-coded counts (total/open/limited/closed)
 - City filter pills (title case display, New Smyrna Beach pre-selected)
 - Status filter pills (All/Open/Limited/Closed)
-- Ramp cards in two-column responsive grid with color-coded left borders, status badges, favorite stars
-- Favorites persisted in localStorage, favorited ramps sorted to top
+- Ramp cards in two-column responsive grid with color-coded left borders, status badges
+- *(Favorites removed 2026-08-21 — never synced across platforms.)*
 - Dark mode with system preference detection + manual toggle (persisted)
 - Canvas-rendered tide chart with hourly curve, H/L markers, "NOW" indicator, axis labels
 - Live webcam with 60-second auto-refresh
@@ -1238,8 +1238,8 @@ All six implementation phases are complete. Every platform has reached a shippab
 | Platform | Status | What's Live |
 |----------|--------|-------------|
 | **Go API** | ✅ Production | v1 + v2 endpoints, GIS ingester, NOAA tides/temp, NWS weather — running on DigitalOcean App Platform |
-| **Website** | ✅ Production | Responsive dashboard with ramp grid, tide chart, weather, webcam, dark mode, favorites, PWA |
-| **iOS** | ✅ Buildable | Universal SwiftUI app (iPhone + iPad) with ramps, tide chart, weather, webcam, city/status filtering |
+| **Website** | ✅ Production | Responsive dashboard with ramp grid, server verdict + per-ramp outlook, weekend outlook, surf line, tide chart, weather, multi-cam, PWA |
+| **iOS** | ✅ Live (1.0) / 1.1 flighting | Universal SwiftUI app (iPhone + iPad) at feature parity with web/tvOS as of 2026-08-21: server verdict, per-ramp outlook, weekend outlook, surf line, tide chart, forecast, multi-cam, widgets |
 | **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
 | **tvOS** | ✅ On TestFlight | Two-mode board (Aug 2026): Cam mode — native-size beach cam + verdict + surf line + ramp cards; Board mode — full board with weekend outlook and daylight bar; D-pad toggle, mode memory, 10-min idle fallback |
 | **TRMNL OG** | ✅ Live | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
