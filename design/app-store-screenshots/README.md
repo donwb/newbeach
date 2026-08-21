@@ -54,28 +54,29 @@ header to use the override time.
 
 ## appletv (3840×2160, Apple TV 4K 3rd gen)
 
-Captured 2026-08-17. The App Store accepts 1920×1080 or 3840×2160 for tvOS;
-the 4K sim writes the larger size, which is what these are.
+Recaptured 2026-08-21 09:01 ET from the video-first board (build 1.1 (25),
+`apple/scripts/screenshots.sh tv`) against live prod — the previous set
+(2026-08-17, band/tile design) was four redesigns old and is gone. The App
+Store accepts 1920×1080 or 3840×2160 for tvOS; the 4K sim writes the larger.
 
-1. **01-board.png** — the hero: verdict, stat rail, five NSB ramp cards with
-   their outlook hints, sun ribbon, live NSB cam, and the coastline camera
-   rail along the bottom.
-2. **02-tide.png** — tide overlay (`--overlay-tide`): today's curve with the
-   now marker and all four extremes.
-3. **03-activity.png** — recent changes (`--overlay-activity`). Real county
-   data, and the reason this shot is worth including: it shows the morning's
-   "Closed — cleared for turtles" run.
-4. **04-water.png** — water & air (`--overlay-temp`): both NOAA stations,
-   the average the board shows, and the NWS forecast strip.
+1. **01-board.png** — the hero, at rest: live NSB cam panorama across the
+   top, the Watching cam strip, the city verdict ("Wide open — all five ·
+   any of them could shut on the ~5pm high · first around 2:30pm"), the
+   five-ramp ledger with each ramp's Next hint, the surf line, and the
+   weekend slots.
+2. **02-outlook.png** — the Beach outlook pull surface (`--surface-outlook`):
+   7-day table — high, rain, surf, best window, closure risk.
+3. **03-ramp-detail.png** — the Ramp detail pull surface
+   (`--surface-ramp-detail`, Beachway Av): today's status bar, the tide
+   curve against the ramp with all four extremes, and the last 48 hours of
+   county changes (the morning "Closed — turtles" run included).
 
-**No `--sky-minutes` here, on purpose.** The hook moves the sky, the header
-clock, and the sun ribbon, but not the verdict subline — ContentView builds
-the verdict from a real `Date()` (BeachRampTV/ContentView.swift:282). A
-frozen evening board therefore reads "7:30 PM" next to "8h 58m of light
-left" and contradicts itself in a store screenshot. Shooting at real
-wall-clock time keeps every string agreeing; shoot midday Eastern, when the
-board is mixed and the cams are lit. Threading the override into the verdict
-would let sky phases come back.
+**No `--sky-minutes` here, on purpose.** The hook moves the sky and the
+header clock but not the server's verdict copy, so a frozen evening board
+would contradict itself. Shoot at real wall-clock time; mid-morning to
+midday Eastern gives a lit cam and a mixed ledger. The ledger's quiet copy
+rotates by daypart (predict/voice.go), so a reshoot may word the verdict
+differently — that is expected.
 
 ## watch (416×496, Apple Watch Series 11 46mm)
 

@@ -151,6 +151,56 @@ Support URL, Marketing URL, Copyright, Version: same as iOS.
 
 ---
 
+## Version metadata — tvOS 1.1 (build 25, drafted 2026-08-21)
+
+Context: 1.0 (18) was approved; ASC closed the 1.0 train, so the video-first
+board ships as 1.1. Screenshots: `design/app-store-screenshots/appletv/`
+(recaptured 2026-08-21 from build 25). The 1.0 tvOS description below is
+stale — it describes the retired band/tile design ("stylized map of the
+coast", "watch it full screen") — so the description is redrafted here too.
+
+### What's New in This Version
+
+```
+A new board, built around the beach itself.
+
+• The live cam is now the picture: a wide panorama across the top of the screen that nothing ever covers. Flip between five Volusia cams — New Smyrna, Ponce Inlet, Dunlawton, Ormond Beach, Ormond-by-the-Sea — with the remote.
+• Below it, the ledger: a plain-English verdict for your city, every ramp with what's likely to happen next ("tide closure possible ~2:30pm"), the surf right now, and the best driving windows this weekend.
+• Beach outlook: a 7-day table of highs, rain, surf, best window, and closure risk.
+• Ramp detail: pick a ramp for today's timeline, the tide against that ramp, and its last 48 hours of changes.
+• The sky behind it all follows the real sun over New Smyrna, dawn to dark.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
+```
+
+(≈820 characters; limit 4000.)
+
+### Description (redrafted for 1.1)
+
+```
+The beach, on your TV.
+
+Volusia County opens and closes its beach access ramps all day long — for the tide, for turtles, for crowds. Volusia Beach Info puts the live beach and the whole board on the big screen.
+
+Across the top: a live beach cam panorama, never covered. Five cameras from Ormond-by-the-Sea down to New Smyrna Beach, one remote press apart.
+
+Below it, the ledger: a plain-English verdict for your city ("Wide open — all five"), every ramp marked open, limited, or closed, and what's likely to happen to it next — a tide closure possible around 2:30pm, or simply the end of the driving day. Plus the surf right now and the best driving windows this weekend.
+
+Press in for more. Beach outlook is a 7-day table — highs, rain, surf, best window, closure risk. Ramp detail shows today's timeline, the tide against that ramp, and its last 48 hours of changes.
+
+The sky behind the board follows the real sun over New Smyrna Beach, dawn to dark.
+
+Free. No account, no sign-in, no ads, and nothing about you is collected.
+
+Ramp status comes from Volusia County's public GIS feed, refreshed every minute; tides and water temperature from NOAA; weather from the National Weather Service; surf from the Ponce Inlet buoy; the cams are public live cameras along the Volusia coast. Closure outlooks are estimates learned from past county closures — the county makes the call.
+
+Volusia Beach Info is an independent app and is not affiliated with or endorsed by Volusia County. Always follow posted signs and the direction of Beach Safety officers on scene.
+```
+
+Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
+
+---
+
 ## App Privacy (nutrition label)
 
 **Answer: "Data Not Collected."**
