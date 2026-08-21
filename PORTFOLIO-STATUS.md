@@ -10,20 +10,21 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the "Beach Ramp Status" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  APPARENTLY APPROVED — 2026-08-21 08:37 ET the tvOS TestFlight upload of 1.0 (25) was
+  tvOS 1.1 (25) SUBMITTED FOR REVIEW 2026-08-21 ~09:30 ET (Don) on the tvOS track —
+  WAITING FOR REVIEW. The video-first board, overnight-focus fix, regenerated 4K
+  screenshots (board / outlook / ramp detail), new What's New, and the redrafted
+  description (drafts: docs/APP-STORE-LISTING.md §"tvOS 1.1"). 1.0 (18) stays live
+  on tvOS until 1.1 is approved. iOS remains 1.0 (18) approved/live — not resubmitted;
+  an iOS 1.1 needs `make flight-ios` + the same steps on the iOS track when wanted.
+  Don notes initial review queues are slow right now (submission volume).
+  How we learned 1.0 was approved: 2026-08-21 08:37 ET the tvOS TestFlight upload of 1.0 (25) was
   REJECTED by App Store Connect with "CFBundleShortVersionString [1.0] must contain a
   higher version than that of the previously approved version [1.0]" and "Invalid
   Pre-Release Train. The train version '1.0' is closed for new build submissions" —
   i.e. Apple has approved version 1.0 (build 18). NOT YET CONFIRMED in ASC by a human:
   Don confirmed 2026-08-21: 1.0 (18) is the only thing Apple has approved — the
-  design that has since been replaced. DECISION (Don, 2026-08-21): submit build 1.1 (25)
-  as version 1.1; initial review is slow right now (submission volume). Open before
-  submitting: (a) DONE 2026-08-21 09:01 ET — tvOS screenshots regenerated from build 25
-  (design/app-store-screenshots/appletv/: board, outlook, ramp detail) and What's New +
-  a redrafted tvOS description are in docs/APP-STORE-LISTING.md §"tvOS 1.1"; (b) 1.1 is
-  tvOS-only so far — iOS needs a
-  1.1 build (`make flight-ios`, no code change) if the 1.1 version covers both
-  platforms. Consequence already acted on: MARKETING_VERSION is now 1.1 and build
+  design that has since been replaced. Submitted 1.1 (25) the same morning (above).
+  Consequence already acted on: MARKETING_VERSION is now 1.1 and build
   25 went up under 1.1; every future flight is a 1.1 build. The App Store listing still
   shows the build-18 design (pre-video-first) — the TV screenshots trail by four designs
   and a 1.1 submission is how the current app reaches the store.
@@ -42,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-21 (Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-21 09:30 (tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -230,7 +231,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 ---
 
 ## Top open items
-0. App Store submission — SUBMITTED 2026-08-17, build 1.0 (18), awaiting review.
+0. App Store — 1.0 (18) APPROVED (both platforms, learned 2026-08-21). tvOS 1.1 (25) SUBMITTED 2026-08-21, waiting for review. iOS still 1.0.
    Metadata as submitted is checked in at docs/APP-STORE-LISTING.md; /privacy and
    /support are live and verified. Screenshots done for iPhone 6.9", iPad 13", and
    Apple TV (3840x2160, design/app-store-screenshots/appletv/). If review comes back
