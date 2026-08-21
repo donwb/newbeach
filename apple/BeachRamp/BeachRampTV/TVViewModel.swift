@@ -230,22 +230,6 @@ final class TVViewModel {
         }
     }
 
-    /// The overnight ledger's all-cities lines: every city at one line each,
-    /// with the server's reopen copy. Per-ramp detail has nothing to say
-    /// overnight, and the county feed's overnight statuses are unreliable —
-    /// the outlook is authoritative, so each city reports its full count.
-    var overnightCityLines: [TVOvernightCityLine] {
-        guard let reopen = overnightOutlook?.reopen?.label else { return [] }
-        return cities.map { city in
-            let count = ramps.filter { $0.cityDisplay == city }.count
-            return TVOvernightCityLine(
-                id: city,
-                city: city,
-                closedLabel: "\(count) closed",
-                reopenLabel: reopen
-            )
-        }
-    }
 
     var cities: [String] {
         Array(Set(ramps.map(\.cityDisplay))).sorted()

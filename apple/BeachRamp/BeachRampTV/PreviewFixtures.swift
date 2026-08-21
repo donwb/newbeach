@@ -193,16 +193,14 @@ enum PreviewFixtures {
                        nextLabel: i.isMultiple(of: 2) ? "could close on the ~3pm tide" : "Clear all day")
     }
 
-    static let overnightLines: [TVOvernightCityLine] = [
-        TVOvernightCityLine(id: "New Smyrna Beach", city: "New Smyrna Beach",
-                            closedLabel: "5 closed", reopenLabel: "opens around 8am"),
-        TVOvernightCityLine(id: "Daytona Beach", city: "Daytona Beach",
-                            closedLabel: "12 closed", reopenLabel: "opens around 8am"),
-        TVOvernightCityLine(id: "Ormond Beach", city: "Ormond Beach",
-                            closedLabel: "4 closed", reopenLabel: "opens around 8am"),
-        TVOvernightCityLine(id: "Ponce Inlet", city: "Ponce Inlet",
-                            closedLabel: "3 closed", reopenLabel: "opens around 8am"),
-    ]
+    /// The ledger after the turtle-season close: every row Closed with the
+    /// server's reopen copy — still a focusable, drillable list.
+    static let overnightRows: [TVRampRowModel] = [
+        "Flagler Ave", "Crawford Rd", "27th Ave", "3rd Ave", "Beachway Ave",
+    ].enumerated().map { i, name in
+        TVRampRowModel(id: "NSB-\(i)", name: name, nowLabel: "Closed",
+                       isClosed: true, nextLabel: "opens around 8am")
+    }
 
     /// Seven outlook table rows, one all-day risk exercising the red.
     static let outlookRows: [TVOutlookDayRow] = [

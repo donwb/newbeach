@@ -55,14 +55,6 @@ struct TVRampRowModel: Identifiable, Equatable {
     let nextLabel: String?
 }
 
-/// One all-cities line in the overnight ledger variant.
-struct TVOvernightCityLine: Identifiable, Equatable {
-    let id: String       // city display name
-    let city: String
-    let closedLabel: String   // "5 closed"
-    let reopenLabel: String   // server reopen copy, verbatim
-}
-
 /// The surf block: window label ("Now"), the report line verbatim, facts.
 struct TVSurfBoxModel: Equatable {
     let windowLabel: String

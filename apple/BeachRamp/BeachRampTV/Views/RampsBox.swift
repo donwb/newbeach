@@ -19,6 +19,10 @@ enum RampRowLayout {
 /// row: Left/Right on the header cycles the city, Left/Right on a row is
 /// deliberately inert (box-local rule), and Up/Down at the window edges
 /// shift the window while keeping focus on the edge row.
+///
+/// The box stays on the ledger around the clock — overnight the rows read
+/// Closed with the server's reopen copy, so a ramp is always one Down press
+/// away (the roll-up that replaced the list at night was unreachable).
 struct RampsBox: View {
     static let visibleRows = 5
 
@@ -231,59 +235,6 @@ struct RampsBox: View {
     }
 }
 
-/// The overnight variant of the left box: one line per city, since per-ramp
-/// detail has nothing to say after the gates close. Not focusable — the cam
-/// strip and the outlook button are the night's controls.
-struct OvernightCitiesBox: View {
-    let lines: [TVOvernightCityLine]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                Text("Overnight").tvLabel()
-                Text("All cities")
-                    .tv(30, .extraBold, tracking: -0.02)
-                    .foregroundStyle(TVInk.type)
-                Spacer(minLength: 0)
-            }
-            .padding(.bottom, 16)
-            HStack(spacing: RampRowLayout.gap) {
-                Text("City").tvLabel()
-                    .frame(width: RampRowLayout.name, alignment: .leading)
-                Text("Now").tvLabel()
-                    .frame(width: RampRowLayout.now, alignment: .leading)
-                Text("Next").tvLabel()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.bottom, 8)
-            ForEach(lines) { line in
-                HStack(spacing: RampRowLayout.gap) {
-                    Text(line.city)
-                        .tv(32, .semiBold)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .foregroundStyle(TVInk.type)
-                        .frame(width: RampRowLayout.name, alignment: .leading)
-                    Text(line.closedLabel)
-                        .tv(26, .bold)
-                        .foregroundStyle(TVInk.closed)
-                        .frame(width: RampRowLayout.now, alignment: .leading)
-                    Text(line.reopenLabel)
-                        .tv(26)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .foregroundStyle(TVInk.typeDim)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.vertical, 7)
-                .overlay(alignment: .top) {
-                    Rectangle().fill(TVInk.ruleHair).frame(height: 1)
-                }
-            }
-        }
-    }
-}
-
 #if DEBUG
 #Preview("Five rows", traits: .fixedLayout(width: 990, height: 420)) {
     @Previewable @FocusState var focus: RootFocus?
@@ -320,8 +271,19 @@ struct OvernightCitiesBox: View {
 }
 
 #Preview("Overnight", traits: .fixedLayout(width: 990, height: 420)) {
-    OvernightCitiesBox(lines: PreviewFixtures.overnightLines)
-        .padding(40)
-        .background(TVSky.previewNight)
+    @Previewable @FocusState var focus: RootFocus?
+    @Previewable @State var top = 0
+    RampsBox(
+        city: "New Smyrna Beach",
+        rows: PreviewFixtures.overnightRows,
+        topIndex: $top,
+        focus: $focus,
+        upTargetCamID: "nsb",
+        onCycleCity: { _ in },
+        onSelect: { _ in },
+        onActivity: {}
+    )
+    .padding(40)
+    .background(TVSky.previewNight)
 }
 #endif

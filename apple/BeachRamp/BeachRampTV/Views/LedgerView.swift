@@ -14,7 +14,6 @@ struct LedgerView: View {
     let city: String
     let rows: [TVRampRowModel]
     @Binding var topIndex: Int
-    let overnightLines: [TVOvernightCityLine]?
     let surf: TVSurfBoxModel
     let weekend: [TVWeekendSlot]
 
@@ -70,22 +69,16 @@ struct LedgerView: View {
 
     private var boxes: some View {
         HStack(alignment: .top, spacing: 0) {
-            Group {
-                if let overnightLines {
-                    OvernightCitiesBox(lines: overnightLines)
-                } else {
-                    RampsBox(
-                        city: city,
-                        rows: rows,
-                        topIndex: $topIndex,
-                        focus: focus,
-                        upTargetCamID: upTargetCamID,
-                        onCycleCity: onCycleCity,
-                        onSelect: onSelect,
-                        onActivity: onActivity
-                    )
-                }
-            }
+            RampsBox(
+                city: city,
+                rows: rows,
+                topIndex: $topIndex,
+                focus: focus,
+                upTargetCamID: upTargetCamID,
+                onCycleCity: onCycleCity,
+                onSelect: onSelect,
+                onActivity: onActivity
+            )
             .padding(.top, 10)
             .padding(.trailing, 48)
             .frame(width: 985, alignment: .topLeading)
@@ -120,7 +113,6 @@ struct LedgerView: View {
         city: "New Smyrna Beach",
         rows: PreviewFixtures.nsbRows,
         topIndex: $top,
-        overnightLines: nil,
         surf: TVSurfBoxModel(
             windowLabel: "Now",
             headline: "Pretty much flat out there",
@@ -155,7 +147,6 @@ struct LedgerView: View {
         city: "Daytona Beach",
         rows: PreviewFixtures.daytonaRows,
         topIndex: $top,
-        overnightLines: nil,
         surf: TVSurfBoxModel(
             windowLabel: "Now",
             headline: "Pretty much flat out there",
@@ -188,9 +179,8 @@ struct LedgerView: View {
         ),
         flashToken: 0,
         city: "New Smyrna Beach",
-        rows: [],
+        rows: PreviewFixtures.overnightRows,
         topIndex: $top,
-        overnightLines: PreviewFixtures.overnightLines,
         surf: TVSurfBoxModel(
             windowLabel: "Now",
             headline: "No surf read right now",

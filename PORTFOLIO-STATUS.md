@@ -25,7 +25,19 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-20 (tvOS REBUILT AGAIN to the "video first" design — Don lived
+last_verified: 2026-08-21 (Physical-remote pass on build 24 found one bug: Don
+  loved the layout but could not focus the ramp list — Watching and Beach outlook
+  focused fine. Cause: after the turtle-season close the ledger swapped the ramp
+  list for an "Overnight · All cities" roll-up that was built non-focusable, so
+  every evening the ramps were unreachable. Fixed 2026-08-21 morning: the
+  focusable RampsBox stays on the ledger around the clock; overnight its rows
+  read Closed (the outlook is authoritative — the county feed lags at OPEN) with
+  the server reopen copy in Next. OvernightCitiesBox/TVOvernightCityLine/
+  overnightCityLines DELETED. Reproduced and verified in the tvOS sim against
+  prod while prod was still in the overnight state (07:58–08:00 ET): all 8 UI
+  tests pass incl. the ledger walk and row Select → detail → Menu restore.
+  NOT yet flighted — Don flights; the next build carries this fix.
+  Earlier 2026-08-20: tvOS REBUILT AGAIN to the "video first" design — Don lived
   with the two-mode board on a real device one evening and killed it: he watches the
   video far more than expected, and the mode toggle made the information fight the
   picture. New design (Claude Design project d3055b06, handoff README in the project's

@@ -184,8 +184,6 @@ struct ContentView: View {
                     city: viewModel.currentCity,
                     rows: rampRows,
                     topIndex: $rampTopIndex,
-                    overnightLines: viewModel.isOvernight && !viewModel.overnightCityLines.isEmpty
-                        ? viewModel.overnightCityLines : nil,
                     surf: surfBox,
                     weekend: weekendSlots,
                     focus: $focus,
@@ -315,11 +313,15 @@ struct ContentView: View {
             case "closed_now": next = entry?.reopen?.label
             default: next = entry?.short ?? entry?.reopen?.label
             }
+            // Overnight the outlook is authoritative: the county feed may
+            // still read OPEN after the turtle-season close, and a row that
+            // says Open next to "opens around 8am" contradicts itself.
+            let overnight = entry?.risk == "closed_now" && entry?.reason == "overnight"
             return TVRampRowModel(
                 id: ramp.accessID,
                 name: ramp.rampDisplayName,
-                nowLabel: tvStatusWord(ramp.accessStatus),
-                isClosed: ramp.category == .closed,
+                nowLabel: overnight ? "Closed" : tvStatusWord(ramp.accessStatus),
+                isClosed: overnight || ramp.category == .closed,
                 nextLabel: next
             )
         }
