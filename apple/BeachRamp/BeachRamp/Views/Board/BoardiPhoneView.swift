@@ -49,6 +49,30 @@ struct BoardiPhoneView: View {
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 14)
 
+            ForecastRow(weather: viewModel.weather)
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+
+            if viewModel.surfReportLine != nil {
+                Rectangle().fill(t.rule2).frame(height: 1)
+                    .padding(.top, 14)
+                SurfReportView(line: viewModel.surfReportLine, detail: viewModel.surfReportDetail())
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+            }
+
+            Rectangle().fill(t.rule).frame(height: 2)
+                .padding(.top, 14)
+
+            if viewModel.weekend != nil {
+                WeekendSectionView(weekend: viewModel.weekend)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+
+                Rectangle().fill(t.rule).frame(height: 2)
+                    .padding(.top, 14)
+            }
+
             if let camera = viewModel.selectedCamera {
                 CamRowView(cameraName: camera.name) {
                     viewModel.camPresented = true
@@ -57,6 +81,13 @@ struct BoardiPhoneView: View {
 
                 Rectangle().fill(t.rule2).frame(height: 1)
             }
+
+            RecentChangesList(entries: viewModel.recentActivity)
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+
+            Rectangle().fill(t.rule).frame(height: 2)
+                .padding(.top, 14)
 
             BoardFooterView(updatedAt: viewModel.lastSuccessfulRefresh)
                 .padding(.horizontal, 18)
@@ -89,7 +120,8 @@ struct BoardiPhoneView: View {
                 ForEach(viewModel.filteredRamps) { ramp in
                     NavigationLink(value: ramp) {
                         RampRowView(ramp: ramp, stale: viewModel.isStale,
-                                    outlookHint: viewModel.outlookHint(for: ramp))
+                                    outlookHint: viewModel.outlookHint(for: ramp),
+                                    overnight: viewModel.isOvernightClosed(ramp))
                     }
                     .buttonStyle(PressTintButtonStyle())
                 }

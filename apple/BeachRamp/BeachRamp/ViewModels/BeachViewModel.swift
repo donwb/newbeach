@@ -17,6 +17,9 @@ final class BeachViewModel {
     /// Server-side open/close prediction. Non-critical: nil (old server or
     /// failed fetch) hides the board hints and detail outlook line.
     var outlook: Outlook?
+    /// Server-side weekend outlook. Non-critical: nil (old server, kill
+    /// switch, or failed fetch) hides the section.
+    var weekend: WeekendOutlook?
 
     var isLoading = false
 
@@ -94,8 +97,23 @@ final class BeachViewModel {
         (dataAge() ?? 0) > VerdictBuilder.staleThreshold
     }
 
-    /// The board's one-line answer, built from the selected city's ramps.
+    /// The board's one-line answer. The server-built city verdict wins when
+    /// the server provides it and the board is live (same copy as tvOS and
+    /// the web, so every device tells the same story); VerdictBuilder
+    /// otherwise — older server, or stale data, where the builder carries
+    /// the stale voice. The category (bar color) stays a client fact: red
+    /// only when a ramp is actually closed.
     func verdict(now: Date = Date()) -> Verdict {
+        let stale = (dataAge(now: now) ?? 0) > VerdictBuilder.staleThreshold
+        if !stale, !cityRamps.isEmpty, let cv = currentCityVerdict {
+            return Verdict(category: verdictCategory(forState: cv.state),
+                           headline: cv.headline, subline: cv.detail)
+        }
+        if !stale, !cityRamps.isEmpty, let overnight = overnightOutlook {
+            return Verdict(category: .limited,
+                           headline: "Driving is done for today",
+                           subline: overnight.detail ?? overnight.headline)
+        }
         let sunset = SolarCalculator.newSmyrnaBeach.events(on: now).sunset
         return VerdictBuilder.build(
             ramps: cityRamps,
@@ -104,6 +122,76 @@ final class BeachViewModel {
             now: now,
             dataAge: dataAge(now: now)
         )
+    }
+
+    private func verdictCategory(forState state: String) -> StatusCategory {
+        switch state {
+        case "all_open", "golden": return .open
+        case "some_closed": return closedCount > 0 ? .closed : .limited
+        case "overnight": return .limited
+        default: return closedCount > 0 ? .closed : (limitedCount > 0 ? .limited : .open)
+        }
+    }
+
+    /// The server-built verdict for the selected city, matched by display
+    /// name case-insensitively (server casing may differ on hyphenated
+    /// cities). Nil on older servers or with no city selected.
+    var currentCityVerdict: CityVerdict? {
+        guard let selectedCity else { return nil }
+        return outlook?.cities?.first {
+            $0.displayName.caseInsensitiveCompare(selectedCity) == .orderedSame
+        }
+    }
+
+    // MARK: - Overnight
+
+    /// The outlook entry proving the beach is in its overnight window —
+    /// outside driving hours every ramp is `closed_now`/`overnight`, so any
+    /// one of them speaks for the board. The county feed may still say OPEN
+    /// after the turtle-season sweep; the outlook is authoritative here.
+    var overnightOutlook: RampOutlook? {
+        outlook?.ramps.first { $0.risk == "closed_now" && $0.reason == "overnight" }
+    }
+
+    var isOvernight: Bool { overnightOutlook != nil }
+
+    /// Whether a ramp's row should read Closed because the beach is shut
+    /// overnight, whatever the county feed says — a row that says Open next
+    /// to "opens around 8am" contradicts itself.
+    func isOvernightClosed(_ ramp: Ramp) -> Bool {
+        guard let entry = outlook?.ramp(for: ramp.accessID) else { return false }
+        return entry.risk == "closed_now" && entry.reason == "overnight"
+    }
+
+    // MARK: - Surf
+
+    /// The beach-wide casual surf line, server-built and verbatim; nil when
+    /// the buoy is silent or the SURF_REPORT_ENABLED kill switch is off.
+    var surfReportLine: String? {
+        outlook?.surfReport?.line
+    }
+
+    /// The facts under the surf line — height word, dominant period, rip
+    /// risk, buoy age — joined with middots. Mirrors the tvOS surf box.
+    func surfReportDetail(now: Date = Date()) -> String? {
+        guard let report = outlook?.surfReport else { return nil }
+        let context = outlook?.surf
+        var parts: [String] = []
+        if let height = report.heightLabel, !height.isEmpty {
+            parts.append(height.prefix(1).uppercased() + height.dropFirst())
+        }
+        if let period = context?.dominantPeriodS {
+            parts.append("\(Int(period.rounded()))s")
+        }
+        if let rip = report.ripRisk {
+            parts.append("rip risk \(rip.lowercased())")
+        }
+        if let at = report.observedAt ?? context?.observedAt {
+            let minutes = max(0, Int(now.timeIntervalSince(at) / 60))
+            let ago = minutes < 60 ? "\(minutes) min ago" : "\(minutes / 60)h ago"
+            parts.append("buoy read \(ago)")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     // MARK: - Ramp Detail
@@ -291,6 +379,7 @@ final class BeachViewModel {
             group.addTask { await self.loadCameras() }
             group.addTask { await self.loadHealth() }
             group.addTask { await self.loadOutlook() }
+            group.addTask { await self.loadWeekend() }
         }
 
         // Default to New Smyrna Beach on first load
@@ -369,6 +458,17 @@ final class BeachViewModel {
     @MainActor
     private func loadOutlook() async {
         outlook = (try? await api.fetchOutlook()) ?? outlook
+    }
+
+    @MainActor
+    private func loadWeekend() async {
+        do { weekend = try await api.fetchWeekendOutlook() }
+        catch APIError.httpError(statusCode: 404) {
+            // The WEEKEND_OUTLOOK_ENABLED kill switch unregisters the route —
+            // "feature off", so drop the section rather than keep stale days.
+            weekend = nil
+        }
+        catch { /* transient — keep last-good data */ }
     }
 
     @MainActor

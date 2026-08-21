@@ -212,10 +212,22 @@ struct BoardiPadView: View {
                 .padding(.top, 18)
             ForecastRow(weather: viewModel.weather)
                 .padding(.top, 12)
+            if viewModel.surfReportLine != nil {
+                Rectangle().fill(t.rule2).frame(height: 1)
+                    .padding(.top, 14)
+                SurfReportView(line: viewModel.surfReportLine, detail: viewModel.surfReportDetail())
+                    .padding(.top, 12)
+            }
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 18)
             camRail
                 .padding(.top, 12)
+            if viewModel.weekend != nil {
+                Rectangle().fill(t.rule).frame(height: 2)
+                    .padding(.top, 18)
+                WeekendSectionView(weekend: viewModel.weekend)
+                    .padding(.top, 12)
+            }
         }
     }
 
@@ -273,6 +285,7 @@ struct BoardiPadView: View {
                             .font(.archivo(15, weight: .extraBold))
                             .foregroundStyle(t.ink)
                     }
+                    SurfReportView(line: viewModel.surfReportLine, detail: viewModel.surfReportDetail())
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -302,6 +315,13 @@ struct BoardiPadView: View {
                 )
                 .padding(.top, 10)
                 .onTapGesture { viewModel.camPresented = true }
+            }
+
+            if viewModel.weekend != nil {
+                Rectangle().fill(t.rule).frame(height: 2)
+                    .padding(.top, 18)
+                WeekendSectionView(weekend: viewModel.weekend)
+                    .padding(.top, 12)
             }
 
             Rectangle().fill(t.rule).frame(height: 2)
@@ -363,6 +383,7 @@ struct BoardiPadView: View {
                         isFavorite: viewModel.isFavorite(ramp),
                         minHeight: minHeight,
                         outlookHint: viewModel.outlookHint(for: ramp),
+                        overnight: viewModel.isOvernightClosed(ramp),
                         toggleFavorite: { viewModel.toggleFavorite(ramp) }
                     )
                 }
@@ -380,15 +401,21 @@ struct RampGridTile: View {
     var minHeight: CGFloat = 152
     /// Server prediction hint; replaces the since line when set.
     var outlookHint: String? = nil
+    /// Overnight per the outlook: reads Closed regardless of the feed.
+    var overnight: Bool = false
     let toggleFavorite: () -> Void
     @Environment(\.ground) private var ground
 
+    private var category: StatusCategory {
+        overnight ? .closed : ramp.category
+    }
+
     private var field: StatusField {
-        StatusField.field(for: ramp.category, isDay: ground.isDay)
+        StatusField.field(for: category, isDay: ground.isDay)
     }
 
     private var statusWord: String {
-        switch ramp.category {
+        switch category {
         case .open: "Open"
         case .limited: "Limited"
         case .closed: "Closed"

@@ -9,14 +9,22 @@ struct RampRowView: View {
     /// Server prediction hint ("closure likely ~1:30pm"); replaces the since
     /// line when set, italic so it reads as a forecast.
     var outlookHint: String? = nil
+    /// The beach is shut overnight per the outlook: the row reads Closed
+    /// whatever the county feed says, so it never contradicts "opens around
+    /// 8am" sitting under it.
+    var overnight: Bool = false
     @Environment(\.ground) private var ground
 
+    private var category: StatusCategory {
+        overnight ? .closed : ramp.category
+    }
+
     private var field: StatusField {
-        StatusField.field(for: ramp.category, isDay: ground.isDay)
+        StatusField.field(for: category, isDay: ground.isDay)
     }
 
     private var statusWord: String {
-        switch ramp.category {
+        switch category {
         case .open: "Open"
         case .limited: "Limited"
         case .closed: "Closed"
