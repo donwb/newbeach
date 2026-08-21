@@ -54,13 +54,11 @@ func peakPhrase(tide TideContext) string {
 
 // cityAllOpenText: every ramp open, driving day in full swing.
 func cityAllOpenText(now time.Time, agg *cityAgg, sched Schedule, tide TideContext) (headline, detail string) {
-	headline = "All " + countWord(agg.rampCount) + " open"
-	if agg.rampCount == 1 {
-		headline = "The ramp is open"
-	}
+	headline = allOpenHeadline(now, agg.rampCount)
 
 	if agg.atRisk == 0 {
-		return headline, "No tide trouble expected · open for driving until " + sched.ClosesLabel
+		lead := pickVariant(now, "quiet", noTideTroubleLeads)
+		return headline, lead + " · open for driving until " + sched.ClosesLabel
 	}
 
 	peak := peakPhrase(tide)

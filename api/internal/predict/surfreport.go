@@ -121,37 +121,21 @@ func surfQuality(heightFt float64, periodS, windDirDeg, windMph *float64) string
 	}
 }
 
-// surfPhrase is the base line for a bucket.
-func surfPhrase(quality, heightLabel string) string {
-	switch quality {
-	case SurfFlat:
-		return "Pretty much flat out there"
-	case SurfBlown:
-		return "Blown out — choppy and messy"
-	case SurfChoppy:
-		if heightLabel == "" {
-			return "Rideable but choppy"
-		}
-		return "Rideable but choppy — " + heightLabel + " wind slop"
-	case SurfCleanSmall:
-		if heightLabel == "" {
-			return "Small and clean"
-		}
-		return "Fun " + heightLabel + " peelers out there"
-	case SurfGood:
-		return "Clean " + heightLabel + " — worth a paddle"
-	case SurfFiring:
-		return "About as good as it gets here — " + heightLabel + " and clean"
-	default:
-		return ""
+// surfPhrase is the base line for a bucket — one of the pool's phrases for
+// this daypart, with the height label filled in. See voice.go.
+func surfPhrase(now time.Time, quality, heightLabel string) string {
+	key := quality
+	if heightLabel == "" && (quality == SurfChoppy || quality == SurfCleanSmall) {
+		key += ":nolabel"
 	}
+	return fillHeight(pickVariant(now, "surf", surfPools[key]), heightLabel)
 }
 
 // tideClause appends the ramp-access angle — the sentence only this app can
 // write — reusing the already-built ramp outlooks. No tide math happens here.
 func tideClause(out *Outlook) string {
 	worst := ""
-	var window *Window
+	var closeAt *time.Time // earliest time a likely ramp's own copy quotes
 	for i := range out.Ramps {
 		ro := &out.Ramps[i]
 		if ro.Reason != ReasonHighTide {
@@ -161,18 +145,19 @@ func tideClause(out *Outlook) string {
 		case RiskClosedNow:
 			return ", but ramps are tide-closed right now"
 		case RiskLikely:
-			if worst != RiskLikely {
-				worst, window = RiskLikely, ro.Window
+			worst = RiskLikely
+			if ro.quotedClose != nil && (closeAt == nil || ro.quotedClose.Before(*closeAt)) {
+				closeAt = ro.quotedClose
 			}
 		case RiskPossible:
 			if worst == "" {
-				worst, window = RiskPossible, ro.Window
+				worst = RiskPossible
 			}
 		}
 	}
 	switch {
-	case worst == RiskLikely && window != nil:
-		return ", but a closure's possible around " + fmtClock(window.Start)
+	case worst == RiskLikely && closeAt != nil:
+		return ", but a closure's possible around " + fmtClock(*closeAt)
 	case worst != "":
 		return ", though the high tide could shut ramps for a bit"
 	default:
@@ -221,7 +206,7 @@ func BuildSurfReport(now time.Time, out *Outlook, wave *models.WaveSample, cond 
 
 	quality := surfQuality(wave.HeightFt, wave.DominantPeriodS, windDirDeg, windMph)
 	heightLabel := surfHeightLabel(wave.HeightFt)
-	line := surfPhrase(quality, heightLabel)
+	line := surfPhrase(now, quality, heightLabel)
 
 	// The access angle rides along only when the surf is worth driving to —
 	// "blown out, but a closure's possible" is noise.

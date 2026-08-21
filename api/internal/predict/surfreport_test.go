@@ -78,14 +78,19 @@ func offshoreCond() *weather.Conditions {
 
 func TestBuildSurfReportComposesTideClause(t *testing.T) {
 	now := time.Date(2026, 8, 22, 9, 0, 0, 0, eastern)
-	windowStart := time.Date(2026, 8, 22, 13, 0, 0, 0, eastern)
+	windowStart := time.Date(2026, 8, 22, 12, 0, 0, 0, eastern)
+	// The time the ramp's own line quotes (peak minus lead) — later than the
+	// window's lower bound, and the one the surf clause must repeat.
+	quoted := time.Date(2026, 8, 22, 13, 0, 0, 0, eastern)
 
 	t.Run("good surf plus likely closure", func(t *testing.T) {
-		out := surfOutlook(RampOutlook{Risk: RiskLikely, Reason: ReasonHighTide, Window: &Window{Start: windowStart}})
+		out := surfOutlook(RampOutlook{Risk: RiskLikely, Reason: ReasonHighTide,
+			Window: &Window{Start: windowStart}, quotedClose: &quoted})
 		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
 		require.NotNil(t, sr)
 		assert.Equal(t, SurfGood, sr.Quality)
 		assert.Contains(t, sr.Line, "closure's possible around 1pm")
+		assert.NotContains(t, sr.Line, "12pm", "must quote the ramp line's time, not the window start")
 	})
 
 	t.Run("blown surf suppresses tide clause", func(t *testing.T) {

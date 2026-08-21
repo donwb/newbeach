@@ -119,6 +119,14 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   genuinely theirs; **every string names the reason** (tide / end of day / overnight) so a
   reader is never told "closure possible" with no cause. The `short` field is the compact
   board-card hint.
+- **The voice layer (`predict/voice.go`, 2026-08-21) rotates only the quiet lines** — the
+  surf read and an all-open city verdict — through small pools of local-lingo phrases
+  (the Inlet, the break, the lineup, groms, Beachway, NSB's sharks). The pick is seeded by
+  ET date + daypart (morning <11 / midday <16 / evening), so every device shows the same
+  phrase and it changes at most three times a day — never between 10-min refreshes (the
+  tvOS verdict bar flashes on headline change, and that flash must mean news). Closure
+  copy never rotates. `TestVoicePoolsFitTheirSlots` pins length budgets (surf ≤52 chars
+  with "overhead" filled in, verdict ≤28) — add phrases freely, keep them inside.
 - **This line always looks forward** — it predicts the next thing that will happen and is
   never a place to report what already did (the since line does that). Every hour of the
   clock has an answer: overnight and pre-open → "opens around 8am"; tide risk live → the

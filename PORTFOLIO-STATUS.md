@@ -44,7 +44,13 @@ last_verified: 2026-08-21 (Physical-remote pass on build 24 found one bug: Don
   aggregates that — it can never name an hour no ramp line names; when the
   earliest is the peak itself the suffix is dropped rather than repeated. Pinned
   by TestCityVerdictFirstAroundMatchesRampCopy. Deployed via main; no client
-  change needed (clients render the strings verbatim).
+  change needed (clients render the strings verbatim). Then, at Don's ask ("All five
+  open" and "Pretty much flat out there" five days running gets old): a VOICE LAYER
+  (predict/voice.go) — the surf line and the all-open verdict rotate through pools of
+  local-lingo phrases (the Inlet, the break, lineup, groms, Beachway, sharks), seeded
+  by ET date + daypart so the wording changes morning/midday/evening and never between
+  refreshes; closure copy is untouched. Also fixed in passing: the surf line's
+  "closure's possible around" clause had the same window-start bug. Deployed via main.
   Earlier 2026-08-20: tvOS REBUILT AGAIN to the "video first" design — Don lived
   with the two-mode board on a real device one evening and killed it: he watches the
   video far more than expected, and the mode toggle made the information fight the

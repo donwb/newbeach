@@ -47,8 +47,11 @@ func TestCityVerdictAllOpenQuiet(t *testing.T) {
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 	assert.Equal(t, "New Smyrna Beach", cv.DisplayName)
 	assert.Equal(t, CityStateAllOpen, cv.State)
-	assert.Equal(t, "All two open", cv.Headline)
-	assert.Equal(t, "No tide trouble expected · open for driving until 7pm", cv.Detail)
+	assert.Contains(t, allOpenVariants(2), cv.Headline)
+	lead, clause, ok := strings.Cut(cv.Detail, " · ")
+	require.True(t, ok, cv.Detail)
+	assert.Contains(t, noTideTroubleLeads, lead)
+	assert.Equal(t, "open for driving until 7pm", clause)
 	assert.Equal(t, 2, cv.OpenCount)
 	assert.Equal(t, 2, cv.RampCount)
 
@@ -70,7 +73,7 @@ func TestCityVerdictAtRisk(t *testing.T) {
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 
 	assert.Equal(t, CityStateAllOpen, cv.State)
-	assert.Equal(t, "All two open", cv.Headline)
+	assert.Contains(t, allOpenVariants(2), cv.Headline)
 	// Every ramp is at risk, so the copy says so. In the possible band each
 	// ramp's own line quotes the peak itself, so the city line names the
 	// peak once and does not tack on a "first around" that repeats it.
@@ -200,4 +203,15 @@ func TestPrettyCityName(t *testing.T) {
 	assert.Equal(t, "New Smyrna Beach", models.PrettyCityName("NEW SMYRNA BEACH"))
 	assert.Equal(t, "Wilbur-by-the-Sea", models.PrettyCityName("WILBUR-BY-THE-SEA"))
 	assert.Equal(t, "Ponce Inlet", models.PrettyCityName("PONCE INLET"))
+}
+
+// allOpenVariants expands the headline pool for a count, for membership asserts.
+func allOpenVariants(n int) []string {
+	w := countWord(n)
+	out := make([]string, 0, len(allOpenHeadlines))
+	for _, v := range allOpenHeadlines {
+		v = strings.ReplaceAll(v, "{n}", w)
+		out = append(out, strings.ReplaceAll(v, "{N}", capFirst(w)))
+	}
+	return out
 }
