@@ -264,36 +264,63 @@ const minDayCloseSamples = 10
 type wavePeakSample struct {
 	peakFt      float64
 	thresholdFt float64
+	closeRate   float64 // the ramp's base rate, for riskForPeak's mid-range rule
 	label       bool
 	waveFt      float64
+	hardOpen    float64 // county cutoffs at training time; 0 = package defaults
+	hardClose   float64
 }
 
-// closedPeakWeight makes a correctly-called closure worth this many
-// correctly-called quiet peaks in the wave scan. The outcome taxonomy is
+// closedPeakWeight makes a closure peak worth this many quiet peaks when a
+// regime's fixed error is weighed against another's. The outcome taxonomy is
 // asymmetric on purpose — a hedge that doesn't fire costs nothing, a missed
 // closure is the worst outcome — so the learner that can *suppress* risk
 // must price a new miss higher than a saved false alarm. (bestThreshold
 // stays plain-accuracy: per-ramp base rates are signal there.)
 const closedPeakWeight = 2.0
 
-// weightedAccuracy scores "closed when peakFt >= thresholdFt + shift" over
-// the samples, weighting closure peaks by closedPeakWeight.
-func weightedAccuracy(samples []wavePeakSample, shift float64) float64 {
-	var correct, total float64
-	for _, s := range samples {
-		w := 1.0
-		if s.label {
-			w = closedPeakWeight
-		}
-		total += w
-		if (s.peakFt >= s.thresholdFt+shift) == s.label {
-			correct += w
-		}
-	}
-	if total == 0 {
+// Grade costs for the shift scans, in scorecard-outcome terms. A shift is
+// judged by the call the live engine would actually make under it — the
+// three-level riskForPeak grade, not a binary closed/open cut — because a
+// raise that only demotes "likely" to "possible" on a ramp that still
+// closes half the time is the free hedge the taxonomy says it is, not a
+// miss. A binary scan charged those as misses and so never learned to
+// quiet the eager ramps (five straight false "likely" days on NS-141 at
+// 2.5 ft, calm water, after open days — 2026-08-17..21).
+const (
+	costMiss       = 2.0  // none, closed — the worst outcome
+	costFalseAlarm = 1.0  // likely, open
+	costCovered    = 0.5  // possible, closed — caught, but a hit would have been better
+	costHedged     = 0.25 // possible, open — a little decisiveness spent
+)
+
+// gradeScore scores a shift over the samples as 1 − mean cost/costMiss, so
+// 1.0 is every call a hit or quiet and higher is better. The call is the
+// real riskForPeak under the sample's own ramp params and the county
+// cutoffs that were live when it trained.
+func gradeScore(samples []wavePeakSample, shift float64) float64 {
+	if len(samples) == 0 {
 		return 0
 	}
-	return correct / total
+	var cost float64
+	for _, s := range samples {
+		hardOpen, hardClose := s.hardOpen, s.hardClose
+		if hardClose <= 0 {
+			hardOpen, hardClose = hardOpenFt, hardCloseFt
+		}
+		rp := RampParams{ThresholdFt: s.thresholdFt, CloseRate: s.closeRate}
+		switch risk := riskForPeak(s.peakFt, shift, rp, hardOpen, hardClose); {
+		case risk == RiskPossible && s.label:
+			cost += costCovered
+		case risk == RiskPossible:
+			cost += costHedged
+		case risk == RiskLikely && !s.label:
+			cost += costFalseAlarm
+		case risk == RiskNone && s.label:
+			cost += costMiss
+		}
+	}
+	return 1 - cost/(costMiss*float64(len(samples)))
 }
 
 // waveQuantile returns the q-quantile of the pool's wave heights.
@@ -333,9 +360,9 @@ func bestRegime(pooled []wavePeakSample, sortedHeights []float64, quantiles []fl
 		if len(regime) < minWaveRegimeSamples {
 			continue
 		}
-		base := weightedAccuracy(regime, 0)
+		base := gradeScore(regime, 0)
 		for mag := waveShiftStepFt; mag <= maxWaveShiftFt+1e-9; mag += waveShiftStepFt {
-			gain := weightedAccuracy(regime, sign*mag) - base
+			gain := gradeScore(regime, sign*mag) - base
 			if gain < minWaveGain {
 				continue
 			}
@@ -356,9 +383,7 @@ func bestRegime(pooled []wavePeakSample, sortedHeights []float64, quantiles []fl
 // whose prior day is unknown (first day of history, no daytime peak, peak
 // under the hard-open cutoff) are left out.
 type persistSample struct {
-	peakFt      float64
-	thresholdFt float64
-	label       bool
+	wavePeakSample
 	priorClosed bool
 }
 
@@ -370,10 +395,10 @@ func bestPersistShift(side []wavePeakSample, sign float64) float64 {
 	if len(side) < minPersistSideSamples {
 		return 0
 	}
-	base := weightedAccuracy(side, 0)
+	base := gradeScore(side, 0)
 	best, bestGain := 0.0, minPersistGain
 	for mag := waveShiftStepFt; mag <= maxPersistShiftFt+1e-9; mag += waveShiftStepFt {
-		if gain := weightedAccuracy(side, sign*mag) - base; gain >= bestGain {
+		if gain := gradeScore(side, sign*mag) - base; gain >= bestGain {
 			best, bestGain = mag, gain
 		}
 	}
@@ -397,11 +422,10 @@ func trainPersistParams(pool []persistSample) *PersistenceParams {
 func persistParamsFor(pool []persistSample) *PersistenceParams {
 	var open, closed []wavePeakSample
 	for _, s := range pool {
-		ws := wavePeakSample{peakFt: s.peakFt, thresholdFt: s.thresholdFt, label: s.label}
 		if s.priorClosed {
-			closed = append(closed, ws)
+			closed = append(closed, s.wavePeakSample)
 		} else {
-			open = append(open, ws)
+			open = append(open, s.wavePeakSample)
 		}
 	}
 	pp := &PersistenceParams{
@@ -412,21 +436,8 @@ func persistParamsFor(pool []persistSample) *PersistenceParams {
 	if pp.OpenRaiseFt == 0 && pp.ClosedDropFt == 0 {
 		return nil
 	}
-	var correct, total float64
-	for _, s := range pool {
-		shift, w := pp.OpenRaiseFt, 1.0
-		if s.priorClosed {
-			shift = -pp.ClosedDropFt
-		}
-		if s.label {
-			w = closedPeakWeight
-		}
-		total += w
-		if (s.peakFt >= s.thresholdFt+shift) == s.label {
-			correct += w
-		}
-	}
-	pp.Accuracy = math.Round(correct/total*1000) / 1000
+	// Pooled grade score with both shifts applied, for the admin view.
+	pp.Accuracy = math.Round((gradeScore(open, pp.OpenRaiseFt)*float64(len(open))+gradeScore(closed, -pp.ClosedDropFt)*float64(len(closed)))/float64(len(pool))*1000) / 1000
 	return pp
 }
 
@@ -496,21 +507,20 @@ func trainWaveParams(pooled []wavePeakSample) *WaveParams {
 		NSamples:    len(pooled),
 	}
 
-	// Pooled accuracy with both learned shifts applied, for the admin view.
-	var correct int
+	// Pooled grade score with both learned shifts applied, for the admin view.
+	var calm, rough, neutral []wavePeakSample
 	for _, s := range pooled {
-		var shift float64
 		switch {
 		case s.waveFt <= calmMax:
-			shift = wp.CalmRaiseFt
+			calm = append(calm, s)
 		case s.waveFt >= roughMin:
-			shift = -wp.RoughDropFt
-		}
-		if (s.peakFt >= s.thresholdFt+shift) == s.label {
-			correct++
+			rough = append(rough, s)
+		default:
+			neutral = append(neutral, s)
 		}
 	}
-	wp.Accuracy = math.Round(float64(correct)/float64(len(pooled))*1000) / 1000
+	total := gradeScore(calm, wp.CalmRaiseFt)*float64(len(calm)) + gradeScore(rough, -wp.RoughDropFt)*float64(len(rough)) + gradeScore(neutral, 0)*float64(len(neutral))
+	wp.Accuracy = math.Round(total/float64(len(pooled))*1000) / 1000
 
 	return wp
 }
@@ -592,11 +602,12 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 			lag = DefaultParams.LagMin
 		}
 
+		closeRate := math.Round(float64(nClosed)/float64(len(labels))*1000) / 1000
 		params.Ramps[accessID] = RampParams{
 			ThresholdFt: threshold,
 			Accuracy:    accuracy,
 			NClosures:   len(closures),
-			CloseRate:   math.Round(float64(nClosed)/float64(len(labels))*1000) / 1000,
+			CloseRate:   closeRate,
 			LeadMin:     lead,
 			LagMin:      lag,
 		}
@@ -615,9 +626,10 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 			prev := p.Time.In(eastern).AddDate(0, 0, -1).Format("2006-01-02")
 			if closed, ok := byDay[prev]; ok {
 				rampPool = append(rampPool, persistSample{
-					peakFt:      *p.Height,
-					thresholdFt: threshold,
-					label:       labels[i],
+					wavePeakSample: wavePeakSample{
+						peakFt: *p.Height, thresholdFt: threshold, closeRate: closeRate, label: labels[i],
+						hardOpen: params.hardOpen(), hardClose: params.hardClose(),
+					},
 					priorClosed: closed,
 				})
 				if closed {
@@ -638,10 +650,8 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 		for i, p := range rampPeaks {
 			if w := waveNearTime(waves, p.Time); w != nil {
 				wavePool = append(wavePool, wavePeakSample{
-					peakFt:      *p.Height,
-					thresholdFt: threshold,
-					label:       labels[i],
-					waveFt:      w.HeightFt,
+					peakFt: *p.Height, thresholdFt: threshold, closeRate: closeRate, label: labels[i],
+					waveFt: w.HeightFt, hardOpen: params.hardOpen(), hardClose: params.hardClose(),
 				})
 			}
 		}

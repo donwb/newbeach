@@ -146,29 +146,34 @@ func TestTrainPersistParams(t *testing.T) {
 	assert.Nil(t, trainPersistParams(nil))
 	assert.Nil(t, trainPersistParams(make([]persistSample, minPersistPoolSamples-1)), "under the pool floor")
 
-	// Synthetic county: peaks 2.4–3.2 around a 2.8 threshold. Ramps that
-	// rode out yesterday's tide only close above 3.1; ramps that closed
-	// yesterday close from 2.5 up.
+	// Synthetic county: peaks 2.0–3.2 around a 2.8 threshold (possible
+	// band 2.5–3.1). Ramps that rode out yesterday's tide only close from
+	// 3.1 up — every hedge in the band is wasted, so the scan should raise
+	// the bar. Ramps that closed yesterday close from 2.3 up — peaks in
+	// 2.3–2.5 are misses the drop can turn into covered calls.
 	var pool []persistSample
-	for i := 0; i < 40; i++ {
-		h := 2.4 + 0.02*float64(i)
-		pool = append(pool, persistSample{peakFt: h, thresholdFt: 2.8, label: h >= 3.1, priorClosed: false})
-		pool = append(pool, persistSample{peakFt: h, thresholdFt: 2.8, label: h >= 2.5, priorClosed: true})
+	for i := 0; i < 60; i++ {
+		h := 2.0 + 0.02*float64(i)
+		pool = append(pool, persistSample{wavePeakSample: wavePeakSample{peakFt: h, thresholdFt: 2.8, label: h >= 3.1}, priorClosed: false})
+		pool = append(pool, persistSample{wavePeakSample: wavePeakSample{peakFt: h, thresholdFt: 2.8, label: h >= 2.3}, priorClosed: true})
 	}
 	pp := trainPersistParams(pool)
 	require.NotNil(t, pp)
-	assert.InDelta(t, 0.3, pp.OpenRaiseFt, 0.051)
-	assert.InDelta(t, 0.3, pp.ClosedDropFt, 0.051)
-	assert.Equal(t, 80, pp.NSamples)
-	assert.Greater(t, pp.Accuracy, 0.9)
+	assert.Greater(t, pp.OpenRaiseFt, 0.0, "wasted hedges after an open day should raise the bar")
+	assert.LessOrEqual(t, pp.OpenRaiseFt, 0.6)
+	assert.InDelta(t, 0.2, pp.ClosedDropFt, 0.051, "the drop reaches exactly the missed closures and no further")
+	assert.Equal(t, 120, pp.NSamples)
+	assert.Greater(t, pp.Accuracy, 0.8)
 
-	t.Run("no gain → nil", func(t *testing.T) {
-		var flat []persistSample
+	t.Run("shifts that cannot change a call → nil", func(t *testing.T) {
+		// Every peak is beyond a hard cutoff, where riskForPeak ignores
+		// shifts entirely — nothing to learn.
+		var fixed []persistSample
 		for i := 0; i < 40; i++ {
-			h := 2.4 + 0.02*float64(i)
-			flat = append(flat, persistSample{peakFt: h, thresholdFt: 2.8, label: h >= 2.8, priorClosed: i%2 == 0})
+			fixed = append(fixed, persistSample{wavePeakSample: wavePeakSample{peakFt: 3.6, thresholdFt: 2.8, label: true}, priorClosed: i%2 == 0})
+			fixed = append(fixed, persistSample{wavePeakSample: wavePeakSample{peakFt: 1.8, thresholdFt: 2.8, label: false}, priorClosed: i%2 == 0})
 		}
-		assert.Nil(t, trainPersistParams(flat))
+		assert.Nil(t, trainPersistParams(fixed))
 	})
 }
 

@@ -199,8 +199,15 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   echo: `yesterday {closed, peak_ft, applied}` per ramp (outlook + scorecard); copy gains
   one clause only when it moved the call ("rode out yesterday's tide" / "closed for
   yesterday's tide too"). `PREDICT_PERSISTENCE_ENABLED=false` serves memoryless;
-  `TestBacktestPersistenceOff` pins that path. Backtest effect: ~95 hedge days on open
-  days become 78 correct "no tide trouble" calls + 17 misses, no ramp under its floor.
+  `TestBacktestPersistenceOff` pins that path.
+- **The shift scans are grade-aware (2026-08-22).** Both the wave and persistence scans
+  score a candidate shift by the call `riskForPeak` would actually make under it —
+  hit/covered/miss/false_alarm/hedged costs (`gradeScore`, `train.go`) — not a binary
+  closed/open cut. The binary scan charged a likely→possible demotion as a miss, so on
+  prod's station scale it never learned to quiet the eager NS ramps (five straight false
+  "likely" days at 2.5 ft, calm water, after open days, 8/17–8/21) and learned a zero
+  calm raise. Grade-aware, prod learns calm raise 0.45 and NS-141/118/110 open-yesterday
+  raise 0.4; the backtest beats memoryless recall on most ramps with ~double the quiet days.
 - **Weekend outlook (`GET /api/v2/outlook/weekend`, 2026-08-18)** answers "when
   should I go this weekend": the next 6 days, each graded `verdict:
   great|good|mixed|tough|no_call` + `closure_pressure: none|some|high` — a
