@@ -180,6 +180,27 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - `api/internal/predict/backtest_test.go` replays five months of checked-in real history
   and pins recall/calibration floors — engine changes that degrade real-world behavior
   fail tests. Refresh fixtures from `/api/v2/ramps/:id/history` + NOAA hilo when needed.
+- **Persistence prior (2026-08-21): "did it close yesterday?" is the strongest single
+  predictor inside the learnable band.** Five months of history show the county's call
+  carries over day to day far beyond what the tide height explains (DBS-075 at a ~3.0 ft
+  peak: 11% closes after an open day, 100% after a closed day); two days back adds
+  nothing beyond yesterday. `predict/persist.go`: `priorDayFacts` labels each ramp's
+  previous ET day with the same `labelPeaks` rule training uses (`Known=false` when
+  history doesn't cover it, no daytime peak, or the peak was under hard-open — "stayed
+  open" is no evidence then), and the shift rides on top of the wave shift into
+  `riskForPeak`. Learned per ramp when both sides have ≥15 pairs, county-wide fallback
+  (`Params.Persistence`, v5 blob); asymmetric like the waves — the open-yesterday
+  **raise** carries most of the signal and moves both bars, the closed-yesterday drop
+  only widens `possible` (never promotes to `likely`). Serve path reads yesterday via
+  `GetAllRampStatusEventsSince` (baseline row included so a midnight closure still
+  counts), best-effort. The weekend planner carries it forward **height-anchored**
+  (`persistDayShift`): the raise applies to a future day only while its peak is no higher
+  than the one the ramp already rode out (+0.25 ft), the drop carries one day. Payload
+  echo: `yesterday {closed, peak_ft, applied}` per ramp (outlook + scorecard); copy gains
+  one clause only when it moved the call ("rode out yesterday's tide" / "closed for
+  yesterday's tide too"). `PREDICT_PERSISTENCE_ENABLED=false` serves memoryless;
+  `TestBacktestPersistenceOff` pins that path. Backtest effect: ~95 hedge days on open
+  days become 78 correct "no tide trouble" calls + 17 misses, no ramp under its floor.
 - **Weekend outlook (`GET /api/v2/outlook/weekend`, 2026-08-18)** answers "when
   should I go this weekend": the next 6 days, each graded `verdict:
   great|good|mixed|tough|no_call` + `closure_pressure: none|some|high` — a
@@ -286,6 +307,7 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `NOAA_TEMP_STATIONS` | API | Comma-separated NOAA temp station IDs |
 | `NDBC_STATION` | Conditions logger, prediction | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
 | `PREDICT_WAVES_ENABLED` | API | Set `false` to serve tide-only outlooks (wave series keeps accumulating) |
+| `PREDICT_PERSISTENCE_ENABLED` | API | Set `false` to serve memoryless outlooks — no "did it close yesterday?" prior (training still learns it) |
 | `WEEKEND_OUTLOOK_ENABLED` | API | Set `false` to remove `/api/v2/outlook/weekend` entirely (clients hide the section) |
 | `NWS_BASE_URL` | Weekend outlook | NWS API base override; unset = api.weather.gov. If the app egress ever gets blocked, point at a cams.donwb.com Caddy proxy route (`NDBC_ERDDAP_URL` precedent) |
 | `NWS_LAND_GRIDPOINT` | Weekend outlook | NWS land gridpoint `OFFICE/x,y` (default `MLB/42,92`, New Smyrna) |

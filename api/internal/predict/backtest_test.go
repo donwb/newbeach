@@ -101,8 +101,9 @@ type backtestTally struct {
 
 // runBacktest trains on the full fixture span and replays each day's 9am ET
 // outlook against what actually happened. waves nil replays tide-only —
-// exactly the pre-wave engine.
-func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []models.TidePrediction, waves []models.WaveSample) (Params, map[string]*backtestTally) {
+// exactly the pre-wave engine. persistence false replays memoryless (no
+// prior-day carry-over) — exactly the pre-persistence engine.
+func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []models.TidePrediction, waves []models.WaveSample, persistence bool) (Params, map[string]*backtestTally) {
 	t.Helper()
 
 	trainedAt := time.Date(2026, 8, 16, 0, 0, 0, 0, eastern)
@@ -131,7 +132,14 @@ func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []m
 		at := time.Date(day.Year(), day.Month(), day.Day(), 9, 0, 0, 0, eastern)
 		// The same persistence assumption prod makes: the observation
 		// nearest the serve moment stands in for the day.
-		out := BuildOutlook(at, ramps, params, hilo, waveNearTime(waves, at))
+		// The prior the live model would have had that morning: derived
+		// from the same history, but yesterday only — today's events are
+		// dropped by priorDayFacts so the replay never peeks at its answer.
+		var prior map[string]PriorDay
+		if persistence {
+			prior = priorDayFacts(at, history, hilo, params.hardOpen())
+		}
+		out := BuildOutlook(at, ramps, params, hilo, waveNearTime(waves, at), prior)
 		date := day.Format("2006-01-02")
 
 		for _, ro := range out.Ramps {
@@ -210,8 +218,18 @@ func TestBacktestAgainstRealHistory(t *testing.T) {
 	hilo := loadHiloFixture(t)
 	waves := loadWavesFixture(t)
 
-	params, tallies := runBacktest(t, history, hilo, waves)
+	params, tallies := runBacktest(t, history, hilo, waves, true)
 	assertBacktestFloors(t, tallies, recallFloors, 0.60)
+
+	// The persistence prior must learn from this span — the data shows a
+	// ramp that rode out yesterday's tide mostly rides out today's — and
+	// the open-side raise is where that signal lives.
+	require.NotNil(t, params.Persistence, "persistence params should learn from five months of data")
+	t.Logf("persistence: open raise=%.2f closed drop=%.2f n=%d acc=%.3f",
+		params.Persistence.OpenRaiseFt, params.Persistence.ClosedDropFt,
+		params.Persistence.NSamples, params.Persistence.Accuracy)
+	assert.Greater(t, params.Persistence.OpenRaiseFt, 0.0,
+		"open-yesterday suppression should be learnable from this span")
 
 	// The wave regime split must actually learn from this span — Aug 17-18
 	// style calm-flat false alarms are in the fixture data, so a nil or
@@ -231,7 +249,18 @@ func TestBacktestTideOnlyFallback(t *testing.T) {
 	history := loadHistoryFixture(t)
 	hilo := loadHiloFixture(t)
 
-	params, tallies := runBacktest(t, history, hilo, nil)
+	params, tallies := runBacktest(t, history, hilo, nil, false)
 	assertBacktestFloors(t, tallies, recallFloors, 0.50)
 	assert.Nil(t, params.Waves, "no wave data must mean no wave params")
+}
+
+// The memoryless path must keep reproducing the pre-persistence engine:
+// with no prior at serve time, every floor still holds.
+func TestBacktestPersistenceOff(t *testing.T) {
+	history := loadHistoryFixture(t)
+	hilo := loadHiloFixture(t)
+	waves := loadWavesFixture(t)
+
+	_, tallies := runBacktest(t, history, hilo, waves, false)
+	assertBacktestFloors(t, tallies, recallFloors, 0.60)
 }

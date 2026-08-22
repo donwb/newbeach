@@ -35,6 +35,9 @@ type PeakGrade struct {
 	DominantPeriodS *float64   `json:"dominant_period_s,omitempty"`
 	WaveObservedAt  *time.Time `json:"wave_observed_at,omitempty"`
 
+	// Yesterday is the persistence prior the grade was made under.
+	Yesterday *YesterdayContext `json:"yesterday,omitempty"`
+
 	// Window grading, present only when the model would have drawn a window
 	// (risk possible/likely) and the ramp actually closed.
 	Window     *Window    `json:"window,omitempty"`
@@ -86,6 +89,8 @@ type Scorecard struct {
 	// WaveParams echoes the wave regime split the grades were computed
 	// under, nil when the graded params were tide-only.
 	WaveParams *WaveParams `json:"wave_params,omitempty"`
+	// Persistence echoes the learned prior the grades were computed with.
+	Persistence *PersistenceParams `json:"persistence,omitempty"`
 
 	Peaks   []models.TidePrediction `json:"peaks"`
 	Ramps   []RampGrade             `json:"ramps"`
@@ -162,12 +167,17 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		Season:           season,
 		ParamsComputedAt: params.ComputedAt,
 		WaveParams:       params.Waves,
+		Persistence:      params.Persistence,
 		Peaks:            dayPeaks,
 		Ramps:            []RampGrade{},
 	}
 	if len(dayPeaks) == 0 {
 		return sc
 	}
+
+	// The same prior the live model would have had that morning: yesterday
+	// from the full history, today never leaking in.
+	prior := priorDayFacts(dayStart.Add(5*time.Hour), historyByRamp, preds, params.hardOpen())
 
 	accessIDs := make([]string, 0, len(historyByRamp))
 	for id := range historyByRamp {
@@ -186,6 +196,13 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		closures := closureEvents(events)
 		labels := labelPeaks(dayPeaks, closures)
 
+		pd := prior[accessID]
+		persist := params.persistShift(pd, rp)
+		var yesterday *YesterdayContext
+		if pd.Known {
+			yesterday = &YesterdayContext{Closed: pd.Closed, PeakFt: pd.MaxPeakFt, Applied: persist != 0}
+		}
+
 		rg := RampGrade{
 			AccessID:    accessID,
 			ThresholdFt: rp.ThresholdFt,
@@ -201,14 +218,15 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 			if w != nil {
 				waveFt = &w.HeightFt
 			}
-			risk := riskForPeak(*peak.Height, params.waveShift(waveFt), rp, params.hardOpen(), params.hardClose())
+			risk := riskForPeak(*peak.Height, clampTotalShift(params.waveShift(waveFt)+persist), rp, params.hardOpen(), params.hardClose())
 			closed := labels[i]
 			pg := PeakGrade{
-				PeakTime: peak.Time,
-				PeakFt:   *peak.Height,
-				Risk:     risk,
-				Closed:   closed,
-				Outcome:  outcomeFor(risk, closed),
+				PeakTime:  peak.Time,
+				PeakFt:    *peak.Height,
+				Risk:      risk,
+				Closed:    closed,
+				Outcome:   outcomeFor(risk, closed),
+				Yesterday: yesterday,
 			}
 			if w != nil {
 				h := w.HeightFt

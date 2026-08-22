@@ -11,8 +11,9 @@ const SettingsKey = "prediction_params"
 
 // paramsVersion identifies the blob schema. A stored blob with a different
 // version is treated as stale, so bumping this forces a retrain on deploy.
-// v4 added the county-wide wave regime params (Waves).
-const paramsVersion = 4
+// v4 added the county-wide wave regime params (Waves); v5 the persistence
+// prior (Persistence).
+const paramsVersion = 5
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {
@@ -30,6 +31,13 @@ type RampParams struct {
 	LeadMin int `json:"lead_min"`
 	// LagMin is the median minutes after the peak the ramp reopens.
 	LagMin int `json:"lag_min"`
+
+	// Persistence is this ramp's own learned prior-day shifts, when its
+	// history carries enough labeled pairs on both sides; nil falls back
+	// to the county-wide Params.Persistence. Per ramp because the signal
+	// differs: a ramp that closes on most peaks gains little from "it
+	// stayed open yesterday", one that rarely closes gains a lot.
+	Persistence *PersistenceParams `json:"persistence,omitempty"`
 }
 
 // Params is the full learned-parameters blob persisted to the settings table.
@@ -61,6 +69,32 @@ type Params struct {
 	// threshold. Nil until training has enough wave-matched peaks — and nil
 	// always means "behave exactly as the tide-only model".
 	Waves *WaveParams `json:"waves,omitempty"`
+
+	// Persistence is the county-wide "did it close yesterday?" prior: the
+	// county's call carries over from one day to the next far more than
+	// the tide height alone explains (a ramp that rode out yesterday's
+	// tide mostly rides out today's near-identical one; one that closed
+	// mostly closes again). Nil until training has enough labeled pairs —
+	// and nil always means "behave exactly as the memoryless model".
+	Persistence *PersistenceParams `json:"persistence,omitempty"`
+}
+
+// PersistenceParams is the learned one-day persistence prior, expressed as
+// threshold shifts like the wave regimes. Both magnitudes are >= 0 and
+// clamped to maxPersistShiftFt.
+type PersistenceParams struct {
+	// OpenRaiseFt raises the effective threshold when the ramp stayed open
+	// through yesterday's daytime tide — the stronger side in the data.
+	OpenRaiseFt float64 `json:"open_raise_ft"`
+	// ClosedDropFt lowers it when the ramp tide-closed yesterday. Like the
+	// rough-water drop, it only ever widens "possible" (riskForPeak never
+	// lets a negative shift promote to "likely").
+	ClosedDropFt float64 `json:"closed_drop_ft"`
+
+	// NSamples is how many labeled peaks with a known prior day trained
+	// the shifts; Accuracy is pooled weighted accuracy with them applied.
+	NSamples int     `json:"n_samples"`
+	Accuracy float64 `json:"accuracy"`
 }
 
 // WaveParams is the learned calm/rough wave regime split. Regime boundaries

@@ -88,7 +88,7 @@ func day(t *testing.T, out WeekendOutlook, weekday string) *WeekendDay {
 
 func TestWeekendMidweekHorizon(t *testing.T) {
 	now, preds, land := quietWeek(t)
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	require.Len(t, out.Days, 7)
 	assert.Equal(t, "2026-08-19", out.Days[0].Date, "today stays in the list while its driving day is live")
@@ -121,20 +121,20 @@ func TestWeekendSaturdayAfternoonAndRollover(t *testing.T) {
 	// Saturday 3pm: today leads the list, clamped to the remaining day.
 	satPM := etTime(t, "2026-08-22 15:00")
 	land := flatLand(satPM, satPM.AddDate(0, 0, 7), nil)
-	out := BuildWeekendOutlook(satPM, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(satPM, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 	require.NotEmpty(t, out.Days)
 	assert.Equal(t, "Saturday", out.Days[0].Weekday)
 
 	// Saturday 9pm: driving day is over — Sunday leads.
 	satNight := etTime(t, "2026-08-22 21:00")
-	out = BuildWeekendOutlook(satNight, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out = BuildWeekendOutlook(satNight, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 	require.NotEmpty(t, out.Days)
 	assert.Equal(t, "Sunday", out.Days[0].Weekday)
 }
 
 func TestWeekendTideOnlyDegradation(t *testing.T) {
 	now, preds, _ := quietWeek(t)
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, nil, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, nil, nil, nil)
 
 	for _, d := range out.Days {
 		assert.Equal(t, []string{"tide"}, d.Basis, d.Weekday)
@@ -156,7 +156,7 @@ func TestWeekendStormAfternoonStaysGoodWithMorningWindow(t *testing.T) {
 			h.ThunderPct = &v
 		}
 	})
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
@@ -173,7 +173,7 @@ func TestWeekendAllDayStormsCapMixed(t *testing.T) {
 		v := 80.0
 		h.ThunderPct = &v
 	})
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
@@ -201,7 +201,7 @@ func TestWeekendHeatDowngradeNamesItself(t *testing.T) {
 			h.ThunderPct = &v
 		}
 	})
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	thu := day(t, out, "Thursday")
 	require.NotNil(t, thu)
@@ -228,7 +228,7 @@ func TestWeekendWhySilentWhenHeadlineCovers(t *testing.T) {
 		v := 80.0
 		h.ThunderPct = &v
 	})
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
@@ -237,7 +237,7 @@ func TestWeekendWhySilentWhenHeadlineCovers(t *testing.T) {
 	assert.Empty(t, sat.Why, "headline already says storms")
 
 	// Great days carry no drivers and no why.
-	quiet := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, flatLand(now, now.AddDate(0, 0, 7), nil), nil)
+	quiet := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, flatLand(now, now.AddDate(0, 0, 7), nil), nil, nil)
 	for _, d := range quiet.Days {
 		assert.Equal(t, VerdictGreat, d.Verdict, d.Weekday)
 		assert.Empty(t, d.Drivers, d.Weekday)
@@ -252,7 +252,7 @@ func TestWeekendGustsCapTough(t *testing.T) {
 		h.WindMph = &w
 		h.GustMph = &g
 	})
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
@@ -273,7 +273,7 @@ func TestWeekendVerdictParamsOverride(t *testing.T) {
 
 	vp := DefaultVerdictParams()
 	vp.GustToughMph = 40
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), vp, preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), vp, preds, land, nil, nil)
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
 	assert.Equal(t, VerdictGreat, sat.Verdict, "raised gust threshold should clear the day")
@@ -296,7 +296,7 @@ func TestWeekendColdJanuaryDay(t *testing.T) {
 		v := 55.0
 		h.TempF = &v
 	})
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
@@ -314,7 +314,7 @@ func TestWeekendBigTideSaturday(t *testing.T) {
 			preds[i].Height = &big
 		}
 	}
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 
 	sat := day(t, out, "Saturday")
 	require.NotNil(t, sat)
@@ -371,8 +371,8 @@ func TestWeekendCopyRules(t *testing.T) {
 
 	now, preds, land := quietWeek(t)
 	scenarios := []WeekendOutlook{
-		BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil),
-		BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, nil, nil),
+		BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil),
+		BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, nil, nil, nil),
 	}
 	// Big tide + storms together.
 	for i := range preds {
@@ -383,7 +383,7 @@ func TestWeekendCopyRules(t *testing.T) {
 		v := 70.0
 		h.ThunderPct = &v
 	})
-	scenarios = append(scenarios, BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, stormy, nil))
+	scenarios = append(scenarios, BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, stormy, nil, nil))
 
 	for _, out := range scenarios {
 		assert.NotEmpty(t, out.Headline)
@@ -406,7 +406,7 @@ func setSaturdayPeaks(preds []models.TidePrediction, ft float64) {
 func TestWeekendClosureRiskLabel(t *testing.T) {
 	now, preds, land := quietWeek(t)
 	build := func() WeekendOutlook {
-		return BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+		return BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 	}
 
 	// Quiet baseline: clear everywhere, and the label never names a ramp.
@@ -449,7 +449,7 @@ func TestWeekendSurfLabel(t *testing.T) {
 	now, preds, land := quietWeek(t)
 
 	// No marine coverage: the label is absent.
-	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil)
+	out := BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, nil, nil)
 	for _, d := range out.Days {
 		assert.Empty(t, d.SurfLabel, d.Weekday)
 	}
@@ -469,7 +469,7 @@ func TestWeekendSurfLabel(t *testing.T) {
 		blockFor("Saturday", &flat),
 		blockFor("Sunday", &knee),
 	}}
-	out = BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, marine)
+	out = BuildWeekendOutlook(now, testRamps(), weekendTestParams(), DefaultVerdictParams(), preds, land, marine, nil)
 
 	sat, sun := day(t, out, "Saturday"), day(t, out, "Sunday")
 	require.NotNil(t, sat)

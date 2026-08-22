@@ -165,7 +165,7 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 
 	t.Run("fresh calm observation demotes marginal risk and surfaces surf", func(t *testing.T) {
 		calm := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 1.2}
-		out := BuildOutlook(now, ramps, params, preds, calm)
+		out := BuildOutlook(now, ramps, params, preds, calm, nil)
 		require.NotNil(t, out.Surf)
 		assert.Equal(t, "calm", out.Surf.Regime)
 		assert.InDelta(t, 1.2, out.Surf.WaveHeightFt, 0.001)
@@ -176,7 +176,7 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 
 	t.Run("rough observation keeps the marginal call flagged", func(t *testing.T) {
 		rough := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 3.6}
-		out := BuildOutlook(now, ramps, params, preds, rough)
+		out := BuildOutlook(now, ramps, params, preds, rough, nil)
 		require.NotNil(t, out.Surf)
 		assert.Equal(t, "rough", out.Surf.Regime)
 		// The drop widens NS-106's possible band downward, but never
@@ -186,13 +186,13 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 
 	t.Run("stale observation is ignored", func(t *testing.T) {
 		stale := &models.WaveSample{Time: now.Add(-7 * time.Hour), HeightFt: 1.2}
-		out := BuildOutlook(now, ramps, params, preds, stale)
+		out := BuildOutlook(now, ramps, params, preds, stale, nil)
 		assert.Nil(t, out.Surf, "a 7h-old reading is no reading")
 		assert.Equal(t, RiskPossible, riskByID(out)["NS-106"], "tide-only behavior")
 	})
 
 	t.Run("nil wave is tide-only", func(t *testing.T) {
-		out := BuildOutlook(now, ramps, params, preds, nil)
+		out := BuildOutlook(now, ramps, params, preds, nil, nil)
 		assert.Nil(t, out.Surf)
 		assert.Equal(t, RiskPossible, riskByID(out)["NS-106"])
 	})

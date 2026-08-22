@@ -35,6 +35,11 @@ type Service struct {
 	weather     *weather.Client
 	surfStation string
 
+	// noPersistence is the PREDICT_PERSISTENCE_ENABLED=false kill switch:
+	// the prior is neither loaded nor applied, and the learned params are
+	// left alone.
+	noPersistence bool
+
 	mu       sync.Mutex
 	cached   *Outlook
 	cachedAt time.Time
@@ -46,6 +51,26 @@ type Service struct {
 // tide-only (the PREDICT_WAVES_ENABLED kill switch).
 func NewService(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string) *Service {
 	return &Service{pool: pool, noaa: noaaClient, station: ndbcStation}
+}
+
+// DisablePersistence serves memoryless risk calls (no "did it close
+// yesterday?" prior) without touching training.
+func (s *Service) DisablePersistence() {
+	s.noPersistence = true
+}
+
+// loadPriorDay reads yesterday's status events for every ramp and derives
+// each ramp's PriorDay. Best-effort: the outlook must never fail because
+// the history read did, so any error logs and returns nil (memoryless).
+func loadPriorDay(ctx context.Context, pool *pgxpool.Pool, now time.Time, preds []models.TidePrediction, params Params, label string) map[string]PriorDay {
+	et := now.In(eastern)
+	since := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern).AddDate(0, 0, -1)
+	events, err := database.GetAllRampStatusEventsSince(ctx, pool, since)
+	if err != nil {
+		slog.Warn(label+": reading yesterday's history, serving memoryless", "err", err)
+		return nil
+	}
+	return priorDayFacts(now, events, preds, params.hardOpen())
 }
 
 // SetWeatherClient hands the service the NWS client used for surf-report
@@ -144,7 +169,12 @@ func (s *Service) build(ctx context.Context) (*Outlook, error) {
 		modelWave = nil // PREDICT_WAVES_ENABLED=false: tide-only risk calls
 	}
 
-	out := BuildOutlook(now, ramps, params, preds, modelWave)
+	var prior map[string]PriorDay
+	if !s.noPersistence {
+		prior = loadPriorDay(ctx, s.pool, now, preds, params, "outlook")
+	}
+
+	out := BuildOutlook(now, ramps, params, preds, modelWave, prior)
 
 	// The surf line rides on top — best-effort, never fails the outlook.
 	if s.surfStation != "" {

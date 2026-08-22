@@ -34,6 +34,12 @@ const (
 	minWaveRegimeSamples = 15
 	minWaveGain          = 0.02
 	waveShiftStepFt      = 0.05
+
+	// Persistence-prior guards, the same shape: a pool floor, a per-side
+	// floor, and a minimum gain over shift 0 before a shift is believed.
+	minPersistPoolSamples = 30
+	minPersistSideSamples = 15
+	minPersistGain        = 0.02
 )
 
 // peakQuantile returns the q-quantile of the peak heights (nearest rank).
@@ -345,6 +351,107 @@ func bestRegime(pooled []wavePeakSample, sortedHeights []float64, quantiles []fl
 	return boundary, math.Round(bestShift*100) / 100
 }
 
+// persistSample is one labeled daytime peak with what its ramp did the
+// previous Eastern day — the unit the persistence prior trains on. Peaks
+// whose prior day is unknown (first day of history, no daytime peak, peak
+// under the hard-open cutoff) are left out.
+type persistSample struct {
+	peakFt      float64
+	thresholdFt float64
+	label       bool
+	priorClosed bool
+}
+
+// bestPersistShift scans shift magnitudes in one direction (sign +1 raises
+// the bar, -1 lowers it) over one side's samples, returning the magnitude
+// that most improves weighted accuracy over shift 0 — or 0 when nothing
+// beats it by minPersistGain. Same idiom as bestRegime, minus the boundary.
+func bestPersistShift(side []wavePeakSample, sign float64) float64 {
+	if len(side) < minPersistSideSamples {
+		return 0
+	}
+	base := weightedAccuracy(side, 0)
+	best, bestGain := 0.0, minPersistGain
+	for mag := waveShiftStepFt; mag <= maxPersistShiftFt+1e-9; mag += waveShiftStepFt {
+		if gain := weightedAccuracy(side, sign*mag) - base; gain >= bestGain {
+			best, bestGain = mag, gain
+		}
+	}
+	return math.Round(best*100) / 100
+}
+
+// trainPersistParams learns the one-day persistence prior from the pooled
+// peaks: one shift for peaks whose ramp rode out yesterday's tide, one for
+// peaks whose ramp closed. Each side is scanned independently, because the
+// two are different questions (the data says the open side carries most of
+// the signal). Returns nil when the pool is too thin, which serves as the
+// memoryless model.
+func trainPersistParams(pool []persistSample) *PersistenceParams {
+	if len(pool) < minPersistPoolSamples {
+		return nil
+	}
+	return persistParamsFor(pool)
+}
+
+// persistParamsFor scans both sides of an already-large-enough pool.
+func persistParamsFor(pool []persistSample) *PersistenceParams {
+	var open, closed []wavePeakSample
+	for _, s := range pool {
+		ws := wavePeakSample{peakFt: s.peakFt, thresholdFt: s.thresholdFt, label: s.label}
+		if s.priorClosed {
+			closed = append(closed, ws)
+		} else {
+			open = append(open, ws)
+		}
+	}
+	pp := &PersistenceParams{
+		OpenRaiseFt:  bestPersistShift(open, 1),
+		ClosedDropFt: bestPersistShift(closed, -1),
+		NSamples:     len(pool),
+	}
+	if pp.OpenRaiseFt == 0 && pp.ClosedDropFt == 0 {
+		return nil
+	}
+	var correct, total float64
+	for _, s := range pool {
+		shift, w := pp.OpenRaiseFt, 1.0
+		if s.priorClosed {
+			shift = -pp.ClosedDropFt
+		}
+		if s.label {
+			w = closedPeakWeight
+		}
+		total += w
+		if (s.peakFt >= s.thresholdFt+shift) == s.label {
+			correct += w
+		}
+	}
+	pp.Accuracy = math.Round(correct/total*1000) / 1000
+	return pp
+}
+
+// priorDayLabels maps each Eastern date to whether any of that day's
+// labeled peaks closed — the per-ramp source of "did it close yesterday?"
+// during training. Days whose max peak is at or under hardOpenFt are
+// omitted (no evidence either way), matching priorDayFacts.
+func priorDayLabels(peaks []models.TidePrediction, labels []bool, hardOpenFt float64) map[string]bool {
+	closedByDay := make(map[string]bool)
+	maxByDay := make(map[string]float64)
+	for i, p := range peaks {
+		d := p.Time.In(eastern).Format("2006-01-02")
+		closedByDay[d] = closedByDay[d] || labels[i]
+		if *p.Height > maxByDay[d] {
+			maxByDay[d] = *p.Height
+		}
+	}
+	for d, m := range maxByDay {
+		if m <= hardOpenFt {
+			delete(closedByDay, d)
+		}
+	}
+	return closedByDay
+}
+
 // trainWaveParams learns the county-wide calm/rough regime split from the
 // pooled wave-matched peaks: for each side, the boundary (scanned over
 // wave-height quantiles) and the threshold shift are chosen jointly to
@@ -440,6 +547,7 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 	var historyStart time.Time
 	var thresholds, leads, lags []float64
 	var wavePool []wavePeakSample
+	var persistPool []persistSample
 
 	for accessID, events := range historyByRamp {
 		if len(events) == 0 {
@@ -496,6 +604,34 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 		leads = append(leads, float64(lead))
 		lags = append(lags, float64(lag))
 
+		// Pool this ramp's peaks for the persistence prior: each peak with
+		// what the ramp did the previous day, when that day is known. The
+		// ramp learns its own shifts when it has enough pairs on both
+		// sides; otherwise it falls back to the county-wide pool below.
+		byDay := priorDayLabels(rampPeaks, labels, params.hardOpen())
+		var rampPool []persistSample
+		nPriorClosed := 0
+		for i, p := range rampPeaks {
+			prev := p.Time.In(eastern).AddDate(0, 0, -1).Format("2006-01-02")
+			if closed, ok := byDay[prev]; ok {
+				rampPool = append(rampPool, persistSample{
+					peakFt:      *p.Height,
+					thresholdFt: threshold,
+					label:       labels[i],
+					priorClosed: closed,
+				})
+				if closed {
+					nPriorClosed++
+				}
+			}
+		}
+		persistPool = append(persistPool, rampPool...)
+		if nPriorClosed >= minPersistSideSamples && len(rampPool)-nPriorClosed >= minPersistSideSamples {
+			rp := params.Ramps[accessID]
+			rp.Persistence = persistParamsFor(rampPool)
+			params.Ramps[accessID] = rp
+		}
+
 		// Pool this ramp's peaks for the county-wide wave regime split —
 		// only peaks with a nearby buoy observation; outage gaps still train
 		// the tide thresholds above.
@@ -525,6 +661,7 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 	}
 
 	params.Waves = trainWaveParams(wavePool)
+	params.Persistence = trainPersistParams(persistPool)
 
 	return params
 }

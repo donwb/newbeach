@@ -43,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-21 14:10 (iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-21 15:20 (API: persistence prior — "did it close yesterday?" — built, tested, verified against the local DB; UNCOMMITTED, Don to push (main auto-deploys). iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -371,6 +371,16 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-21 (latest, uncommitted): Persistence prior in the outlook engine — Don's
+  insight that whether a ramp closed *yesterday* predicts today better than the tide
+  height alone inside the learnable band (fixture data: DBS-075 at ~3.0 ft closes 11%
+  after an open day, 100% after a closed one). Per-ramp learned threshold shifts with a
+  county-wide fallback (params blob v5), hedge-only asymmetry like the wave model,
+  height-anchored carry-forward in the weekend planner, `yesterday` echo in outlook +
+  scorecard, one copy clause when it moved the call, `PREDICT_PERSISTENCE_ENABLED`
+  kill switch. Backtest: ~95 hedge days on open days → 78 correct quiet calls + 17
+  misses; no ramp under its recall floor. Verified locally: NS ramps dropped from
+  "likely" to "possible · rode out yesterday's tide", yesterday's false alarms 3 → 0.
 - 2026-08-17 (latest): Outlook became a real forecast line. Three shipped changes:
   (a) it decays — a predicted close time the clock has passed is never quoted back at a
   ramp that is still open, peaks stay in play through their learned lag, then soften and

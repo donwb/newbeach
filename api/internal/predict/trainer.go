@@ -167,5 +167,6 @@ func (t *Trainer) train(ctx context.Context) {
 		"ramps_learned", len(params.Ramps),
 		"default_threshold_ft", params.Default.ThresholdFt,
 		"wave_params_learned", params.Waves != nil,
+		"persistence_learned", params.Persistence != nil,
 	)
 }

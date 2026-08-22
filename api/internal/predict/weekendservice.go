@@ -36,6 +36,8 @@ type WeekendService struct {
 	noaa *noaa.Client
 	fc   ForecastSource
 
+	noPersistence bool // PREDICT_PERSISTENCE_ENABLED=false
+
 	mu       sync.Mutex
 	cached   *WeekendOutlook
 	cachedAt time.Time
@@ -80,6 +82,11 @@ func (s *WeekendService) Get(ctx context.Context) (*WeekendOutlook, error) {
 		return nil, err
 	}
 	return v.(*WeekendOutlook), nil
+}
+
+// DisablePersistence serves memoryless verdicts (no prior-day carry-over).
+func (s *WeekendService) DisablePersistence() {
+	s.noPersistence = true
 }
 
 // build assembles the weekend outlook's inputs and computes it. Tides are
@@ -136,6 +143,11 @@ func (s *WeekendService) build(ctx context.Context) (*WeekendOutlook, error) {
 		}
 	}
 
-	out := BuildWeekendOutlook(now, ramps, params, vp, preds, land, marine)
+	var prior map[string]PriorDay
+	if !s.noPersistence {
+		prior = loadPriorDay(ctx, s.pool, now, preds, params, "weekend outlook")
+	}
+
+	out := BuildWeekendOutlook(now, ramps, params, vp, preds, land, marine, prior)
 	return &out, nil
 }

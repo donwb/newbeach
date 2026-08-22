@@ -41,7 +41,7 @@ func TestCityVerdictAllOpenQuiet(t *testing.T) {
 	ramps[0].ShortName = &name
 	preds := []models.TidePrediction{h(et(1, 13, 0), 1.8)} // below hard open
 
-	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	require.Len(t, out.Cities, 1)
 
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
@@ -69,7 +69,7 @@ func TestCityVerdictAtRisk(t *testing.T) {
 	}
 	preds := []models.TidePrediction{h(et(1, 13, 0), 2.7)} // possible band
 
-	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 
 	assert.Equal(t, CityStateAllOpen, cv.State)
@@ -91,7 +91,7 @@ func TestCityVerdictFirstAroundMatchesRampCopy(t *testing.T) {
 	}
 	preds := []models.TidePrediction{h(et(1, 13, 0), 3.4)} // likely band
 
-	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 	require.Equal(t, RiskLikely, out.Ramps[0].Risk)
 
@@ -118,7 +118,7 @@ func TestCityVerdictSomeClosed(t *testing.T) {
 	ramps[0].ShortName = &name
 	preds := []models.TidePrediction{h(et(1, 13, 0), 2.7)}
 
-	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 
 	assert.Equal(t, CityStateSomeClosed, cv.State)
@@ -180,7 +180,7 @@ func TestCityVerdictNoneOpenHeadlines(t *testing.T) {
 				n := beachSt
 				tc.ramps[i].ShortName = &n
 			}
-			out := BuildOutlook(now, tc.ramps, Params{Default: DefaultParams}, preds, nil)
+			out := BuildOutlook(now, tc.ramps, Params{Default: DefaultParams}, preds, nil, nil)
 			cv := verdictFor(t, out, "ORMOND BEACH")
 			assert.Equal(t, CityStateSomeClosed, cv.State)
 			assert.Equal(t, tc.headline, cv.Headline)
@@ -199,7 +199,7 @@ func TestCityVerdictGolden(t *testing.T) {
 	}
 	preds := []models.TidePrediction{h(et(1, 13, 0), 1.8)}
 
-	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 
 	assert.Equal(t, CityStateGolden, cv.State)
@@ -207,7 +207,7 @@ func TestCityVerdictGolden(t *testing.T) {
 	assert.Equal(t, "All two open · gates close around 7pm", cv.Detail)
 
 	// An hour-minus out, the bucket coarsens instead of counting minutes.
-	out = BuildOutlook(et(1, 18, 5), ramps, Params{Default: DefaultParams}, preds, nil)
+	out = BuildOutlook(et(1, 18, 5), ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv = verdictFor(t, out, "NEW SMYRNA BEACH")
 	assert.Equal(t, "Under an hour of driving left", cv.Headline)
 }
@@ -219,14 +219,14 @@ func TestCityVerdictOvernight(t *testing.T) {
 	preds := []models.TidePrediction{h(et(2, 13, 0), 1.8)}
 
 	// Evening, after the close: the schedule has rolled to tomorrow.
-	out := BuildOutlook(et(1, 21, 0), ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(et(1, 21, 0), ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
 	assert.Equal(t, CityStateOvernight, cv.State)
 	assert.Equal(t, "Driving is done for the day", cv.Headline)
 	assert.Equal(t, "Every ramp reopens around 8am, once ramps are cleared for turtles", cv.Detail)
 
 	// Pre-dawn, before today's open: same state, morning voice.
-	out = BuildOutlook(et(1, 5, 0), ramps, Params{Default: DefaultParams}, preds, nil)
+	out = BuildOutlook(et(1, 5, 0), ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	cv = verdictFor(t, out, "NEW SMYRNA BEACH")
 	assert.Equal(t, CityStateOvernight, cv.State)
 	assert.Equal(t, "Closed until morning", cv.Headline)
@@ -242,7 +242,7 @@ func TestCityVerdictGroupingAndOrder(t *testing.T) {
 	}
 	preds := []models.TidePrediction{h(et(1, 13, 0), 1.8)}
 
-	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil)
 	require.Len(t, out.Cities, 2)
 	assert.Equal(t, "DAYTONA BEACH", out.Cities[0].City, "alphabetical order")
 	assert.Equal(t, "NEW SMYRNA BEACH", out.Cities[1].City)

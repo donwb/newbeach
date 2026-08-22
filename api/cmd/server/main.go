@@ -98,6 +98,10 @@ func main() {
 	// tide-only without touching the learned params or the wave series.
 	predictWavesEnabled := os.Getenv("PREDICT_WAVES_ENABLED") != "false"
 
+	// Kill switch for the persistence prior ("did it close yesterday?"):
+	// serving goes memoryless; training still learns the shifts.
+	predictPersistenceEnabled := os.Getenv("PREDICT_PERSISTENCE_ENABLED") != "false"
+
 	// Weekend outlook: NWS forecast gridpoints (land + marine) feed the
 	// multi-day verdicts. The base URL is overridable in case the App
 	// Platform egress IP ever gets blocked — point it at the cam-relay
@@ -173,6 +177,9 @@ func main() {
 		outlookStation = ""
 	}
 	outlookSvc := predict.NewService(pool, noaaClient, outlookStation)
+	if !predictPersistenceEnabled {
+		outlookSvc.DisablePersistence()
+	}
 
 	// Surf report: one casual surf line on the outlook. Its switch is
 	// independent of PREDICT_WAVES_ENABLED — killing the copy must not kill
@@ -188,6 +195,9 @@ func main() {
 	if weekendEnabled {
 		nwsClient := nwsfc.NewClient(nwsBaseURL, nwsLandGrid, nwsMarineGrid)
 		weekendSvc = predict.NewWeekendService(pool, noaaClient, nwsClient)
+		if !predictPersistenceEnabled {
+			weekendSvc.DisablePersistence()
+		}
 	}
 	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, ndbcStation)
 

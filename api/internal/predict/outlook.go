@@ -94,6 +94,12 @@ type RampOutlook struct {
 	Window     *Window `json:"window,omitempty"`
 	Reopen     *Reopen `json:"reopen,omitempty"`
 
+	// Yesterday echoes the persistence prior the risk call was made under
+	// (what this ramp did yesterday, and whether that moved the bar), so an
+	// operator can always see what the model saw. Absent when the prior
+	// was unavailable or switched off.
+	Yesterday *YesterdayContext `json:"yesterday,omitempty"`
+
 	// quotedClose is the clock time this ramp's own copy quotes for the
 	// tide closure (peak minus lead when likely, the peak itself when only
 	// possible). The city verdict aggregates it so "first around" never
@@ -259,6 +265,12 @@ func riskForPeak(peakFt, waveShiftFt float64, rp RampParams, hardOpen, hardClose
 	}
 }
 
+// clampTotalShift bounds the summed wave + persistence shift so two nudges
+// never add up to a rewrite of the tide model.
+func clampTotalShift(v float64) float64 {
+	return math.Max(-(maxWaveShiftFt + maxPersistShiftFt), math.Min(maxWaveShiftFt+maxPersistShiftFt, v))
+}
+
 func riskRank(r string) int {
 	switch r {
 	case RiskLikely:
@@ -406,8 +418,10 @@ func reopenEstimate(preds []models.TidePrediction, closedAt, now time.Time) time
 // GetRampsWithStatusSince. wave is the latest buoy observation, nil when
 // unavailable; an observation older than maxWaveAge is ignored, so a drifting
 // or silent buoy degrades cleanly to tide-only behavior. Pure — no I/O,
-// fully testable.
-func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample) Outlook {
+// fully testable. prior is each ramp's previous-day fact (priorDayFacts);
+// nil — or a ramp missing from it — means no persistence prior, i.e. the
+// memoryless model.
+func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample, prior map[string]PriorDay) Outlook {
 	season, sched := buildSchedule(now, params)
 
 	out := Outlook{
@@ -477,6 +491,15 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			Confidence: confidence(rp, learned),
 		}
 
+		// The persistence prior is per ramp: what this ramp did yesterday
+		// shifts its bar today, on top of the county-wide sea state.
+		shiftFt := waveShiftFt
+		if pd, ok := prior[ramp.AccessID]; ok && pd.Known {
+			ps := params.persistShift(pd, rp)
+			shiftFt = clampTotalShift(waveShiftFt + ps)
+			ro.Yesterday = &YesterdayContext{Closed: pd.Closed, PeakFt: pd.MaxPeakFt, Applied: ps != 0}
+		}
+
 		// Outside driving hours nothing is open and no tide matters — the
 		// next thing that happens is the morning open, so say that.
 		if sched.OpensAt != nil && now.Before(*sched.OpensAt) {
@@ -506,7 +529,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		riskIdx := -1
 		risks := make([]string, len(dayPeaks))
 		for i := range dayPeaks {
-			r := riskForPeak(*dayPeaks[i].Height, waveShiftFt, rp, params.hardOpen(), params.hardClose())
+			r := riskForPeak(*dayPeaks[i].Height, shiftFt, rp, params.hardOpen(), params.hardClose())
 			risks[i] = decayRisk(r, now, dayPeaks[i], rp)
 			if riskRank(risks[i]) > riskRank(risk) {
 				risk = risks[i]
@@ -530,7 +553,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			ro.Window = closureWindow(*riskPeak, rp, sched)
 			qc := quotedCloseAt(risk, *riskPeak, rp)
 			ro.quotedClose = &qc
-			ro.Headline, ro.Detail, ro.Short = tideText(now, risk, *riskPeak, rp, sched, laterPeakRisky)
+			ro.Headline, ro.Detail, ro.Short = tideText(now, risk, *riskPeak, rp, sched, laterPeakRisky, ro.Yesterday)
 		case sched.ClosesAt != nil:
 			// No tide story, so the next scheduled thing is the day ending.
 			// This line always looks forward — it is never a place to say

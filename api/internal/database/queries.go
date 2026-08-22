@@ -541,6 +541,47 @@ func GetAllRampHistoryEvents(ctx context.Context, pool *pgxpool.Pool) (map[strin
 	return events, nil
 }
 
+// GetAllRampStatusEventsSince returns every ramp's status-change events from
+// `since` onward plus, per ramp, the single most recent event before it (the
+// baseline already in effect when the window opens — a ramp closed at
+// midnight must still read as closed). Keyed by access_id, each slice
+// oldest-first. Used by the outlook's persistence prior, which needs only
+// yesterday.
+func GetAllRampStatusEventsSince(ctx context.Context, pool *pgxpool.Pool, since time.Time) (map[string][]models.StatusEvent, error) {
+	const query = `
+		SELECT access_id, access_status, recorded_at FROM (
+			SELECT DISTINCT ON (access_id) access_id, access_status, recorded_at
+			FROM ramp_status_history
+			WHERE recorded_at < $1
+			ORDER BY access_id, recorded_at DESC
+		) baseline
+		UNION ALL
+		SELECT access_id, access_status, recorded_at
+		FROM ramp_status_history
+		WHERE recorded_at >= $1
+		ORDER BY access_id, recorded_at
+	`
+	rows, err := pool.Query(ctx, query, since)
+	if err != nil {
+		return nil, fmt.Errorf("querying ramp history since %s: %w", since.Format(time.RFC3339), err)
+	}
+	defer rows.Close()
+
+	events := make(map[string][]models.StatusEvent)
+	for rows.Next() {
+		var accessID string
+		var e models.StatusEvent
+		if err := rows.Scan(&accessID, &e.AccessStatus, &e.RecordedAt); err != nil {
+			return nil, fmt.Errorf("scanning history-since row: %w", err)
+		}
+		events[accessID] = append(events[accessID], e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating history-since rows: %w", err)
+	}
+	return events, nil
+}
+
 // --- Beach conditions ---
 
 // InsertBeachConditions appends one snapshot row to the beach_conditions

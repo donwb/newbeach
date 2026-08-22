@@ -109,8 +109,10 @@ func quotedCloseAt(risk string, peak models.TidePrediction, rp RampParams) time.
 // has already passed is never quoted back — the ramp is visibly still open,
 // so the copy moves to "any time now", and once the peak itself is behind
 // us it moves to the falling-tide voice. Every string names the tide as the
-// cause, so a reader always knows why the closure is coming.
-func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool) (headline, detail, short string) {
+// cause, so a reader always knows why the closure is coming. yesterday,
+// when it actually moved the call, earns one clause so the reader knows
+// the county's recent form is part of the read.
+func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool, yesterday *YesterdayContext) (headline, detail, short string) {
 	closeAt := quotedCloseAt(RiskLikely, peak, rp)
 	reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
 	reopenCopy := "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
@@ -140,6 +142,13 @@ func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampPar
 		headline = "Could close around the " + fmtClock(peakAt) + " high tide"
 		detail = "Depends on surf and sand · could just as well stay open"
 		short = "could close on the ~" + fmtClock(peakAt) + " tide"
+	}
+	if yesterday != nil && yesterday.Applied {
+		if yesterday.Closed {
+			detail += " · closed for yesterday's tide too"
+		} else {
+			detail += " · rode out yesterday's tide"
+		}
 	}
 	if laterPeakRisky {
 		detail += " · the next high tide could bring another round"

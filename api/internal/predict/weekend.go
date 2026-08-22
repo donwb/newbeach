@@ -165,7 +165,9 @@ type timeRange struct{ start, end time.Time }
 // must cover [now, now + weekendHorizonDays]; land/marine are nil-tolerant
 // (a day without forecast coverage gets an honest tide-only verdict, and its
 // basis says so).
-func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast) WeekendOutlook {
+// prior is each ramp's previous-day fact (priorDayFacts), nil for none; the
+// planner carries it forward height-anchored (persistDayShift).
+func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast, prior map[string]PriorDay) WeekendOutlook {
 	out := WeekendOutlook{GeneratedAt: now.UTC()}
 
 	// Today stays in the list only while its driving day is live.
@@ -186,7 +188,7 @@ func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, para
 		frame.OpensLabel = "around " + fmtClock(roundNearest30(opens))
 		frame.ClosesLabel = "around " + fmtClock(roundNearest30(closes))
 
-		facts := gatherDayFacts(now, i, frame, ramps, params, vp, preds, land, marine)
+		facts := gatherDayFacts(now, i, frame, ramps, params, vp, preds, land, marine, prior)
 		day := WeekendDay{
 			Date:            dayAnchor.Format("2006-01-02"),
 			Weekday:         dayAnchor.Weekday().String(),
@@ -245,7 +247,7 @@ func forecastDayShift(params Params, heightFt *float64, daysOut int) float64 {
 }
 
 // gatherDayFacts assembles one day's tide pressure and weather aggregates.
-func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast) dayFacts {
+func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast, prior map[string]PriorDay) dayFacts {
 	facts := dayFacts{daysOut: daysOut, frame: frame, pressure: PressureNone}
 	opens, closes := *frame.OpensAt, *frame.ClosesAt
 
@@ -294,8 +296,10 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 		rp, _ := effectiveParams(ramp.AccessID, ramp.ClosureHeightFt, params)
 		rampCount++
 		worst := RiskNone
+		pd := prior[ramp.AccessID]
 		for _, p := range facts.tidePeaks {
-			r := riskForPeak(*p.Height, dayShift, rp, params.hardOpen(), params.hardClose())
+			shift := clampTotalShift(dayShift + params.persistDayShift(pd, rp, *p.Height, daysOut))
+			r := riskForPeak(*p.Height, shift, rp, params.hardOpen(), params.hardClose())
 			if riskRank(r) > riskRank(worst) {
 				worst = r
 			}
