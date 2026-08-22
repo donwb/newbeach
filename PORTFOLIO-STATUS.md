@@ -43,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-22 10:00 (API: persistence prior live since 8/21; follow-up UNCOMMITTED — grade-aware shift scans so prod learns to quiet the NS ramps on calm/open-yesterday days (5 straight false alarms 8/17–8/21); Don to push. iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-22 09:45 (API: grade-aware shift scans SHIPPED 3312421, prod force-retrained 13:38Z at Don's direction — calm raise 0.45, NS-141/118/110 open-yesterday raise 0.4; today's outlook flipped from "tide closure possible ~3:30pm" to "closes for the day ~6:30pm" on every NS/DBS ramp. First real test: tomorrow's scorecard for 2026-08-22. iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -371,13 +371,15 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
-- 2026-08-22 (latest, uncommitted): Shift scans made grade-aware. Don noticed NS ramps
+- 2026-08-22 (latest, shipped 3312421 + prod force-retrain 13:38Z): Shift scans made grade-aware. Don noticed NS ramps
   still "possible ~3:30" on a calm day after open days; root cause: the wave/persistence
   scans scored a binary closed/open cut, so demoting likely→possible counted as a miss and
   prod learned zero calm raise and zero open-yesterday raise for NS-141/118/110 (five
   straight false alarms). Scans now score the real three-level grade; on prod's station
   scale NS ramps learn a 0.4 ft raise and calm learns 0.45 — today's 2.53 ft peak reads
-  "No tide trouble expected". Backtest floors hold; NS-106 recall 0.66 → 0.73.
+  "No tide trouble expected". Backtest floors hold; NS-106 recall 0.66 → 0.73. Verified
+  live after the retrain: NS-141/118/110 + DBS-075 quiet with `yesterday.applied: true`,
+  NSB verdict "All five open". Watch the 2026-08-22 scorecard for misses.
 - 2026-08-21 (latest, uncommitted): Persistence prior in the outlook engine — Don's
   insight that whether a ramp closed *yesterday* predicts today better than the tide
   height alone inside the learnable band (fixture data: DBS-075 at ~3.0 ft closes 11%
