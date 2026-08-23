@@ -124,11 +124,11 @@ struct RampsBox: View {
 
     private var columnHeads: some View {
         HStack(spacing: RampRowLayout.gap) {
-            Text("Ramp").tvLabel()
+            Text("Name").tvLabel()
                 .frame(width: RampRowLayout.name, alignment: .leading)
             Text("Now").tvLabel()
                 .frame(width: RampRowLayout.now, alignment: .leading)
-            Text("Next").tvLabel()
+            Text("Ramp prediction").tvLabel()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.bottom, 8)

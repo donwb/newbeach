@@ -39,9 +39,18 @@ struct SurfWeekendBox: View {
                                 Text(slot.dayName)
                                     .tv(28, .extraBold)
                                     .foregroundStyle(TVInk.type)
+                                // Two lines on purpose: a day with no best
+                                // window falls back to the server's full
+                                // sentence ("Storms look parked over most of
+                                // the day"), which will not fit one line at
+                                // this column width. The Spacer above gives
+                                // the second line its room.
                                 Text(slot.headline)
                                     .tv(30, .semiBold)
-                                    .lineLimit(1)
+                                    // reservesSpace keeps both columns'
+                                    // metrics lines on the same baseline
+                                    // when only one day wraps.
+                                    .lineLimit(2, reservesSpace: true)
                                     .minimumScaleFactor(0.7)
                                     .foregroundStyle(TVInk.type)
                                 Text(slot.metrics)
@@ -51,7 +60,7 @@ struct SurfWeekendBox: View {
                                     .foregroundStyle(TVInk.typeDim)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, index > 0 ? 40 : 0)
+                            .padding(.leading, index > 0 ? 28 : 0)
                             .overlay(alignment: .leading) {
                                 if index > 0 {
                                     Rectangle().fill(TVInk.type.opacity(0.2)).frame(width: 1)
