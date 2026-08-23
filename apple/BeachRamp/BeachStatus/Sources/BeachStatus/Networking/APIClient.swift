@@ -1,6 +1,6 @@
 import Foundation
 
-/// Async networking client for the Beach Ramp Status API.
+/// Async networking client for the Volusia Beach Info API.
 public actor APIClient {
     public static let shared = APIClient()
 

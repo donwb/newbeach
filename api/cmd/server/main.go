@@ -44,7 +44,7 @@ func main() {
 	}
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})))
 
-	slog.Info("starting beach ramp status service")
+	slog.Info("starting volusia beach info service")
 
 	// Read configuration from environment.
 	databaseURL := os.Getenv("DATABASE_URL")

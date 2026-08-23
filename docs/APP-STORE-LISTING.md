@@ -367,23 +367,21 @@ re-broadcast through your relay at `cams.donwb.com`. You said you'd handle this 
 
 ---
 
-## Two decisions the name change opens up
+## Two decisions the name change opened up — both RESOLVED 2026-08-23
 
-**The name under the icon no longer matches the listing.**
-`Version.xcconfig` sets `INFOPLIST_KEY_CFBundleDisplayName = Beach Ramps`, so the
-Home Screen would read "Beach Ramps" under a listing called "Volusia Beach Info". A
-mismatch is common and generally passes review, but these two share only one word,
-which is wider than typical. Since a re-flight is needed anyway (below), changing the
-xcconfig is nearly free. Note "Volusia Beach Info" is 18 characters and truncates hard
-on the iPhone Home Screen — roughly "Volusia Bea…" — where "Beach Ramps" fits whole.
-Given that, keeping "Beach Ramps" under the icon is the better-looking option, and a
-listing/label mismatch this size is common enough to pass review.
+**The name under the icon.** `Version.xcconfig` now sets
+`INFOPLIST_KEY_CFBundleDisplayName = Beach Info`. The full "Volusia Beach Info" is 18
+characters and truncates hard on the iPhone Home Screen — roughly "Volusia Bea…" — so
+the icon carries the short form, which shares two of three words with the listing
+instead of the one word "Beach Ramps" shared. Takes effect on the next flight; builds
+already on TestFlight still read "Beach Ramps".
 
-**The website is still branded "Beach Ramp Status".** The new `/privacy` and
-`/support` pages say "Volusia Beach Info", since they're the app's pages and Apple reads
-them. The board, the `/county` page, and `index.html`'s title still say Beach Ramp
-Status. That's a fine split — the site and the app can carry different names — but if
-you want one name everywhere, that's a separate pass.
+**The website is now branded "Volusia Beach Info" too.** The board wordmark, the
+`index.html` title, the PWA manifest (`short_name` is "Beach Info", matching the icon
+label), the `/county` pitch page, and the per-view document titles all carry the
+product name, alongside the `/privacy` and `/support` pages that already did. The
+in-app wordmark on iOS, iPadOS, and tvOS says "Volusia Beach Info" as well. One name
+everywhere.
 
 ---
 

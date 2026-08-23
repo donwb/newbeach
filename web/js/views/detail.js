@@ -160,7 +160,7 @@ export function createDetailView(store) {
     );
     const index = cityRamps.findIndex((r) => r.id === ramp.id);
 
-    document.title = `${name} — Beach Ramp Status`;
+    document.title = `${name} — Volusia Beach Info`;
     $('#back-link').innerHTML = `<span class="arrow">←</span> All ${escapeHTML(city)} ramps`;
     $('#hero-kicker').textContent = `Ramp ${String(index + 1).padStart(2, '0')} · ${city}`;
     $('#hero-name').textContent = name;

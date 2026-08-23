@@ -20,7 +20,7 @@ func newStaticTestServer(t *testing.T) *echo.Echo {
 	t.Helper()
 
 	webDir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(webDir, "index.html"), []byte("<title>Beach Ramp Status</title>"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(webDir, "index.html"), []byte("<title>Volusia Beach Info</title>"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(webDir, "app.js"), []byte("// app"), 0o644))
 
 	e := echo.New()
@@ -54,11 +54,11 @@ func TestSPAFallback(t *testing.T) {
 		wantContains string
 		wantJSON     bool
 	}{
-		{"spa ramp route serves index", "/ramp/5", http.StatusOK, "Beach Ramp Status", false},
-		{"spa tide route serves index", "/tide", http.StatusOK, "Beach Ramp Status", false},
-		{"spa water route serves index", "/water", http.StatusOK, "Beach Ramp Status", false},
-		{"spa wind route serves index", "/wind", http.StatusOK, "Beach Ramp Status", false},
-		{"root serves index", "/", http.StatusOK, "Beach Ramp Status", false},
+		{"spa ramp route serves index", "/ramp/5", http.StatusOK, "Volusia Beach Info", false},
+		{"spa tide route serves index", "/tide", http.StatusOK, "Volusia Beach Info", false},
+		{"spa water route serves index", "/water", http.StatusOK, "Volusia Beach Info", false},
+		{"spa wind route serves index", "/wind", http.StatusOK, "Volusia Beach Info", false},
+		{"root serves index", "/", http.StatusOK, "Volusia Beach Info", false},
 		{"real asset served as file", "/app.js", http.StatusOK, "// app", false},
 		{"v1 route not swallowed", "/ramps", http.StatusOK, "v1", true},
 		{"v2 route not swallowed", "/api/v2/ramps", http.StatusOK, "v2", true},

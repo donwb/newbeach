@@ -1,16 +1,16 @@
 /**
- * Beach Ramp Status service worker.
+ * Volusia Beach Info service worker.
  *
  * CACHE_NAME must be bumped on EVERY deploy that changes any precached
  * asset — the fetch handler is cache-first for static files, so a stale
  * cache otherwise masks the new code until this constant changes.
  */
-const CACHE_NAME = 'beach-ramps-v24';
+const CACHE_NAME = 'beach-ramps-v25';
 
 const STATIC_ASSETS = [
   '/',
-  '/app.js?v=16',
-  '/styles.css?v=16',
+  '/app.js?v=17',
+  '/styles.css?v=17',
   '/manifest.json',
   '/icons/icon.svg',
   '/js/api.js',

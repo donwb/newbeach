@@ -20,13 +20,9 @@ struct HeaderBand: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 40) {
-            HStack(alignment: .firstTextBaseline, spacing: 20) {
-                Text("Beach Ramp Status")
-                    .tv(32, .extraBold, tracking: -0.02)
-                    .foregroundStyle(TVInk.type)
-                Text("Volusia County")
-                    .tvLabel()
-            }
+            Text("Volusia Beach Info")
+                .tv(32, .extraBold, tracking: -0.02)
+                .foregroundStyle(TVInk.type)
 
             Spacer(minLength: 0)
 

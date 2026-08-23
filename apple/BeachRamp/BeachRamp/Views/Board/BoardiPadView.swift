@@ -50,7 +50,7 @@ struct BoardiPadView: View {
                               ? Color(red: 0xF5 / 255, green: 0xA2 / 255, blue: 0x14 / 255)
                               : Color(red: 0x2A / 255, green: 0xE0 / 255, blue: 0x7A / 255))
                         .frame(width: 10, height: 10)
-                    Text("Beach Ramp Status")
+                    Text("Volusia Beach Info")
                         .font(.archivo(20, weight: .extraBold))
                         .foregroundStyle(.white)
                 }

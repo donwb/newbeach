@@ -5,7 +5,7 @@ import BeachStatus
 /// Per-widget configuration: which city, and how much of it. Two widgets can
 /// watch two cities.
 struct RampWidgetIntent: WidgetConfigurationIntent {
-    static let title: LocalizedStringResource = "Beach Ramps"
+    static let title: LocalizedStringResource = "Ramp Widget"
     static let description = IntentDescription("Ramp status for a city.")
 
     @Parameter(title: "City")

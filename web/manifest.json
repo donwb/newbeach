@@ -1,6 +1,6 @@
 {
-    "name": "Beach Ramp Status",
-    "short_name": "Beach Ramps",
+    "name": "Volusia Beach Info",
+    "short_name": "Beach Info",
     "description": "Real-time beach access ramp status for Volusia County, Florida",
     "start_url": "/",
     "display": "standalone",

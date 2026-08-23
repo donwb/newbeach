@@ -1,4 +1,4 @@
-# Beach Ramp Status — top-level targets.
+# Volusia Beach Info — top-level targets.
 #
 # The Go API and ingester have their own Makefile in api/. This one covers
 # the Apple release process (see apple/scripts/flight.sh) and deploying the

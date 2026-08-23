@@ -47,7 +47,7 @@ export function createBoardView(store) {
     root.innerHTML = `
       <header class="topbar">
         <div>
-          <div class="brand">Beach Ramp Status</div>
+          <div class="brand">Volusia Beach Info</div>
         </div>
         <span class="brand-sub">Volusia County, FL</span>
         <div class="topbar-right">

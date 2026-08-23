@@ -25,7 +25,7 @@ struct BoardWidget: Widget {
         ) { entry in
             BoardWidgetView(entry: entry)
         }
-        .configurationDisplayName("Beach Ramps")
+        .configurationDisplayName("Ramp Board")
         .description("Ramp status, the verdict, and the tide at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
@@ -57,7 +57,7 @@ struct AccessoryWidget: Widget {
         ) { entry in
             AccessoryWidgetView(entry: entry)
         }
-        .configurationDisplayName("Beach Ramps")
+        .configurationDisplayName("Ramps Open Now")
         .description("Ramps open right now.")
         .supportedFamilies([.accessoryCircular, .accessoryRectangular, .accessoryInline])
     }

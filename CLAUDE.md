@@ -1,4 +1,4 @@
-# Beach Ramp Status — Project Conventions
+# Volusia Beach Info — Project Conventions
 
 ## What This Project Is
 
@@ -72,7 +72,12 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   identifier is historical and deliberate: the surviving ASC record ("Beach Ramp Status",
   Apple ID 6761724123) had already taken a build, which permanently freezes its bundle ID,
   so the project moved to the record rather than gambling the reserved app name on a
-  delete-and-recreate. Bundle IDs are never user-visible; the apps display as "Beach Ramps".
+  delete-and-recreate. Bundle IDs are never user-visible. The product name is **"Volusia Beach Info"** —
+  the ASC listing, the website, the in-app wordmark on every platform, and the docs.
+  The one exception is the home-screen icon label
+  (`INFOPLIST_KEY_CFBundleDisplayName = Beach Info`), shortened because iOS truncates
+  icon labels past ~12 characters. Never reintroduce "Beach Ramp Status" or
+  "Beach Ramps" as a user-facing name.
 - **watchOS is out of scope for 1.0** — the target still exists and builds, but the
   "Embed Watch Content" phase was removed from the iOS app so it does not ride into the
   archive. Re-adding that phase is how it ships later.

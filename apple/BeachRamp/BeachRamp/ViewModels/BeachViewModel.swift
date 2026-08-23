@@ -3,7 +3,7 @@ import Observation
 import WidgetKit
 import BeachStatus
 
-/// Main view model that drives all data for the Beach Ramp Status app.
+/// Main view model that drives all data for the Volusia Beach Info app.
 @Observable
 final class BeachViewModel {
     // MARK: - Published State

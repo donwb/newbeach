@@ -101,7 +101,7 @@ if [[ "$BUILD" != "$CURRENT" ]]; then
 fi
 
 VERSION=$(grep -m1 '^MARKETING_VERSION' "$XCCONFIG" | awk -F' = ' '{print $2}')
-echo "Flighting Beach Ramps $VERSION ($BUILD)…"
+echo "Flighting Volusia Beach Info $VERSION ($BUILD)…"
 
 # --- 3+4. Archive + export per platform -------------------------------------
 

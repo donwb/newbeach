@@ -1,4 +1,4 @@
-# Beach Ramp Status — Rebuild Requirements
+# Volusia Beach Info — Rebuild Requirements
 
 **Version:** 1.0
 **Date:** March 11, 2026
@@ -8,7 +8,7 @@
 
 ## 1. Project Overview
 
-Beach Ramp Status is an application that provides real-time beach access ramp status, tidal information, and water temperature data for Volusia County, Florida — with a primary focus on New Smyrna Beach. The system collects data from Volusia County GIS and NOAA, stores it in a database, and serves it across multiple platforms: a website, iOS app, Apple Watch, Apple TV, and legacy IoT devices.
+Volusia Beach Info is an application that provides real-time beach access ramp status, tidal information, and water temperature data for Volusia County, Florida — with a primary focus on New Smyrna Beach. The system collects data from Volusia County GIS and NOAA, stores it in a database, and serves it across multiple platforms: a website, iOS app, Apple Watch, Apple TV, and legacy IoT devices.
 
 This document defines the requirements for a complete ground-up rebuild of the application using modern tooling while maintaining backward compatibility for legacy devices.
 
@@ -1258,4 +1258,4 @@ All six implementation phases are complete. Every platform has reached a shippab
 
 ---
 
-*This document tracks the Beach Ramp Status rebuild from requirements through implementation. All phases are complete as of v1.*
+*This document tracks the Volusia Beach Info rebuild from requirements through implementation. All phases are complete as of v1.*

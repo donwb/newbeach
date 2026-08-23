@@ -11,8 +11,9 @@ MARKETING_VERSION = 1.1
 CURRENT_PROJECT_VERSION = 26
 
 // Shipped name under the icon on every platform. The App Store Connect
-// listing name is "Beach Ramp Status"; this is the shorter home-screen form.
-INFOPLIST_KEY_CFBundleDisplayName = Beach Ramps
+// listing name is "Volusia Beach Info"; this is the shorter home-screen form,
+// because iOS truncates icon labels past ~12 characters.
+INFOPLIST_KEY_CFBundleDisplayName = Beach Info
 
 // Answers the export-compliance question at upload time instead of stalling
 // every build on it in App Store Connect.

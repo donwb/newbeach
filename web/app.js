@@ -1,5 +1,5 @@
 /**
- * Beach Ramp Status — Volusia County, FL
+ * Volusia Beach Info — Volusia County, FL
  * Boot module: store, poll loop, sun-following ground, router.
  *
  * Dev scrubber (harmless in production):

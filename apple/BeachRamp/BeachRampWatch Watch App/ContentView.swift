@@ -29,7 +29,7 @@ struct ContentView: View {
                     rampList
                 }
             }
-            .navigationTitle("Beach Ramps")
+            .navigationTitle("Beach Info")
             .task {
                 await viewModel.loadAll()
             }

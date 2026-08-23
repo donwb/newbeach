@@ -20,7 +20,7 @@ export function createStatView(store) {
   function mount(container, params) {
     root = container;
     kind = params.kind || 'tide';
-    document.title = `${TITLES[kind]} — Beach Ramp Status`;
+    document.title = `${TITLES[kind]} — Volusia Beach Info`;
 
     root.innerHTML = `
       <header class="topbar">
