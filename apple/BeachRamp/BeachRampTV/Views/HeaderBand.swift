@@ -29,10 +29,7 @@ struct HeaderBand: View {
             HStack(alignment: .center, spacing: 28) {
                 HStack(alignment: .firstTextBaseline, spacing: 34) {
                     ForEach(weatherCells) { cell in
-                        (Text("\(cell.label) ").tv(28)
-                            .foregroundStyle(TVInk.typeMuted)
-                         + Text(cell.value).tv(28, .extraBold)
-                            .foregroundStyle(TVInk.type))
+                        cellText(cell)
                             .monospacedDigit()
                             .lineLimit(1)
                     }
@@ -60,6 +57,21 @@ struct HeaderBand: View {
         .padding(.horizontal, TVMetrics.sidePad)
         .frame(height: TVMetrics.header)
         .focusSection()
+    }
+
+    /// Label + value as one Text run so the baseline math stays free. A
+    /// symbol cell (sunrise/sunset) draws its glyph where the word would go.
+    private func cellText(_ cell: WeatherCell) -> Text {
+        let value = Text(cell.value).tv(28, .extraBold)
+            .foregroundStyle(TVInk.type)
+        if let symbol = cell.symbol {
+            return Text(Image(systemName: symbol)).tv(24)
+                .foregroundStyle(TVInk.typeMuted)
+                + Text(" ") + value
+        }
+        return Text("\(cell.label) ").tv(28)
+            .foregroundStyle(TVInk.typeMuted)
+            + value
     }
 
     private var isFocused: Bool { focus.wrappedValue == .outlookButton }
@@ -93,6 +105,8 @@ struct HeaderBand: View {
     @Previewable @FocusState var focus: RootFocus?
     HeaderBand(
         weatherCells: [
+            WeatherCell(label: "Sunrise", value: "6:59", symbol: "sunrise.fill"),
+            WeatherCell(label: "Sunset", value: "7:52", symbol: "sunset.fill"),
             WeatherCell(label: "Water", value: "82°"),
             WeatherCell(label: "Air", value: "91°"),
             WeatherCell(label: "Wind", value: "SW 5"),
@@ -110,6 +124,8 @@ struct HeaderBand: View {
     @Previewable @FocusState var focus: RootFocus?
     HeaderBand(
         weatherCells: [
+            WeatherCell(label: "Sunrise", value: "6:59", symbol: "sunrise.fill"),
+            WeatherCell(label: "Sunset", value: "7:52", symbol: "sunset.fill"),
             WeatherCell(label: "Water", value: "82°"),
             WeatherCell(label: "Air", value: "91°"),
             WeatherCell(label: "Wind", value: "SW 5"),

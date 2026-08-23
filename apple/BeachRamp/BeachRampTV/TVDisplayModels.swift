@@ -30,10 +30,13 @@ enum TVSurface: Equatable {
     }
 }
 
-/// One cell of the header's Water/Air/Wind display.
+/// One cell of the header's sun/weather display. A cell with a `symbol`
+/// (SF Symbol name) draws the glyph in place of the text label — the
+/// sunrise/sunset pair.
 struct WeatherCell: Identifiable, Equatable {
     let label: String
     let value: String
+    var symbol: String?
     var id: String { label }
 }
 

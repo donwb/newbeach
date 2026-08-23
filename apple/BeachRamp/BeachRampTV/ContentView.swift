@@ -181,6 +181,7 @@ struct ContentView: View {
                 LedgerView(
                     verdict: verdictModel,
                     flashToken: verdictFlashToken,
+                    tideChart: viewModel.tideChart,
                     city: viewModel.currentCity,
                     rows: rampRows,
                     topIndex: $rampTopIndex,
@@ -335,13 +336,34 @@ struct ContentView: View {
             let joined = "\(direction) \(speed)".trimmingCharacters(in: .whitespaces)
             if !joined.isEmpty { wind = joined }
         }
-        return [
+        // Sunrise/sunset lead the row, called out by glyph rather than word.
+        // "h:mm" with no meridiem — the symbols carry am/pm.
+        var cells: [WeatherCell] = []
+        let sun = solar.events(on: Date(), calendar: Self.easternCalendar)
+        if let sunrise = sun.sunrise {
+            cells.append(WeatherCell(label: "Sunrise", value: Self.sunClock(sunrise),
+                                     symbol: "sunrise.fill"))
+        }
+        if let sunset = sun.sunset {
+            cells.append(WeatherCell(label: "Sunset", value: Self.sunClock(sunset),
+                                     symbol: "sunset.fill"))
+        }
+        cells += [
             WeatherCell(label: "Water",
                         value: viewModel.tideInfo?.waterTempAvg.map { "\(Int($0))°" } ?? "—"),
             WeatherCell(label: "Air",
                         value: viewModel.weather?.current.temperatureF.map { "\(Int($0))°" } ?? "—"),
             WeatherCell(label: "Wind", value: wind),
         ]
+        return cells
+    }
+
+    private static func sunClock(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = easternZone
+        formatter.dateFormat = "h:mm"
+        return formatter.string(from: date)
     }
 
     /// The surf block: the server's line and rip risk verbatim, buoy facts

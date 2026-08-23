@@ -10,6 +10,9 @@ struct LedgerView: View {
     /// Bumps when a status change updates the verdict in place — the bar
     /// flashes once. Never opens anything, never steals focus.
     let flashToken: Int
+    /// Today's tide, drawn small beside the verdict with a now-line. Nil
+    /// (chart fetch failed) leaves the row all type, as before.
+    let tideChart: TideChartData?
 
     let city: String
     let rows: [TVRampRowModel]
@@ -24,6 +27,10 @@ struct LedgerView: View {
     let onActivity: () -> Void
 
     @State private var flash = false
+
+    /// Width of the ramps column (incl. its 48pt trailing gutter) — the
+    /// divider the verdict row's tide wave aligns to at rest.
+    static let columnSplit: CGFloat = 985
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -41,30 +48,68 @@ struct LedgerView: View {
         }
     }
 
+    /// The verdict copy on the left, today's tide on the right. At rest the
+    /// wave's left edge sits exactly where the surf/weekend column below
+    /// starts (`columnSplit` + the 48pt gutter); verdict copy that outgrows
+    /// the split pushes the wave over and it compresses, down to a 220pt
+    /// floor before the type itself starts scaling.
     private var verdictRow: some View {
-        HStack(alignment: .center, spacing: 22) {
-            Rectangle()
-                .fill(verdict.barColor)
-                .overlay(Rectangle().fill(TVInk.type).opacity(flash ? 0.9 : 0))
-                .frame(width: 14)
-            VStack(alignment: .leading, spacing: 10) {
-                Text(verdict.headline)
-                    .tv(84, .extraBold, tracking: -0.035)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .foregroundStyle(TVInk.type)
-                    .accessibilityIdentifier("verdictHeadline")
-                if !verdict.detail.isEmpty {
-                    Text(verdict.detail)
-                        .tv(28)
+        HStack(alignment: .center, spacing: 48) {
+            HStack(alignment: .center, spacing: 22) {
+                Rectangle()
+                    .fill(verdict.barColor)
+                    .overlay(Rectangle().fill(TVInk.type).opacity(flash ? 0.9 : 0))
+                    .frame(width: 14)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(verdict.headline)
+                        .tv(84, .extraBold, tracking: -0.035)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .foregroundStyle(TVInk.typeMuted)
+                        .minimumScaleFactor(0.5)
+                        .foregroundStyle(TVInk.type)
+                        .accessibilityIdentifier("verdictHeadline")
+                    if !verdict.detail.isEmpty {
+                        Text(verdict.detail)
+                            .tv(28)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .foregroundStyle(TVInk.typeMuted)
+                    }
                 }
             }
-            Spacer(minLength: 0)
+            .layoutPriority(1)
+            .frame(minWidth: Self.columnSplit, alignment: .leading)
+
+            verdictTideWave
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private var verdictTideWave: some View {
+        let range = Self.todayRange
+        let points = tideChart.map { TideCurve.points(extremes: $0.highLow, in: range) } ?? []
+        if points.isEmpty {
+            Spacer(minLength: 0)
+        } else {
+            TideCurveShapeView(
+                points: points,
+                range: range,
+                height: 128,
+                strokeWidth: 3,
+                strokeColor: TVInk.type.opacity(0.8),
+                fillColor: TVInk.type.opacity(0.10),
+                nowLineColor: TVInk.sand
+            )
+            .frame(minWidth: 220, maxWidth: .infinity)
+            .accessibilityIdentifier("verdictTideWave")
+        }
+    }
+
+    /// Midnight to midnight, Eastern — the same day the detail surface draws.
+    private static var todayRange: ClosedRange<Date> {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "America/New_York")!
+        let start = cal.startOfDay(for: Date())
+        return start...cal.date(byAdding: .day, value: 1, to: start)!
     }
 
     private var boxes: some View {
@@ -81,7 +126,7 @@ struct LedgerView: View {
             )
             .padding(.top, 10)
             .padding(.trailing, 48)
-            .frame(width: 985, alignment: .topLeading)
+            .frame(width: Self.columnSplit, alignment: .topLeading)
             .overlay(alignment: .trailing) {
                 Rectangle().fill(TVInk.rule).frame(width: 2)
             }
@@ -110,6 +155,7 @@ struct LedgerView: View {
             barColor: TVInk.sand
         ),
         flashToken: 0,
+        tideChart: PreviewFixtures.tideChart,
         city: "New Smyrna Beach",
         rows: PreviewFixtures.nsbRows,
         topIndex: $top,
@@ -144,6 +190,7 @@ struct LedgerView: View {
             barColor: TVInk.closed
         ),
         flashToken: 0,
+        tideChart: PreviewFixtures.tideChart,
         city: "Daytona Beach",
         rows: PreviewFixtures.daytonaRows,
         topIndex: $top,
@@ -178,6 +225,7 @@ struct LedgerView: View {
             barColor: TVInk.barMuted
         ),
         flashToken: 0,
+        tideChart: PreviewFixtures.tideChart,
         city: "New Smyrna Beach",
         rows: PreviewFixtures.overnightRows,
         topIndex: $top,
