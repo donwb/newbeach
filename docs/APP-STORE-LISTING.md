@@ -1,4 +1,4 @@
-# App Store Connect listing — Volusia Beach Info 1.0
+# App Store Connect listing — Volusia Beach Info
 
 Copy-paste sheet for the ASC record (Apple ID 6761724123, bundle ID
 `com.donwb.BeachRampTV`, carrying **both** iOS and tvOS). The listing name changes
@@ -260,6 +260,86 @@ Volusia Beach Info is an independent app and is not affiliated with or endorsed 
 ```
 
 Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
+
+---
+
+## Version metadata — iOS / iPadOS 1.2 (build 28, drafted 2026-08-23)
+
+**This is the one to submit on the iOS track.** Read the delta carefully: iOS is
+still live on **1.0 (18)**. The 1.1 parity build was uploaded twice (26 on 8/21,
+27 on 8/23) and never submitted, so from a customer's point of view 1.2 carries
+*everything* since 1.0 — the whole parity pass **and** the rename. That is why the
+What's New below is the 1.1 draft plus two lines, not a rename note on its own.
+
+Also folded in: the closure outlook got materially better between 8/21 and 8/23
+(persistence prior, grade-aware shift scans, period-aware wave regime). That work
+is **server-side** — it is already reaching every installed copy — but no release
+note has ever mentioned it, so 1.2 is the first honest chance to.
+
+### What's New in This Version
+
+```
+The board now plans ahead — and the app goes by one name.
+
+• When should I go? — the week ahead, each day graded for the beach with the best driving window, closure risk, high, rain chance, and wind. Saturday and Sunday first.
+• One verdict, every screen — the headline for your city is now the same on the phone, the iPad, the TV, and the website, right down to "Driving is done for today" after the evening sweep.
+• Surf, in a sentence — the buoy read for Ponce Inlet with height, period, rip current risk, and how fresh it is.
+• A sharper read on the tide — the closure outlook now weighs swell period alongside wave height, so a long-period groundswell counts as rough water even when the surf looks small. It also remembers whether a ramp closed yesterday, which turns out to be the strongest single hint about what it will do today.
+• Forecast and recent changes on the iPhone board, not just the iPad.
+• Pin to widget — choose the ramps your Home Screen widget shows, from the ramp's own screen.
+• One name — the wordmark on the board and the label under the icon now match the App Store: Volusia Beach Info, shortened to "Beach Info" under the icon where the full name won't fit.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
+```
+
+### Description
+
+Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under iOS
+1.1) — nothing in it names the old app, and every claim still holds. Paste that
+block. Promotional text, keywords, URLs, copyright: unchanged from iOS 1.0.
+
+---
+
+## Version metadata — tvOS 1.2 (build 28, drafted 2026-08-23)
+
+**Be honest with yourself about this one: the binary delta from the approved
+1.1 (25) is the rename and nothing else.** Every Apple-side commit between
+`flight/build-25` and this build is the naming pass. The two outlook bullets
+below describe **server-side** improvements that already reach 1.1 devices —
+they are true statements about the app, and no tvOS release note has mentioned
+them yet, which is the case for including them. If you would rather ship a
+one-line note, cut to the first bullet.
+
+### What's New in This Version
+
+```
+One name, and a sharper read on the tide.
+
+• The board now says Volusia Beach Info, matching the name on the App Store.
+• The closure outlook weighs swell period alongside wave height. A long-period groundswell counts as rough water even when the surf looks small — which is exactly the sea state that shut four New Smyrna ramps on an otherwise flat August afternoon.
+• It also remembers whether a ramp closed the day before, which turns out to be the strongest single hint about what it will do today.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
+```
+
+### Description
+
+Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under tvOS
+1.1). Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
+
+### Screenshots — CHECK BEFORE SUBMITTING
+
+Every checked-in screenshot set predates the rename, so the header in them reads
+"Beach Ramp Status · Volusia County" while the app now reads "Volusia Beach Info".
+That is a visible mismatch between the gallery and the binary on both tracks:
+
+- `design/app-store-screenshots/appletv/` — captured 2026-08-21 from build 25.
+- iPhone 6.9" and iPad 13" sets — older still.
+
+Apple does not reliably reject for this, but a reviewer comparing the two will see
+a different name on the screen than on the listing, and name proximity to the
+county's app is already the flagged risk for this listing (guideline 4.1/2.3.8).
+Recapturing is `apple/scripts/screenshots.sh` (`tv` platform for Apple TV).
 
 ---
 

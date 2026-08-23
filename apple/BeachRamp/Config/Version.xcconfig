@@ -8,7 +8,7 @@
 // apple/scripts/flight.sh rewrites CURRENT_PROJECT_VERSION on every flight.
 
 MARKETING_VERSION = 1.2
-CURRENT_PROJECT_VERSION = 27
+CURRENT_PROJECT_VERSION = 28
 
 // Shipped name under the icon on every platform. The App Store Connect
 // listing name is "Volusia Beach Info"; this is the shorter home-screen form,
