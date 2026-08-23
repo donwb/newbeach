@@ -2,7 +2,7 @@
 app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -10,12 +10,19 @@ distribution: |
   Apple apps: `make flight` (apple/scripts/flight.sh) archives iOS + tvOS and uploads both to TestFlight in one command. Consolidated onto the single "Volusia Beach Info" record (Apple ID 6761724123, bundle ID com.donwb.BeachRampTV for BOTH platforms); build 1.0 (17) uploaded 2026-08-15 (the full iOS/iPadOS redesign + widgets, on beach.donwb.com).
   TRMNL: two private plugin templates in trmnl/, active devices; polling URLs moved to beach.donwb.com 2026-08-15.
 app_review_state: |
-  tvOS 1.1 (25) SUBMITTED FOR REVIEW 2026-08-21 ~13:30 ET (Don) on the tvOS track —
-  WAITING FOR REVIEW. The video-first board, overnight-focus fix, regenerated 4K
-  screenshots (board / outlook / ramp detail), new What's New, and the redrafted
-  description (drafts: docs/APP-STORE-LISTING.md §"tvOS 1.1"). 1.0 (18) stays live
-  on tvOS until 1.1 is approved. iOS remains 1.0 (18) approved/live — not resubmitted;
-  an iOS 1.1 needs `make flight-ios` + the same steps on the iOS track when wanted.
+  tvOS 1.1 (25) APPROVED — learned 2026-08-23 10:01 ET the same way 1.0 was: the tvOS
+  upload of 1.1 (27) was REJECTED with "CFBundleShortVersionString [1.1] must contain a
+  higher version than that of the previously approved version [1.1]" and "Invalid
+  Pre-Release Train. The train version '1.1' is closed for new build submissions".
+  NOT YET CONFIRMED in ASC by a human — Don should verify, and check whether it is
+  Ready for Sale or Pending Developer Release. So the video-first tvOS board is
+  approved and the store's TV screenshots are finally current.
+  Consequence acted on the same hour: MARKETING_VERSION bumped 1.1 → 1.2 (Don's call)
+  and BOTH platforms re-flighted under 1.2 to carry the "Volusia Beach Info" rename.
+  iOS 1.1 (27) had already uploaded successfully minutes earlier and is now a dead
+  build — ignore it in TestFlight.
+  iOS: 1.0 (18) is what is approved/live; 1.1 was uploaded but never submitted, so the
+  iOS listing still shows the build-18 design. The iOS rename ships as 1.2.
   Don notes initial review queues are slow right now (submission volume).
   How we learned 1.0 was approved: 2026-08-21 08:37 ET the tvOS TestFlight upload of 1.0 (25) was
   REJECTED by App Store Connect with "CFBundleShortVersionString [1.0] must contain a
@@ -43,7 +50,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-23 10:05 (NAMING: one-name pass done — "Volusia Beach Info" is now the name on every surface (web title/wordmark/manifest/per-view titles, /county page, iOS + iPadOS + tvOS in-app wordmark, TRMNL template headers, README/REQUIREMENTS/CLAUDE.md). tvOS header band dropped the "Volusia County" subtitle at Don's direction — the wordmark stands alone and that space is reserved for something else. INFOPLIST_KEY_CFBundleDisplayName = "Beach Info" (Don's call — the full 18-char name truncates under the icon); verified in the built Info.plist. iOS/tvOS/watch all BUILD SUCCEEDED, go vet + server tests pass, web verified in-browser. Widget gallery entries renamed off the old app name to "Ramp Board" / "Ramps Open Now" (intent title "Ramp Widget") — Don to veto if unwanted. Apple changes need a flight to reach devices; sw CACHE_NAME v24→v25 and ?v=16→17 bumped for web. API: period-aware rough regime DEPLOYED 7f44672 and verified live — today's buoy 1.31 ft @ 13 s now reads `rough`, NS-141/110/118 "closure possible ~4–4:30pm", NS-106/DBS-075 "could close ~6:30pm" — the same sea state that read quiet yesterday. Review scorecards ~8/30; fallback if over-hedging = "disqualify calm" variant. API: grade-aware shift scans SHIPPED 3312421, prod force-retrained 13:38Z at Don's direction — calm raise 0.45, NS-141/118/110 open-yesterday raise 0.4; today's outlook flipped from "tide closure possible ~3:30pm" to "closes for the day ~6:30pm" on every NS/DBS ramp. First real test: tomorrow's scorecard for 2026-08-22. iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-23 10:10 (RELEASE: tvOS 1.1 (25) is APPROVED — surfaced by the closed-train rejection when flighting, Don to confirm in ASC. MARKETING_VERSION 1.1 → 1.2; both platforms flighted as 1.2 (28) with the rename. NAMING: one-name pass done — "Volusia Beach Info" is now the name on every surface (web title/wordmark/manifest/per-view titles, /county page, iOS + iPadOS + tvOS in-app wordmark, TRMNL template headers, README/REQUIREMENTS/CLAUDE.md). tvOS header band dropped the "Volusia County" subtitle at Don's direction — the wordmark stands alone and that space is reserved for something else. INFOPLIST_KEY_CFBundleDisplayName = "Beach Info" (Don's call — the full 18-char name truncates under the icon); verified in the built Info.plist. iOS/tvOS/watch all BUILD SUCCEEDED, go vet + server tests pass, web verified in-browser. Widget gallery entries renamed off the old app name to "Ramp Board" / "Ramps Open Now" (intent title "Ramp Widget") — Don to veto if unwanted. Apple changes need a flight to reach devices; sw CACHE_NAME v24→v25 and ?v=16→17 bumped for web. API: period-aware rough regime DEPLOYED 7f44672 and verified live — today's buoy 1.31 ft @ 13 s now reads `rough`, NS-141/110/118 "closure possible ~4–4:30pm", NS-106/DBS-075 "could close ~6:30pm" — the same sea state that read quiet yesterday. Review scorecards ~8/30; fallback if over-hedging = "disqualify calm" variant. API: grade-aware shift scans SHIPPED 3312421, prod force-retrained 13:38Z at Don's direction — calm raise 0.45, NS-141/118/110 open-yesterday raise 0.4; today's outlook flipped from "tide closure possible ~3:30pm" to "closes for the day ~6:30pm" on every NS/DBS ramp. First real test: tomorrow's scorecard for 2026-08-22. iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -231,7 +238,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 ---
 
 ## Top open items
-0. App Store — 1.0 (18) APPROVED. tvOS 1.1 (25) SUBMITTED 2026-08-21, waiting for review. iOS 1.1 (26) UPLOADED 2026-08-21 14:08 ET, not yet submitted — paste the iOS 1.1 section of docs/APP-STORE-LISTING.md and submit once ASC finishes processing.
+0. App Store — tvOS 1.1 (25) APPROVED (learned 2026-08-23 via the closed-train rejection; Don to confirm in ASC). iOS is still on 1.0 (18) approved — 1.1 was uploaded, never submitted. BOTH platforms flighted as 1.2 (28) on 2026-08-23 carrying the "Volusia Beach Info" rename. DON ACTION: submit 1.2 on both tracks. The listing copy in docs/APP-STORE-LISTING.md is drafted as "1.1" — retitle those sections to 1.2, and the What's New needs a line about the name change.
    Metadata as submitted is checked in at docs/APP-STORE-LISTING.md; /privacy and
    /support are live and verified. Screenshots done for iPhone 6.9", iPad 13", and
    Apple TV (3840x2160, design/app-store-screenshots/appletv/). If review comes back
