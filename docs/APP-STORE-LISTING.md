@@ -271,22 +271,25 @@ app is public on iPhone yet. (The 8/21 "1.0 is approved" reading was tvOS-only;
 pre-release trains are per-platform and the rejection that revealed it was a tvOS
 upload.) 1.0 (18) has been in the initial-review queue since 8/18.
 
-That creates a fork, because an ASC version record numbered 1.0 can only carry a
+That created a fork, because an ASC version record numbered 1.0 can only carry a
 build whose `CFBundleShortVersionString` is 1.0 — build 18. **Builds 26, 27, and 28
-cannot attach to the pending 1.0 submission.** So either:
+cannot attach to the pending 1.0 submission.**
 
-- **Leave 1.0 in the queue.** Keeps a five-day-old place in a badly backed-up
-  initial-review line, but the first public iOS release is build 18: the pre-parity
-  design, the old "Beach Ramp Status" wordmark, no weekend outlook, no surf line.
-  The gallery must then keep the *old* screenshots, which match build 18.
-- **Pull 1.0 from review, renumber the version to 1.2, attach build 28, resubmit.**
-  First impression is the current app with the right name, and the new screenshots
-  fit — at the cost of going to the back of the initial-review queue.
+**DECIDED 2026-08-23 (Don): leave 1.0 in the queue.** Reasoning — every submission
+while the app has never been approved is an *initial* review, the slow kind already
+five days deep. Getting any version approved converts the next one into an *update*
+review, which is typically much faster. Pulling would throw away five days of that
+tax and re-buy it at the same price. The cost accepted: for a window, the public iOS
+app is build 18 — pre-parity design, the old "Beach Ramp Status" wordmark, no
+weekend outlook, no surf line — on a brand-new listing almost nobody is downloading
+yet.
 
-The What's New below is written for the second path. It carries *everything* since
-1.0, because 1.1 was never submitted — the 1.1 draft plus two lines, not a rename
-note on its own. If you take the first path instead, this section waits until 1.0
-clears and then ships immediately after.
+**So do nothing to the iOS 1.0 submission.** In particular, do not touch its
+gallery: the screenshots already uploaded to it (captured 8/15) match build 18,
+which is what it ships. Submit this 1.2 section the moment 1.0 clears review.
+
+The What's New below carries *everything* since 1.0, because 1.1 was never submitted
+— the 1.1 draft plus two lines, not a rename note on its own.
 
 Also folded in: the closure outlook got materially better between 8/21 and 8/23
 (persistence prior, grade-aware shift scans, period-aware wave regime). That work
@@ -355,11 +358,11 @@ Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under tv
 They show the "Volusia Beach Info" wordmark, and the iPad set also drops the
 Favorites button that was pulled on 8/21 — the old set still had it.
 
-**If you take the "leave iOS 1.0 in the queue" path above, do NOT upload the new
-iPhone/iPad shots to that version.** They show build 28; the 1.0 submission ships
-build 18, and the matching pre-rename set is in git at `ff145fc`
+**These are for the 1.2 submissions, not for the pending iOS 1.0.** iOS 1.0 ships
+build 18 and its ASC gallery already holds the matching 8/15 shots — leave them
+alone. If you ever need that pre-rename set from the repo, it is in git at `ff145fc`
 (`git show ff145fc:design/app-store-screenshots/iphone-6.9/01-board-day.png`).
-The Apple TV set is unaffected — tvOS submits 1.2 with build 28 either way.
+The Apple TV set is current and correct for the tvOS 1.2 submission.
 
 ---
 
