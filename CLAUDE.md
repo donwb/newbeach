@@ -148,6 +148,14 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `possible` band downward but **never promotes to `likely`** (only tide evidence
   promises); nil anywhere — no data, unlearned params, kill switch — reproduces the
   tide-only engine exactly. `PREDICT_WAVES_ENABLED=false` is the serve-side kill switch.
+  **Period-aware since 2026-08-23:** a dominant period ≥ 10 s (`longPeriodS`, `wave.go`)
+  counts as rough whatever the height — 2026-08-22 was the case study (1.3 ft all day,
+  period 4 s → 14 s at 10am, four NS ramps closed under a height-only "calm" read).
+  Serve path, scorecard, and the weekend marine forecast (`MaxPeriodSBetween`) all use
+  `waveShiftFor`; the `surf.regime` echo says `rough` for it. Backtest: +6 closure days
+  caught, −20 quiet days, monotonic across 9–12 s. **Fallback plan (Don):** if a week of
+  scorecards shows over-hedging, the next variant to try is "long period only
+  *disqualifies* calm" (shift 0, measured +3 / −7) — not a rollback to height-only.
   The outlook echoes what it saw in a `surf` block (height, period, regime); the
   scorecard annotates every graded peak with the nearest observation.
 - **`wave_observations` is the canonical wave series** (buoy-timestamped, unique per

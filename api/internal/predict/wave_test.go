@@ -140,6 +140,20 @@ func TestTrainWaveParams(t *testing.T) {
 	})
 }
 
+func TestWaveShiftFor(t *testing.T) {
+	p := Params{Waves: &WaveParams{CalmMaxFt: 1.5, RoughMinFt: 3.0, CalmRaiseFt: 0.4, RoughDropFt: 0.5}}
+	ft := func(v float64) *float64 { return &v }
+	assert.Equal(t, 0.4, p.waveShiftFor(ft(1.0), nil), "height-only calm")
+	assert.Equal(t, 0.4, p.waveShiftFor(ft(1.0), ft(9.9)), "just under the long-period line stays calm")
+	assert.Equal(t, -0.5, p.waveShiftFor(ft(1.0), ft(10)), "long period is rough at any height")
+	assert.Equal(t, 0.0, p.waveShiftFor(ft(2.0), ft(6)), "neutral height, short period")
+	assert.Equal(t, -0.5, p.waveShiftFor(ft(2.0), ft(13)), "neutral height, long period → rough")
+	assert.Equal(t, 0.0, Params{}.waveShiftFor(ft(1.0), ft(14)), "untrained waves ignore period too")
+	assert.Equal(t, "rough", p.waveRegime(1.0, ft(14)))
+	assert.Equal(t, "calm", p.waveRegime(1.0, ft(4)))
+	assert.Equal(t, "neutral", p.waveRegime(2.0, nil))
+}
+
 func TestBuildOutlookWaveHandling(t *testing.T) {
 	// afternoonScenario: 3.4 ft peak at 3:30 PM ET. NS-106 (threshold 3.25,
 	// close rate 0.26) reads it "possible" tide-only; a calm raise of 0.6
@@ -172,6 +186,21 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 		risks := riskByID(out)
 		assert.Equal(t, RiskLikely, risks["NS-141"], "decisive peaks ignore the buoy")
 		assert.Equal(t, RiskScheduled, risks["NS-106"], "flat ocean silences the marginal call")
+	})
+
+	t.Run("long period is rough whatever the height", func(t *testing.T) {
+		// 2026-08-22: 1.3 ft all day, but the period jumped 4 s → 14 s at
+		// 10am and four NS ramps closed — a groundswell is swell energy.
+		period := 14.0
+		swell := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 1.2, DominantPeriodS: &period}
+		out := BuildOutlook(now, ramps, params, preds, swell, nil)
+		require.NotNil(t, out.Surf)
+		assert.Equal(t, "rough", out.Surf.Regime)
+		assert.Equal(t, RiskPossible, riskByID(out)["NS-106"], "no calm relief under a groundswell; the drop hedges")
+
+		short := 4.0
+		chop := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 1.2, DominantPeriodS: &short}
+		assert.Equal(t, "calm", BuildOutlook(now, ramps, params, preds, chop, nil).Surf.Regime, "short-period chop at the same height is still calm")
 	})
 
 	t.Run("rough observation keeps the marginal call flagged", func(t *testing.T) {

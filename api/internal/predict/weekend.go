@@ -235,11 +235,11 @@ func (f *dayFacts) basis() []string {
 // raise (which relaxes closure calls) only applies near-term and comfortably
 // inside the calm regime, because a forecast must never promise openness it
 // can't back. The rough drop (which hedges toward "possible") always applies.
-func forecastDayShift(params Params, heightFt *float64, daysOut int) float64 {
+func forecastDayShift(params Params, heightFt, periodS *float64, daysOut int) float64 {
 	if heightFt == nil || params.Waves == nil {
 		return 0
 	}
-	shift := params.waveShift(heightFt)
+	shift := params.waveShiftFor(heightFt, periodS)
 	if shift > 0 && (daysOut > 3 || *heightFt > params.Waves.CalmMaxFt-0.3) {
 		return 0
 	}
@@ -275,7 +275,7 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 		if h := marine.MaxHeightFtBetween(opens.UTC(), closes.UTC()); h != nil {
 			facts.hasMarine = true
 			facts.marineMaxFt = h
-			dayShift = forecastDayShift(params, h, daysOut)
+			dayShift = forecastDayShift(params, h, marine.MaxPeriodSBetween(opens.UTC(), closes.UTC()), daysOut)
 		}
 	}
 

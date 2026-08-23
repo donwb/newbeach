@@ -125,7 +125,9 @@ type TideContext struct {
 // SurfContext is the sea state the outlook was computed under — present only
 // when a fresh buoy observation informed the risk calls, so an operator can
 // always see what the model saw. Regime names which learned wave regime
-// applied (calm/neutral/rough), empty when no wave params are trained yet.
+// applied (calm/neutral/rough — rough also when the dominant period is at or
+// above longPeriodS, whatever the height), empty when no wave params are
+// trained yet.
 type SurfContext struct {
 	WaveHeightFt    float64   `json:"wave_height_ft"`
 	DominantPeriodS *float64  `json:"dominant_period_s,omitempty"`
@@ -439,21 +441,12 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			age = -age
 		}
 		if age <= maxWaveAge {
-			waveShiftFt = params.waveShift(&wave.HeightFt)
+			waveShiftFt = params.waveShiftFor(&wave.HeightFt, wave.DominantPeriodS)
 			surf := SurfContext{
 				WaveHeightFt:    wave.HeightFt,
 				DominantPeriodS: wave.DominantPeriodS,
 				ObservedAt:      wave.Time,
-			}
-			if w := params.Waves; w != nil {
-				switch {
-				case wave.HeightFt <= w.CalmMaxFt:
-					surf.Regime = "calm"
-				case wave.HeightFt >= w.RoughMinFt:
-					surf.Regime = "rough"
-				default:
-					surf.Regime = "neutral"
-				}
+				Regime:          params.waveRegime(wave.HeightFt, wave.DominantPeriodS),
 			}
 			out.Surf = &surf
 		}

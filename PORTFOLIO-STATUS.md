@@ -43,7 +43,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-08-22 09:45 (API: grade-aware shift scans SHIPPED 3312421, prod force-retrained 13:38Z at Don's direction — calm raise 0.45, NS-141/118/110 open-yesterday raise 0.4; today's outlook flipped from "tide closure possible ~3:30pm" to "closes for the day ~6:30pm" on every NS/DBS ramp. First real test: tomorrow's scorecard for 2026-08-22. iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
+last_verified: 2026-08-23 10:30 (API: period-aware rough regime shipped — 8/22 was a morning miss (groundswell arrived at the same buoy height); long period ≥10 s now counts as rough; fallback if over-hedging after a week = "disqualify calm" variant. API: grade-aware shift scans SHIPPED 3312421, prod force-retrained 13:38Z at Don's direction — calm raise 0.45, NS-141/118/110 open-yesterday raise 0.4; today's outlook flipped from "tide closure possible ~3:30pm" to "closes for the day ~6:30pm" on every NS/DBS ramp. First real test: tomorrow's scorecard for 2026-08-22. iOS/iPadOS 1.1 (26) UPLOADED to TestFlight at Don's direction — ASC processing; the iOS 1.1 listing draft (What's New + redrafted description) is in docs/APP-STORE-LISTING.md, ready to paste once the build appears; Don action: submit the iOS 1.1 version in ASC. Web: server city verdict + overnight override deployed; city headline bug fixed server-side; favorites pulled from web, iOS keeps "Pin to widget" only. tvOS 1.1 (25) SUBMITTED for review — see app_review_state. Physical-remote pass on build 24 found one bug: Don
   loved the layout but could not focus the ramp list — Watching and Beach outlook
   focused fine. Cause: after the turtle-season close the ledger swapped the ramp
   list for an "Overnight · All cities" roll-up that was built non-focusable, so
@@ -371,6 +371,15 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-08-23 (latest): Period-aware wave regime. 8/22 post-mortem: the quiet morning call
+  was right on the height the buoy reported (1.3 ft "calm" until 3:56pm) but the dominant
+  period jumped 4 s → 14 s at 10am — a groundswell — and four NS ramps closed at 3:30pm.
+  Scorecard graded them covered with the afternoon height, so the engine was blind to
+  period, not overfit. Fixture evidence: long-period peaks close 63% vs 50% (Daytona 85%
+  vs 53%). Shipped: period ≥ 10 s counts as rough at any height (serve, scorecard,
+  weekend marine). Backtest +6 closure days / −20 quiet days, smooth 9–12 s. **Decision
+  (Don): review after a week of scorecards; if over-hedging, try "long period only
+  disqualifies calm" (+3 / −7) next.**
 - 2026-08-22 (latest, shipped 3312421 + prod force-retrain 13:38Z): Shift scans made grade-aware. Don noticed NS ramps
   still "possible ~3:30" on a calm day after open days; root cause: the wave/persistence
   scans scored a binary closed/open cut, so demoting likely→possible counted as a miss and

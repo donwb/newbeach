@@ -213,12 +213,13 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		for i, peak := range dayPeaks {
 			// Grade with the same wave shift the live model would have used
 			// at this peak — grading and serving stay one decision surface.
-			var waveFt *float64
+			var waveFt, periodS *float64
 			w := waveNearTime(waves, peak.Time)
 			if w != nil {
 				waveFt = &w.HeightFt
+				periodS = w.DominantPeriodS
 			}
-			risk := riskForPeak(*peak.Height, clampTotalShift(params.waveShift(waveFt)+persist), rp, params.hardOpen(), params.hardClose())
+			risk := riskForPeak(*peak.Height, clampTotalShift(params.waveShiftFor(waveFt, periodS)+persist), rp, params.hardOpen(), params.hardClose())
 			closed := labels[i]
 			pg := PeakGrade{
 				PeakTime:  peak.Time,

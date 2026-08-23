@@ -62,6 +62,22 @@ func (m *MarineForecast) MaxHeightFtBetween(start, end time.Time) *float64 {
 	return max
 }
 
+// MaxPeriodSBetween returns the maximum forecast dominant wave period
+// overlapping [start, end), or nil if no period block overlaps.
+func (m *MarineForecast) MaxPeriodSBetween(start, end time.Time) *float64 {
+	var max *float64
+	for _, b := range m.Blocks {
+		if b.PeriodS == nil || !b.Start.Before(end) || !b.End.After(start) {
+			continue
+		}
+		if max == nil || *b.PeriodS > *max {
+			v := *b.PeriodS
+			max = &v
+		}
+	}
+	return max
+}
+
 // --- Unit conversion helpers ---
 //
 // Deliberately duplicated from the weather package (three one-liners) rather

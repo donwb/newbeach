@@ -335,16 +335,19 @@ func TestForecastDayShiftGuards(t *testing.T) {
 	params.Waves = &WaveParams{CalmMaxFt: 1.5, RoughMinFt: 3.0, CalmRaiseFt: 0.4, RoughDropFt: 0.5}
 	ft := func(v float64) *float64 { return &v }
 
-	assert.Equal(t, 0.0, forecastDayShift(params, nil, 1), "nil height")
-	assert.Equal(t, 0.0, forecastDayShift(weekendTestParams(), ft(1.0), 1), "untrained waves")
+	assert.Equal(t, 0.0, forecastDayShift(params, nil, nil, 1), "nil height")
+	assert.Equal(t, 0.0, forecastDayShift(weekendTestParams(), ft(1.0), nil, 1), "untrained waves")
 
 	// Rough drop (hedging) always applies.
-	assert.Equal(t, -0.5, forecastDayShift(params, ft(4.0), 5))
+	assert.Equal(t, -0.5, forecastDayShift(params, ft(4.0), nil, 5))
+
+	// A long-period forecast is rough whatever the height — the hedge applies.
+	assert.Equal(t, -0.5, forecastDayShift(params, ft(1.0), ft(12), 2), "groundswell over flat height hedges")
 
 	// Calm raise (relaxing) only near-term and comfortably calm.
-	assert.Equal(t, 0.4, forecastDayShift(params, ft(1.0), 2))
-	assert.Equal(t, 0.0, forecastDayShift(params, ft(1.0), 4), "no calm relief past 3 days out")
-	assert.Equal(t, 0.0, forecastDayShift(params, ft(1.3), 2), "not comfortably inside the calm regime")
+	assert.Equal(t, 0.4, forecastDayShift(params, ft(1.0), nil, 2))
+	assert.Equal(t, 0.0, forecastDayShift(params, ft(1.0), nil, 4), "no calm relief past 3 days out")
+	assert.Equal(t, 0.0, forecastDayShift(params, ft(1.3), nil, 2), "not comfortably inside the calm regime")
 }
 
 // TestWeekendCopyRules sweeps every scenario's strings for voice violations:
