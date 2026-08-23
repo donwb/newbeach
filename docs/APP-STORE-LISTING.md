@@ -265,11 +265,28 @@ Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
 
 ## Version metadata — iOS / iPadOS 1.2 (build 28, drafted 2026-08-23)
 
-**This is the one to submit on the iOS track.** Read the delta carefully: iOS is
-still live on **1.0 (18)**. The 1.1 parity build was uploaded twice (26 on 8/21,
-27 on 8/23) and never submitted, so from a customer's point of view 1.2 carries
-*everything* since 1.0 — the whole parity pass **and** the rename. That is why the
-What's New below is the 1.1 draft plus two lines, not a rename note on its own.
+**Read this before pasting anything on the iOS track.** ASC on 2026-08-23 shows
+**"iOS 1.0 Waiting for Review"** — iOS has never been approved and nothing of this
+app is public on iPhone yet. (The 8/21 "1.0 is approved" reading was tvOS-only;
+pre-release trains are per-platform and the rejection that revealed it was a tvOS
+upload.) 1.0 (18) has been in the initial-review queue since 8/18.
+
+That creates a fork, because an ASC version record numbered 1.0 can only carry a
+build whose `CFBundleShortVersionString` is 1.0 — build 18. **Builds 26, 27, and 28
+cannot attach to the pending 1.0 submission.** So either:
+
+- **Leave 1.0 in the queue.** Keeps a five-day-old place in a badly backed-up
+  initial-review line, but the first public iOS release is build 18: the pre-parity
+  design, the old "Beach Ramp Status" wordmark, no weekend outlook, no surf line.
+  The gallery must then keep the *old* screenshots, which match build 18.
+- **Pull 1.0 from review, renumber the version to 1.2, attach build 28, resubmit.**
+  First impression is the current app with the right name, and the new screenshots
+  fit — at the cost of going to the back of the initial-review queue.
+
+The What's New below is written for the second path. It carries *everything* since
+1.0, because 1.1 was never submitted — the 1.1 draft plus two lines, not a rename
+note on its own. If you take the first path instead, this section waits until 1.0
+clears and then ships immediately after.
 
 Also folded in: the closure outlook got materially better between 8/21 and 8/23
 (persistence prior, grade-aware shift scans, period-aware wave regime). That work
@@ -327,19 +344,22 @@ Ramp status still comes straight from the county's feed, refreshed every minute.
 Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under tvOS
 1.1). Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
 
-### Screenshots — CHECK BEFORE SUBMITTING
+### Screenshots
 
-Every checked-in screenshot set predates the rename, so the header in them reads
-"Beach Ramp Status · Volusia County" while the app now reads "Volusia Beach Info".
-That is a visible mismatch between the gallery and the binary on both tracks:
+**Recaptured 2026-08-23** from the renamed build, all eight verified by eye:
 
-- `design/app-store-screenshots/appletv/` — captured 2026-08-21 from build 25.
-- iPhone 6.9" and iPad 13" sets — older still.
+- `iphone-6.9/` — 01 day, 02 golden, 03 dawn (1320×2868)
+- `ipad-13/` — 01 wide, 02 portrait (2752×2064 / 2064×2752)
+- `appletv/` — 01 board, 02 outlook, 03 ramp detail (3840×2160)
 
-Apple does not reliably reject for this, but a reviewer comparing the two will see
-a different name on the screen than on the listing, and name proximity to the
-county's app is already the flagged risk for this listing (guideline 4.1/2.3.8).
-Recapturing is `apple/scripts/screenshots.sh` (`tv` platform for Apple TV).
+They show the "Volusia Beach Info" wordmark, and the iPad set also drops the
+Favorites button that was pulled on 8/21 — the old set still had it.
+
+**If you take the "leave iOS 1.0 in the queue" path above, do NOT upload the new
+iPhone/iPad shots to that version.** They show build 28; the 1.0 submission ships
+build 18, and the matching pre-rename set is in git at `ff145fc`
+(`git show ff145fc:design/app-store-screenshots/iphone-6.9/01-board-day.png`).
+The Apple TV set is unaffected — tvOS submits 1.2 with build 28 either way.
 
 ---
 

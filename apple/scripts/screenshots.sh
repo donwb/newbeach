@@ -147,6 +147,27 @@ shoot_iphone() {
 # iPad because the target supports multitasking, and simctl has no rotate
 # command. Assumes the device starts portrait; every rotate Left is paired
 # with a rotate Right below so runs stay idempotent.
+#
+# The menu click matches a *window title prefix* while the capture targets a
+# *udid*, so those two can address different devices. That is not theoretical:
+# on 2026-08-23 two iPad sims were booted, the click rotated the stale one, the
+# target never turned, and the w<h counter-rotation below then produced a
+# correctly-sized 2752x2064 file with its content lying on its side — a bad
+# screenshot that no dimension check catches. assert_one_ipad_booted is what
+# keeps the title and the udid pointing at the same machine.
+assert_one_ipad_booted() {
+  local n
+  n=$(xcrun simctl list devices booted | grep -c "^ *$IPAD_SIM (" || true)
+  if [ "$n" -ne 1 ]; then
+    echo "error: $n booted sims named '$IPAD_SIM' (need exactly 1)." >&2
+    echo "       The rotate step clicks a Simulator window by title but captures" >&2
+    echo "       by udid; with duplicates it silently shoots a sideways board." >&2
+    echo "       Shut the extras down:  xcrun simctl shutdown <udid>" >&2
+    xcrun simctl list devices booted | grep "$IPAD_SIM" >&2 || true
+    exit 1
+  fi
+}
+
 front_ipad_window() {
   osascript >/dev/null <<EOF
 tell application "Simulator" to activate
@@ -176,6 +197,7 @@ shoot_ipad() {
   # The screenshot buffer stays portrait with rotated content, so
   # counter-rotate to land the store-size 2752×2064.
   open -ga Simulator; sleep 2
+  assert_one_ipad_booted
   front_ipad_window
   rotate_device Left
   sleep 5
