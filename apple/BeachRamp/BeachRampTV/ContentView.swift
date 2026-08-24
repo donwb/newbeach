@@ -34,6 +34,10 @@ struct ContentView: View {
     /// reset (surfaces close, focus clears, the ledger stays).
     @State private var lastRemoteActivity = Date()
     @State private var currentTime = ""
+    /// The board clock, refreshed by tick() — passed down wherever a view
+    /// draws "now" (the verdict tide wave), so the 30s tick actually
+    /// re-renders it. Honors --sky-minutes like the rest of the clock work.
+    @State private var boardNow = Date()
     @State private var sunAltitude: Double = 30
     @State private var sunRising = true
     @State private var timeTimer: Timer?
@@ -182,6 +186,7 @@ struct ContentView: View {
                     verdict: verdictModel,
                     flashToken: verdictFlashToken,
                     tideChart: viewModel.tideChart,
+                    now: boardNow,
                     city: viewModel.currentCity,
                     rows: rampRows,
                     topIndex: $rampTopIndex,
@@ -510,6 +515,7 @@ struct ContentView: View {
         let weekday = calendar.component(.weekday, from: now)
         formatter.dateFormat = (weekday == 1 || weekday == 7) ? "EEE h:mm a" : "h:mm a"
         currentTime = formatter.string(from: now)
+        boardNow = now
 
         withAnimation(.easeInOut(duration: 2.0)) {
             sunAltitude = solar.altitude(at: now)

@@ -169,7 +169,8 @@ struct RampDetailSurface: View {
                     strokeWidth: 3,
                     strokeColor: TVInk.type,
                     fillColor: TVInk.type.opacity(0.13),
-                    nowLineColor: TVInk.type
+                    nowLineColor: TVInk.type,
+                    now: now
                 )
                 .padding(.top, 8)
             } else {

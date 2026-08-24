@@ -18,12 +18,20 @@ public struct TideCurveShapeView: View {
     public var strokeColor: Color?
     public var fillColor: Color?
     public var nowLineColor: Color?
+    /// Where the now-line is drawn. A stored input on purpose: computing
+    /// Date() inside the draw closure froze the line on long-lived screens —
+    /// SwiftUI skips re-rendering when the view's stored inputs are all
+    /// equal, and a hidden clock read isn't an input. The default captures
+    /// Date() at construction, so the field changes every time a caller's
+    /// body runs; tickers (the tvOS board) pass their own clock explicitly.
+    public var now: Date
     @Environment(\.ground) private var ground
 
     public init(points: [TideCurve.Point], range: ClosedRange<Date>,
                 height: CGFloat, threshold: Double? = nil,
                 strokeWidth: CGFloat = 2, strokeColor: Color? = nil,
-                fillColor: Color? = nil, nowLineColor: Color? = nil) {
+                fillColor: Color? = nil, nowLineColor: Color? = nil,
+                now: Date = Date()) {
         self.points = points
         self.range = range
         self.height = height
@@ -32,6 +40,7 @@ public struct TideCurveShapeView: View {
         self.strokeColor = strokeColor
         self.fillColor = fillColor
         self.nowLineColor = nowLineColor
+        self.now = now
     }
 
     public var body: some View {
@@ -53,7 +62,7 @@ public struct TideCurveShapeView: View {
                 Rectangle()
                     .fill(nowLineColor ?? t.accent)
                     .frame(width: 2)
-                    .offset(x: x(for: Date(), in: size) - 1)
+                    .offset(x: x(for: now, in: size) - 1)
             }
         }
         .frame(height: height)

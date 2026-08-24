@@ -13,6 +13,11 @@ struct LedgerView: View {
     /// Today's tide, drawn small beside the verdict with a now-line. Nil
     /// (chart fetch failed) leaves the row all type, as before.
     let tideChart: TideChartData?
+    /// The board clock, ticked by ContentView every 30s. Drives the wave's
+    /// now-line and day window — it must be a stored input, not a Date()
+    /// read at draw time, or SwiftUI's render-skip freezes the line on a
+    /// screen that sits open all day.
+    let now: Date
 
     let city: String
     let rows: [TVRampRowModel]
@@ -85,7 +90,7 @@ struct LedgerView: View {
     }
 
     @ViewBuilder private var verdictTideWave: some View {
-        let range = Self.todayRange
+        let range = todayRange
         let points = tideChart.map { TideCurve.points(extremes: $0.highLow, in: range) } ?? []
         if points.isEmpty {
             Spacer(minLength: 0)
@@ -97,7 +102,8 @@ struct LedgerView: View {
                 strokeWidth: 3,
                 strokeColor: TVInk.type.opacity(0.8),
                 fillColor: TVInk.type.opacity(0.10),
-                nowLineColor: TVInk.sand
+                nowLineColor: TVInk.sand,
+                now: now
             )
             .frame(minWidth: 220, maxWidth: .infinity)
             .accessibilityIdentifier("verdictTideWave")
@@ -105,10 +111,10 @@ struct LedgerView: View {
     }
 
     /// Midnight to midnight, Eastern — the same day the detail surface draws.
-    private static var todayRange: ClosedRange<Date> {
+    private var todayRange: ClosedRange<Date> {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(identifier: "America/New_York")!
-        let start = cal.startOfDay(for: Date())
+        let start = cal.startOfDay(for: now)
         return start...cal.date(byAdding: .day, value: 1, to: start)!
     }
 
@@ -156,6 +162,7 @@ struct LedgerView: View {
         ),
         flashToken: 0,
         tideChart: PreviewFixtures.tideChart,
+        now: Date(),
         city: "New Smyrna Beach",
         rows: PreviewFixtures.nsbRows,
         topIndex: $top,
@@ -191,6 +198,7 @@ struct LedgerView: View {
         ),
         flashToken: 0,
         tideChart: PreviewFixtures.tideChart,
+        now: Date(),
         city: "Daytona Beach",
         rows: PreviewFixtures.daytonaRows,
         topIndex: $top,
@@ -226,6 +234,7 @@ struct LedgerView: View {
         ),
         flashToken: 0,
         tideChart: PreviewFixtures.tideChart,
+        now: Date(),
         city: "New Smyrna Beach",
         rows: PreviewFixtures.overnightRows,
         topIndex: $top,
