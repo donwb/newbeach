@@ -547,10 +547,14 @@ export function createBoardView(store) {
     updateOutlookSectionVisibility(s);
     const report = s.outlook?.surf_report;
     const line = report?.line || '';
-    if (prints.surfLine === line) return;
-    prints.surfLine = line;
+    const note = [
+      report?.height_label,
+      report?.rip_risk && `rip risk ${report.rip_risk.toLowerCase()}`,
+    ].filter(Boolean).join(' · ');
+    if (prints.surfLine === line + note) return;
+    prints.surfLine = line + note;
     $('#surf-line').textContent = line;
-    $('#surf-note').textContent = report?.height_label || '';
+    $('#surf-note').textContent = note;
   }
 
   function updateWeekend(s) {
