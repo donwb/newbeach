@@ -1,7 +1,6 @@
 package predict
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -167,8 +166,10 @@ func tideClause(out *Outlook) string {
 
 // BuildSurfReport composes the surf line. Pure; every input degrades: a nil
 // or stale (> maxWaveAge) wave drops the height read, nil conditions drop
-// wind phrasing, nil srf drops the rip risk. Returns nil when there is
-// nothing worth saying.
+// wind phrasing, nil srf drops the rip risk. The rip risk rides in the
+// RipRisk field for the clients' facts row, never in the prose — except when
+// there is no wave read at all, where an elevated official call is the only
+// thing worth a line. Returns nil when there is nothing worth saying.
 func BuildSurfReport(now time.Time, out *Outlook, wave *models.WaveSample, cond *weather.Conditions, srf *weather.SurfZone) *SurfReport {
 	// A stale buoy read is no read.
 	if wave != nil {
@@ -213,10 +214,6 @@ func BuildSurfReport(now time.Time, out *Outlook, wave *models.WaveSample, cond 
 	if quality == SurfCleanSmall || quality == SurfGood || quality == SurfFiring {
 		line += tideClause(out)
 	}
-	if ripElevated {
-		line += fmt.Sprintf(" · rip current risk is %s today", strings.ToLower(rip))
-	}
-
 	obs := wave.Time
 	return &SurfReport{
 		Line:        line,

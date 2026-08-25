@@ -122,12 +122,12 @@ func TestBuildSurfReportDegradation(t *testing.T) {
 	now := time.Date(2026, 8, 22, 9, 0, 0, 0, eastern)
 	out := surfOutlook()
 
-	t.Run("everything present", func(t *testing.T) {
+	t.Run("elevated rip rides the field, not the prose", func(t *testing.T) {
 		srf := &weather.SurfZone{RipCurrentRisk: "High"}
 		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
 		require.NotNil(t, sr)
 		assert.Equal(t, "High", sr.RipRisk)
-		assert.Contains(t, sr.Line, "rip current risk is high")
+		assert.NotContains(t, strings.ToLower(sr.Line), "rip")
 	})
 
 	t.Run("low rip stays out of the prose", func(t *testing.T) {
