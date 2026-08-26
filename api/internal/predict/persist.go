@@ -47,11 +47,14 @@ type YesterdayContext struct {
 // before `date`. historyByRamp must be ascending per ramp and should cover
 // yesterday — a ramp whose first event is after yesterday's end is unknown.
 // preds are any hilo predictions covering yesterday. hardOpenFt is the
-// no-evidence floor (params.hardOpen()).
-func priorDayFacts(date time.Time, historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, hardOpenFt float64) map[string]PriorDay {
+// no-evidence floor (params.hardOpen()). excludedDays (ParseExcludedDays;
+// nil is fine) joins the staleness heuristics: a stale yesterday is unknown,
+// never evidence of "stayed open".
+func priorDayFacts(date time.Time, historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, hardOpenFt float64, excludedDays map[string]bool) map[string]PriorDay {
 	et := date.In(eastern)
 	dayStart := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern).AddDate(0, 0, -1)
 	dayEnd := dayStart.AddDate(0, 0, 1)
+	excl := findExclusions(historyByRamp, date, excludedDays)
 
 	var yPeaks []models.TidePrediction
 	maxPeak := 0.0
@@ -67,7 +70,7 @@ func priorDayFacts(date time.Time, historyByRamp map[string][]models.StatusEvent
 	out := make(map[string]PriorDay, len(historyByRamp))
 	for id, events := range historyByRamp {
 		pd := PriorDay{MaxPeakFt: maxPeak}
-		if len(yPeaks) == 0 || len(events) == 0 || !events[0].RecordedAt.Before(dayEnd) || maxPeak <= hardOpenFt {
+		if len(yPeaks) == 0 || len(events) == 0 || !events[0].RecordedAt.Before(dayEnd) || maxPeak <= hardOpenFt || excl.excluded(id, dayStart) {
 			out[id] = pd
 			continue
 		}

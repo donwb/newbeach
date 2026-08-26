@@ -124,6 +124,20 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   genuinely theirs; **every string names the reason** (tide / end of day / overnight) so a
   reader is never told "closure possible" with no cause. The `short` field is the compact
   board-card hint.
+- **Stale county data is quarantined from labeling (2026-08-26, params v6).** The county
+  sometimes forgets to flip the board (8/26: eight ramps stood in the overnight
+  "CLOSED - CLEARED FOR TURTLES" past noon, through a real 2.2 ft peak). `predict/stale.go`:
+  a blocking status still standing **2 hours past the posted open** marks that ramp's ET day
+  stale — the overnight turtle status that never flipped, and day 2+ of a
+  "CLOSED FOR HIGH TIDE" episode spanning past the next open (which also bounds
+  `labelPeaks`' otherwise unbounded `during` clause). The 2h grace is deliberate: real
+  history has routine ~9:45am late opens that must not be quarantined. Stale days drop out
+  of peak labeling everywhere — training pools, the persistence prior (`Known=false`,
+  never "stayed open"), and the scorecard, which grades them `stale` (own summary counter,
+  outside `graded` and the rates). Note the exact-string tide match means a stuck turtle
+  day never created a false *closure* — the quarantine removes false *open* evidence.
+  Manual backstop: `prediction_excluded_days` settings key (JSON array of ET dates,
+  county-wide) via `POST /api/v2/admin/settings` — for clerical days the heuristic misses.
 - **The voice layer (`predict/voice.go`, 2026-08-21) rotates only the quiet lines** — the
   surf read and an all-open city verdict — through small pools of local-lingo phrases
   (the Inlet, the break, the lineup, groms, Beachway, NSB's sharks). The pick is seeded by

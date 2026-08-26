@@ -111,8 +111,10 @@ func main() {
 	}
 	waves = deduped
 
-	params := predict.Train(history, preds, waves, time.Now())
-	sc := predict.BuildScorecard(date, history, closureHeights, params, preds, waves)
+	// nil manual exclusions: this harness has no settings access, but the
+	// automatic staleness heuristics still run inside Train/BuildScorecard.
+	params := predict.Train(history, preds, waves, time.Now(), nil)
+	sc := predict.BuildScorecard(date, history, closureHeights, params, preds, waves, nil)
 	out, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {
 		fail("marshaling: %v", err)

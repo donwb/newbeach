@@ -84,7 +84,7 @@ func TestTrainLearnsHardCutoffs(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		peaks = append(peaks, h(et(1+i%28, 13, 0).Add(time.Duration(i)*time.Minute), 1.0+float64(i)*0.05))
 	}
-	params := Train(map[string][]models.StatusEvent{}, peaks, nil, et(28, 0, 0))
+	params := Train(map[string][]models.StatusEvent{}, peaks, nil, et(28, 0, 0), nil)
 	assert.InDelta(t, 1.1, params.HardOpenFt, 0.11)
 	assert.InDelta(t, 3.35, params.HardCloseFt, 0.11)
 }
@@ -376,7 +376,7 @@ func TestDayCloseOffsetIsLearned(t *testing.T) {
 			models.StatusEvent{AccessStatus: "OPEN", RecordedAt: et(d, 8, 0)},
 			models.StatusEvent{AccessStatus: "CLOSED", RecordedAt: et(d, 18, 30)})
 	}
-	params := Train(history, nil, nil, et(20, 0, 0))
+	params := Train(history, nil, nil, et(20, 0, 0), nil)
 	assert.Equal(t, -30, params.DayCloseOffsetMin)
 
 	// And the schedule honors it: the posted 7pm becomes a predicted 6:30pm.

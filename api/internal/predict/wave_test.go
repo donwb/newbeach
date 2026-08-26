@@ -240,7 +240,7 @@ func TestScorecardCarriesWaveContext(t *testing.T) {
 		{Time: et(16, 8, 0), HeightFt: 2.4},
 	}
 
-	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), waves)
+	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), waves, nil)
 
 	require.Len(t, sc.Ramps, 1)
 	require.Len(t, sc.Ramps[0].Peaks, 1)

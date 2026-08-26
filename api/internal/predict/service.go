@@ -70,7 +70,13 @@ func loadPriorDay(ctx context.Context, pool *pgxpool.Pool, now time.Time, preds 
 		slog.Warn(label+": reading yesterday's history, serving memoryless", "err", err)
 		return nil
 	}
-	return priorDayFacts(now, events, preds, params.hardOpen())
+	var excludedDays map[string]bool
+	if raw, err := database.GetSetting(ctx, pool, ExcludedDaysKey); err != nil {
+		slog.Warn(label+": reading excluded days, ignoring", "err", err)
+	} else {
+		excludedDays = ParseExcludedDays(raw)
+	}
+	return priorDayFacts(now, events, preds, params.hardOpen(), excludedDays)
 }
 
 // SetWeatherClient hands the service the NWS client used for surf-report

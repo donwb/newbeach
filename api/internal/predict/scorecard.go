@@ -18,6 +18,7 @@ const (
 	OutcomeFalseAlarm = "false_alarm" // predicted likely, ramp stayed open
 	OutcomeHedged     = "hedged"      // predicted possible, ramp stayed open
 	OutcomeQuiet      = "quiet"       // predicted none, ramp stayed open
+	OutcomeStale      = "stale"       // county status data stale that day — no tide call knowable; shown, never graded
 )
 
 // PeakGrade grades one ramp against one daytime tide peak.
@@ -63,6 +64,9 @@ type ScorecardSummary struct {
 	FalseAlarms int `json:"false_alarms"`
 	Hedged      int `json:"hedged"`
 	Quiet       int `json:"quiet"`
+	// Stale counts (ramp, peak) pairs on quarantined stale-data days —
+	// excluded from Graded and every rate below.
+	Stale int `json:"stale"`
 
 	// Recall: of the peaks that actually closed a ramp, how many the model
 	// flagged (likely or possible). Precision: of the "likely" calls, how many
@@ -143,12 +147,15 @@ func matchClosure(peak models.TidePrediction, closures []closureEvent) *closureE
 // operator-set ramp_metadata overrides keyed by access_id, so grading uses
 // the same effective threshold the live outlook would. waves is the buoy
 // series covering the day (any order; nil is fine) — it annotates each grade
-// with the sea state nearest the peak. Pure — no I/O.
-func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEvent, closureHeights map[string]*float64, params Params, preds []models.TidePrediction, waves []models.WaveSample) Scorecard {
+// with the sea state nearest the peak. excludedDays (ParseExcludedDays; nil
+// is fine) joins the staleness heuristics: a quarantined day's peaks grade
+// "stale" and stay out of the accuracy summary. Pure — no I/O.
+func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEvent, closureHeights map[string]*float64, params Params, preds []models.TidePrediction, waves []models.WaveSample, excludedDays map[string]bool) Scorecard {
 	sortWaveSamples(waves)
 	et := date.In(eastern)
 	dayStart := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern)
 	dayEnd := dayStart.AddDate(0, 0, 1)
+	excl := findExclusions(historyByRamp, dayEnd, excludedDays)
 
 	// The day's schedule, framed from early morning so buildSchedule never
 	// rolls to the next day.
@@ -177,7 +184,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 
 	// The same prior the live model would have had that morning: yesterday
 	// from the full history, today never leaking in.
-	prior := priorDayFacts(dayStart.Add(5*time.Hour), historyByRamp, preds, params.hardOpen())
+	prior := priorDayFacts(dayStart.Add(5*time.Hour), historyByRamp, preds, params.hardOpen(), excludedDays)
 
 	accessIDs := make([]string, 0, len(historyByRamp))
 	for id := range historyByRamp {
@@ -195,6 +202,10 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		rp, learned := effectiveParams(accessID, closureHeights[accessID], params)
 		closures := closureEvents(events)
 		labels := labelPeaks(dayPeaks, closures)
+		// Exclusion is day-level, so one check covers the whole graded day:
+		// the risk each peak would have drawn still shows (transparency), but
+		// the outcome is "stale" and stays out of the summary.
+		staleDay := excl.excluded(accessID, dayStart)
 
 		pd := prior[accessID]
 		persist := params.persistShift(pd, rp)
@@ -235,6 +246,12 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 				pg.WaveHeightFt = &h
 				pg.DominantPeriodS = w.DominantPeriodS
 				pg.WaveObservedAt = &at
+			}
+			if staleDay {
+				pg.Outcome = OutcomeStale
+				sc.Summary.Stale++
+				rg.Peaks = append(rg.Peaks, pg)
+				continue
 			}
 
 			if closed && riskRank(risk) >= 1 {

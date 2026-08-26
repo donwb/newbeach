@@ -178,6 +178,14 @@ func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client,
 			slog.Warn("scorecard: loading wave observations", "err", err)
 		}
 
-		return c.JSON(http.StatusOK, predict.BuildScorecard(date, history, closureHeights, params, preds, waves))
+		// Manually quarantined days — best-effort, the heuristics run either way.
+		var excludedDays map[string]bool
+		if raw, err := database.GetSetting(ctx, pool, predict.ExcludedDaysKey); err != nil {
+			slog.Warn("scorecard: reading excluded days, ignoring", "err", err)
+		} else {
+			excludedDays = predict.ParseExcludedDays(raw)
+		}
+
+		return c.JSON(http.StatusOK, predict.BuildScorecard(date, history, closureHeights, params, preds, waves, excludedDays))
 	}
 }

@@ -107,7 +107,7 @@ func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []m
 	t.Helper()
 
 	trainedAt := time.Date(2026, 8, 16, 0, 0, 0, 0, eastern)
-	params := Train(history, hilo, waves, trainedAt)
+	params := Train(history, hilo, waves, trainedAt, nil)
 	require.NotEmpty(t, params.Ramps, "fixture ramps should all learn")
 
 	ramps := make([]models.RampStatusWithSince, 0, len(history))
@@ -137,7 +137,7 @@ func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []m
 		// dropped by priorDayFacts so the replay never peeks at its answer.
 		var prior map[string]PriorDay
 		if persistence {
-			prior = priorDayFacts(at, history, hilo, params.hardOpen())
+			prior = priorDayFacts(at, history, hilo, params.hardOpen(), nil)
 		}
 		out := BuildOutlook(at, ramps, params, hilo, waveNearTime(waves, at), prior)
 		date := day.Format("2006-01-02")

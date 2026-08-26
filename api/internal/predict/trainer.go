@@ -150,7 +150,14 @@ func (t *Trainer) train(ctx context.Context) {
 		}
 	}
 
-	params := Train(history, preds, waves, time.Now())
+	var excludedDays map[string]bool
+	if raw, err := database.GetSetting(ctx, t.pool, ExcludedDaysKey); err != nil {
+		t.logger.Warn("training: reading excluded days, ignoring", "err", err)
+	} else {
+		excludedDays = ParseExcludedDays(raw)
+	}
+
+	params := Train(history, preds, waves, time.Now(), excludedDays)
 
 	blob, err := json.Marshal(params)
 	if err != nil {

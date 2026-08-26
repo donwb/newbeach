@@ -527,10 +527,13 @@ func trainWaveParams(pooled []wavePeakSample) *WaveParams {
 
 // Train derives Params from full status-event history (per access_id,
 // ascending), hilo tide predictions covering the same span, and the buoy
-// wave series (any order; nil trains tide-only).
-func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, waves []models.WaveSample, now time.Time) Params {
+// wave series (any order; nil trains tide-only). excludedDays manually
+// quarantines whole ET dates (ParseExcludedDays; nil is fine) on top of the
+// automatic staleness heuristics.
+func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, waves []models.WaveSample, now time.Time, excludedDays map[string]bool) Params {
 	peaks := tidePeaks(preds)
 	sortWaveSamples(waves)
+	excl := findExclusions(historyByRamp, now, excludedDays)
 
 	params := Params{
 		Version:    paramsVersion,
@@ -572,10 +575,13 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 			continue
 		}
 
-		// Only peaks inside this ramp's observed history are labelable.
+		// Only peaks inside this ramp's observed history are labelable, and
+		// peaks on quarantined stale days carry no evidence at all — dropping
+		// them here cleanses every downstream pool (labels, threshold, close
+		// rate, wave regimes, persistence pairs) in one place.
 		var rampPeaks []models.TidePrediction
 		for _, p := range peaks {
-			if p.Time.After(events[0].RecordedAt) && p.Time.Before(now) {
+			if p.Time.After(events[0].RecordedAt) && p.Time.Before(now) && !excl.excluded(accessID, p.Time) {
 				rampPeaks = append(rampPeaks, p)
 			}
 		}

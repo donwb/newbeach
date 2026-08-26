@@ -76,7 +76,7 @@ func TestBuildScorecardGradesTheDay(t *testing.T) {
 		),
 	}
 
-	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), nil)
+	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), nil, nil)
 
 	assert.Equal(t, "2026-06-16", sc.Date)
 	assert.Equal(t, "turtle", sc.Season)
@@ -143,7 +143,7 @@ func TestBuildScorecardMissAndFalseAlarm(t *testing.T) {
 		),
 	}
 
-	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), preds, nil)
+	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), preds, nil, nil)
 
 	require.Len(t, sc.Ramps, 1)
 	require.Len(t, sc.Ramps[0].Peaks, 2)
@@ -164,7 +164,7 @@ func TestBuildScorecardMetadataOverride(t *testing.T) {
 	override := 4.2
 	heights := map[string]*float64{"NS-141": &override}
 
-	sc := BuildScorecard(et(16, 0, 0), history, heights, testParams(), scorecardPreds(), nil)
+	sc := BuildScorecard(et(16, 0, 0), history, heights, testParams(), scorecardPreds(), nil, nil)
 
 	require.Len(t, sc.Ramps, 1)
 	assert.Equal(t, 4.2, sc.Ramps[0].ThresholdFt)
@@ -178,7 +178,7 @@ func TestBuildScorecardNoPeaks(t *testing.T) {
 	preds := []models.TidePrediction{{Time: et(16, 9, 0), Type: "L", Height: &low}}
 	sc := BuildScorecard(et(16, 0, 0), map[string][]models.StatusEvent{
 		"NS-141": statusEvents(ev("OPEN", et(1, 8, 0))),
-	}, nil, testParams(), preds, nil)
+	}, nil, testParams(), preds, nil, nil)
 
 	assert.Empty(t, sc.Peaks)
 	assert.Empty(t, sc.Ramps)

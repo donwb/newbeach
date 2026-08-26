@@ -41,10 +41,11 @@ func TestPersistDayShiftIsHeightAnchored(t *testing.T) {
 }
 
 // Two days of history: yesterday (the 15th) and today (the 16th). preds
-// carry one daytime high each day.
+// carry a morning and afternoon high yesterday and one each side of today.
 func priorScenario() (time.Time, []models.TidePrediction) {
 	h := 3.0
 	preds := []models.TidePrediction{
+		{Time: et(15, 8, 30), Type: "H", Height: &h},
 		{Time: et(15, 14, 0), Type: "H", Height: &h},
 		{Time: et(16, 2, 0), Type: "H", Height: &h},
 		{Time: et(16, 15, 0), Type: "H", Height: &h},
@@ -66,8 +67,16 @@ func TestPriorDayFacts(t *testing.T) {
 			{AccessStatus: "OPEN", RecordedAt: et(1, 8, 0)},
 		},
 		// Baseline row before the window: already tide-closed at midnight
-		// (from the night before), still closed through yesterday's peak.
+		// (from the night before), still closed through yesterday's morning
+		// peak, reopened inside the staleness grace.
 		"baseline": {
+			{AccessStatus: tideClosedStatus, RecordedAt: et(14, 23, 0)},
+			{AccessStatus: "OPEN", RecordedAt: et(15, 9, 30)},
+		},
+		// Same shape but standing until mid-afternoon: past open + grace the
+		// heuristic reads it as the county forgetting to reopen — the day is
+		// quarantined, not evidence.
+		"stuck": {
 			{AccessStatus: tideClosedStatus, RecordedAt: et(14, 23, 0)},
 			{AccessStatus: "OPEN", RecordedAt: et(15, 16, 0)},
 		},
@@ -82,19 +91,25 @@ func TestPriorDayFacts(t *testing.T) {
 		},
 	}
 
-	facts := priorDayFacts(now, hist, preds, 2.0)
+	facts := priorDayFacts(now, hist, preds, 2.0, nil)
 	assert.Equal(t, PriorDay{Known: true, Closed: true, MaxPeakFt: 3.0}, facts["closer"])
 	assert.Equal(t, PriorDay{Known: true, Closed: false, MaxPeakFt: 3.0}, facts["rider"])
 	assert.Equal(t, PriorDay{Known: true, Closed: true, MaxPeakFt: 3.0}, facts["baseline"])
+	assert.Equal(t, PriorDay{MaxPeakFt: 3.0}, facts["stuck"], "a stale day is unknown, not evidence")
 	assert.Equal(t, PriorDay{Known: true, Closed: false, MaxPeakFt: 3.0}, facts["today"], "today's closure is not yesterday's")
 	assert.False(t, facts["newcomer"].Known)
 
 	t.Run("a peak under the hard-open cutoff is no evidence", func(t *testing.T) {
-		facts := priorDayFacts(now, hist, preds, 3.2)
+		facts := priorDayFacts(now, hist, preds, 3.2, nil)
 		assert.False(t, facts["rider"].Known)
 	})
 	t.Run("no daytime peak yesterday is no evidence", func(t *testing.T) {
-		facts := priorDayFacts(now, hist, preds[1:], 2.0)
+		facts := priorDayFacts(now, hist, preds[2:], 2.0, nil)
+		assert.False(t, facts["rider"].Known)
+	})
+	t.Run("a manually excluded yesterday is no evidence", func(t *testing.T) {
+		facts := priorDayFacts(now, hist, preds, 2.0, map[string]bool{"2026-06-15": true})
+		assert.False(t, facts["closer"].Known)
 		assert.False(t, facts["rider"].Known)
 	})
 }
@@ -180,7 +195,7 @@ func TestTrainPersistParams(t *testing.T) {
 func TestTrainLearnsPersistenceFromFixture(t *testing.T) {
 	history := loadHistoryFixture(t)
 	hilo := loadHiloFixture(t)
-	params := Train(history, hilo, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern))
+	params := Train(history, hilo, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern), nil)
 	require.NotNil(t, params.Persistence)
 	assert.Greater(t, params.Persistence.OpenRaiseFt, 0.0)
 	own := 0
@@ -196,8 +211,8 @@ func TestTrainLearnsPersistenceFromFixture(t *testing.T) {
 func TestScorecardGradesWithPrior(t *testing.T) {
 	history := loadHistoryFixture(t)
 	hilo := loadHiloFixture(t)
-	params := Train(history, hilo, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern))
-	sc := BuildScorecard(time.Date(2026, 7, 10, 0, 0, 0, 0, eastern), history, nil, params, hilo, nil)
+	params := Train(history, hilo, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern), nil)
+	sc := BuildScorecard(time.Date(2026, 7, 10, 0, 0, 0, 0, eastern), history, nil, params, hilo, nil, nil)
 	require.NotEmpty(t, sc.Ramps)
 	assert.NotNil(t, sc.Persistence)
 	seen := false

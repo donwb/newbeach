@@ -12,8 +12,8 @@ const SettingsKey = "prediction_params"
 // paramsVersion identifies the blob schema. A stored blob with a different
 // version is treated as stale, so bumping this forces a retrain on deploy.
 // v4 added the county-wide wave regime params (Waves); v5 the persistence
-// prior (Persistence).
-const paramsVersion = 5
+// prior (Persistence); v6 quarantines stale county-data days from labeling.
+const paramsVersion = 6
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {
