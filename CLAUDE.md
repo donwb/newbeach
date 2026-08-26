@@ -356,9 +356,22 @@ When working as part of an agent team on this project:
 - **Coordinate on shared types** — if you're defining Go structs or Swift models that others will use, message the team before finalizing the shape
 - **Test your work** — write tests as you go, don't leave them for later
 
-## Portfolio Status
+## Portfolio Control Tower
 
-**Portfolio status:** At the end of any session that changes status-relevant facts —
-version/build, App Review state, punch-list items, target dates, blockers — update
-`PORTFOLIO-STATUS.md` to match and bump its `last_verified` date. The portfolio control
-tower in `~/atc` reads this file; a stale one is worse than none.
+This repo is one of four in Don's portfolio, managed from a hub at `~/atc`. Two rules:
+
+**1. `PORTFOLIO-STATUS.md` freshness is a requirement, not a courtesy.** At the end of any
+session that changes status-relevant facts — version/build, App Review state, punch-list
+items, target dates, blockers, shipped work — update `PORTFOLIO-STATUS.md` to match and
+bump its `last_verified` date. The hub reads this file to answer "where are we" across the
+whole portfolio and cross-checks it against git; a stale file is worse than none, because
+the hub will flag it and stop trusting it.
+
+**2. Work arrives as dispatches.** The hub sends instructions as brief files in
+`/Users/donwb/atc/dispatches/` (named `YYYY-MM-DD-<repo>-<topic>.md`); Don points a session
+here at one when it's time to execute. Read the whole brief first — it carries cross-repo
+context this repo can't see. Verify its claims against this repo before editing
+(skip-and-report on mismatch), honor any "do now" vs. "stage until <trigger>" tiers, and
+this repo's own rules (tests, freezes, branch discipline) always still govern. When the
+work lands, record the outcome in `PORTFOLIO-STATUS.md` — that update is how the hub finds
+out. Never edit files in `~/atc` from this repo.
