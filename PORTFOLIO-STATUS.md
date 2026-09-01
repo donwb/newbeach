@@ -20,8 +20,13 @@ app_review_state: |
   when he left 1.0 in the queue; the listing (name, 8/15 screenshots) matches build 18
   deliberately. The payoff is now claimable: the next iOS submission is an UPDATE
   review — typically much faster than the ~15-day initial review 1.0 just survived.
-  NEXT: Don submits iOS 1.2 (28) in ASC — copy and screenshots verified current
-  2026-09-01, see open item 0.
+  iOS 1.2 (28) SUBMITTED 2026-09-01 (Don, in ASC, same day 1.0 released) — the first
+  UPDATE review for this record: the parity design, "Volusia Beach Info" wordmark,
+  weekend outlook, surf line, Pin to widget. Listing got the redrafted description
+  (the live 1.0 copy still said "closure likely" — replaced per the possible-never-
+  likely rule), the 1.0→1.2 What's New, and the 8/23 iPhone/iPad screenshot recaptures.
+  When it clears: the public iOS app matches the current design, and the site's App
+  Store badge can pair with new-design screenshots.
   --- history below ---
   tvOS 1.2 (28) APPROVED — learned 2026-08-23 ~18:58 ET the same way 1.1 and 1.0 were:
   the tvOS upload of 1.2 (29) was REJECTED with "previously approved version [1.2]" /
@@ -89,7 +94,11 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-01 (RELEASED: iOS 1.0 (18) + tvOS 1.2 (28) LIVE on the App Store
+last_verified: 2026-09-01 evening (iOS 1.2 (28) SUBMITTED in ASC by Don — the update
+  review — with the redrafted description, 1.0→1.2 What's New, and the 8/23
+  iPhone/iPad screenshots; all five shots eyeballed pre-submit, sky-label/clock
+  mismatch on the golden+dawn pair noted and accepted, day shot leads the gallery.
+  Earlier same day: RELEASED — iOS 1.0 (18) + tvOS 1.2 (28) LIVE on the App Store
   2026-09-01 15:56Z — first public release ever for the record, both platforms, both
   auto-released on approval. Confirmed by Don via ASC screenshot, verified from this
   repo via the iTunes lookup API ("Volusia Beach Info", 1.0, free, store URL in
@@ -308,12 +317,11 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    phone (386-239-7873), county Community Information. The traffic tripwire stays
    live: any new county-/24 hit shows up in the beach-traffic-check skill's output.
 0. App Store — RELEASED 2026-09-01: iOS 1.0 (18) and tvOS 1.2 (28) are LIVE (see
-   app_review_state). DON ACTION NOW: submit iOS 1.2 (28) in ASC — it's an *update*
-   review now, the fast kind, and the staged assets were re-verified current
-   2026-09-01: the 1.2 listing copy in docs/APP-STORE-LISTING.md (iOS What's New spans
-   1.0 → 1.2 since 1.1 was never submitted; 1306 chars, limit 4000) and the 8
-   screenshots recaptured 2026-08-23 from the renamed build — neither file touched
-   since 8/23 (last commits 3c92894/d554001). QUEUED BEHIND THAT: (a) tvOS 1.3
+   app_review_state). iOS 1.2 (28) SUBMITTED same day (Don, in ASC) — an *update*
+   review, the fast kind. Went up with the redrafted description, the 1.0→1.2
+   What's New, and the 8/23 iPhone/iPad screenshot recaptures (all per
+   docs/APP-STORE-LISTING.md). Nothing to do but wait; when it clears, the public
+   iOS app is the current design. QUEUED BEHIND THAT: (a) tvOS 1.3
    (build 30, the tide-wave now-line fix, tag flight/build-30, on TestFlight) — before
    submitting 1.3 for review, RECAPTURE the Apple TV gallery: the 8/23 shots predate
    the sunrise/sunset header band and the verdict tide wave (`make screenshots` +
