@@ -265,6 +265,11 @@ Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
 
 ## Version metadata — iOS / iPadOS 1.2 (build 28, drafted 2026-08-23)
 
+> **GO as of 2026-09-01: iOS 1.0 cleared review and RELEASED** (auto-release, live
+> 15:56Z same day, alongside tvOS 1.2). The wait described below is over — this 1.2
+> section is ready to paste, and the review is now an *update* review, the fast kind.
+> Copy and screenshots verified unchanged since the 8/23 recapture.
+
 **Read this before pasting anything on the iOS track.** ASC on 2026-08-23 shows
 **"iOS 1.0 Waiting for Review"** — iOS has never been approved and nothing of this
 app is public on iPhone yet. (The 8/21 "1.0 is approved" reading was tvOS-only;

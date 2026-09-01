@@ -1239,9 +1239,9 @@ All six implementation phases are complete. Every platform has reached a shippab
 |----------|--------|-------------|
 | **Go API** | ✅ Production | v1 + v2 endpoints, GIS ingester, NOAA tides/temp, NWS weather — running on DigitalOcean App Platform |
 | **Website** | ✅ Production | Responsive dashboard with ramp grid, server verdict + per-ramp outlook, weekend outlook, surf line, tide chart, weather, multi-cam, PWA |
-| **iOS** | ✅ Live (1.0) / 1.1 flighting | Universal SwiftUI app (iPhone + iPad) at feature parity with web/tvOS as of 2026-08-21: server verdict, per-ramp outlook, weekend outlook, surf line, tide chart, forecast, multi-cam, widgets |
-| **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down |
-| **tvOS** | ✅ On TestFlight | Two-mode board (Aug 2026): Cam mode — native-size beach cam + verdict + surf line + ramp cards; Board mode — full board with weekend outlook and daylight bar; D-pad toggle, mode memory, 10-min idle fallback |
+| **iOS** | ✅ Released (App Store 2026-09-01) | Public build is 1.0 (18) — the pre-parity design. The parity build (server verdict, weekend outlook, surf line, multi-cam, widgets — on main since 2026-08-21) ships as the 1.2 (28) update, staged for submission |
+| **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down (out of scope for 1.0 — excluded from the iOS archive) |
+| **tvOS** | ✅ Released (App Store 2026-09-01) | Public build is 1.2 (28) — the video-first board (Aug 2026): panorama never covered, verdict + surf + weekend ledger below, pull surfaces for outlook and ramp detail, sun-following sky. 1.3 (30) on TestFlight adds sunrise/sunset header + verdict tide wave |
 | **TRMNL OG** | ✅ Live | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
 | **TRMNL X** | ✅ Live (June 2026) | Grayscale dashboard: 5 NSB ramps with since-times, SVG tide curve, weather + forecast, activity feed — via `/api/v2/trmnl` aggregate endpoint |
 
@@ -1250,11 +1250,13 @@ All six implementation phases are complete. Every platform has reached a shippab
 - iOS: push notifications, Live Activities, settings screen, SwiftData caching
 - watchOS: complications, background refresh
 - PWA offline page
-- Apple apps submitted to the App Store and IN REVIEW since 2026-08-17 — build 1.0 (18),
-  both iOS/iPadOS and tvOS, on one consolidated App Store Connect record (Apple ID
-  6761724123, bundle ID `com.donwb.BeachRampTV`); `make flight` handles archive + upload
+- Apple apps RELEASED on the App Store 2026-09-01 — iOS 1.0 (18) and tvOS 1.2 (28),
+  first public release for the record, both platforms on one consolidated App Store
+  Connect record (Apple ID 6761724123, bundle ID `com.donwb.BeachRampTV`);
+  https://apps.apple.com/us/app/volusia-beach-info/id6761724123 — `make flight`
+  handles archive + upload
 
-**What's next:** Polish, test on real devices, submit Apple apps, iterate on TRMNL template after live testing.
+**What's next:** Submit the iOS 1.2 (28) update (now a fast update review), recapture the Apple TV gallery for tvOS 1.3, iterate on TRMNL template after live testing.
 
 ---
 

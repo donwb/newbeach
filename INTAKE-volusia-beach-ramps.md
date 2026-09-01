@@ -8,14 +8,18 @@ version: >
 status: >
   live (web + API verified 2026-08-12: GET https://beach.donwb.com/api/v2/ramps
   returned HTTP 200 with 27 ramps; auto-deploy on push to main per .do/app.yaml).
-  App Store presence of the Apple apps could NOT be verified from this repo — see
-  distribution.
+  UPDATE 2026-09-01: the Apple apps are now RELEASED on the App Store — iOS 1.0
+  (build 18) and tvOS 1.2 (build 28), released 2026-09-01 15:56Z, verified via the
+  iTunes lookup API ("Volusia Beach Info", free). Original 2026-08-12 note: App
+  Store presence could NOT be verified from this repo — see distribution.
 platforms: [web, iOS (iPhone + iPad), watchOS, tvOS, TRMNL e-ink (OG + X)]
 distribution:
-  app_store_url: none — neither Apple app has been submitted. Two App Store
-    Connect records exist, both in Prepare for Submission ("Beach Ramp Status"
-    tvOS, "Beach Ramp iOS App" iOS); they are being consolidated onto one
-    record. Unified bundle ID as of 2026-08-15: com.donwb.BeachRampTV for BOTH
+  app_store_url: https://apps.apple.com/us/app/volusia-beach-info/id6761724123
+    — "Volusia Beach Info", live since 2026-09-01 (iOS 1.0 build 18 + tvOS 1.2
+    build 28 on the one consolidated record, Apple ID 6761724123). Stale
+    2026-08-12 state: neither app submitted, two ASC records in Prepare for
+    Submission ("Beach Ramp Status" tvOS, "Beach Ramp iOS App" iOS), since
+    consolidated onto one record. Unified bundle ID as of 2026-08-15: com.donwb.BeachRampTV for BOTH
     the iOS and tvOS app targets (that shared ID is what allows a single ASC
     record to carry both platforms), plus com.donwb.BeachRampTV.watchkitapp for
     the watch app, which is out of scope for 1.0. Release automation:
@@ -162,11 +166,11 @@ droplet that serves stable HLS at `cams.donwb.com`, so the roster's
 - **V5** ("Free" / "Free · no account") — **TRUE** as far as this repo can
   prove: no StoreKit/IAP code, no auth, public unauthenticated API. (Final
   App Store price field lives in App Store Connect, outside this repo.)
-- **V6 status chip** ("LIVE · IOS") — **NEEDS NUANCE.** The web + API are
-  verifiably live (HTTP 200, auto-deploy from main). The iOS App Store
-  listing is **UNVERIFIED from this repo** — no store URL or metadata exists
-  here. If the chip means "live, on iOS," confirm the listing outside the
-  repo; "LIVE · WEB + APPS" may be safer if store status is uncertain.
+- **V6 status chip** ("LIVE · IOS") — **TRUE as of 2026-09-01.** The iOS app
+  released on the App Store 2026-09-01 (verified via the iTunes lookup API:
+  "Volusia Beach Info" 1.0, id6761724123), so the chip is now supported.
+  Original 2026-08-12 finding: the listing was unverified from this repo and
+  "LIVE · WEB + APPS" was suggested as the safer wording — superseded.
 - **V7 feature cards** — **TRUE.** "Every ramp, every status": open/limited/
   closed categories (ramp_status.go:49-60) filtered by city (web/app.js:170,
   web/index.html:111-114). "Tides and water temp": routes.go:65-66 + live
