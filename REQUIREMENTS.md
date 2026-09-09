@@ -1239,7 +1239,7 @@ All six implementation phases are complete. Every platform has reached a shippab
 |----------|--------|-------------|
 | **Go API** | ✅ Production | v1 + v2 endpoints, GIS ingester, NOAA tides/temp, NWS weather — running on DigitalOcean App Platform |
 | **Website** | ✅ Production | Responsive dashboard with ramp grid, server verdict + per-ramp outlook, weekend outlook, surf line, tide chart, weather, multi-cam, PWA |
-| **iOS** | ✅ Released (App Store 2026-09-01) | Public build is 1.0 (18) — the pre-parity design. The parity build (server verdict, weekend outlook, surf line, multi-cam, widgets — on main since 2026-08-21) ships as the 1.2 (28) update, staged for submission |
+| **iOS** | ✅ Released (App Store; 1.2 live 2026-09-02) | Public build is 1.2 (28) — the parity design: "Volusia Beach Info" wordmark, server verdict, weekend outlook, surf line, multi-cam, widgets with Pin to widget. (1.0 (18) went live 2026-09-01; the 1.2 update cleared review overnight.) |
 | **watchOS** | ✅ Buildable | Glance-first ramp status with NSB default and all-cities drill-down (out of scope for 1.0 — excluded from the iOS archive) |
 | **tvOS** | ✅ Released (App Store 2026-09-01) | Public build is 1.2 (28) — the video-first board (Aug 2026): panorama never covered, verdict + surf + weekend ledger below, pull surfaces for outlook and ramp detail, sun-following sky. 1.3 (30) on TestFlight adds sunrise/sunset header + verdict tide wave |
 | **TRMNL OG** | ✅ Live | Monochrome e-ink template: 4 NSB ramps, tide bar, water temp, local clock |
@@ -1251,12 +1251,12 @@ All six implementation phases are complete. Every platform has reached a shippab
 - watchOS: complications, background refresh
 - PWA offline page
 - Apple apps RELEASED on the App Store 2026-09-01 — iOS 1.0 (18) and tvOS 1.2 (28),
-  first public release for the record, both platforms on one consolidated App Store
+  first public release for the record; iOS 1.2 (28) followed 2026-09-02 — both platforms on one consolidated App Store
   Connect record (Apple ID 6761724123, bundle ID `com.donwb.BeachRampTV`);
   https://apps.apple.com/us/app/volusia-beach-info/id6761724123 — `make flight`
   handles archive + upload
 
-**What's next:** Submit the iOS 1.2 (28) update (now a fast update review), recapture the Apple TV gallery for tvOS 1.3, iterate on TRMNL template after live testing.
+**What's next:** Submit tvOS 1.3 (30) — gallery recaptured 2026-09-09, listing copy in docs/APP-STORE-LISTING.md; iterate on TRMNL template after live testing.
 
 ---
 

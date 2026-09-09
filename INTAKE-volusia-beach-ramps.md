@@ -16,7 +16,8 @@ platforms: [web, iOS (iPhone + iPad), watchOS, tvOS, TRMNL e-ink (OG + X)]
 distribution:
   app_store_url: https://apps.apple.com/us/app/volusia-beach-info/id6761724123
     — "Volusia Beach Info", live since 2026-09-01 (iOS 1.0 build 18 + tvOS 1.2
-    build 28 on the one consolidated record, Apple ID 6761724123). Stale
+    build 28 on the one consolidated record, Apple ID 6761724123); iOS 1.2 (28)
+    live 2026-09-02 01:49Z (iTunes lookup, verified 2026-09-09). Stale
     2026-08-12 state: neither app submitted, two ASC records in Prepare for
     Submission ("Beach Ramp Status" tvOS, "Beach Ramp iOS App" iOS), since
     consolidated onto one record. Unified bundle ID as of 2026-08-15: com.donwb.BeachRampTV for BOTH

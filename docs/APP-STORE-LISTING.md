@@ -265,12 +265,15 @@ Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
 
 ## Version metadata — iOS / iPadOS 1.2 (build 28, drafted 2026-08-23)
 
-> **SUBMITTED 2026-09-01: this section is in review.** iOS 1.0 cleared and RELEASED
-> earlier the same day (auto-release, live 15:56Z, alongside tvOS 1.2), and Don
-> submitted 1.2 (28) that evening as the record's first *update* review — What's New
-> below, the redrafted 1.1 description (replacing the live 1.0 copy and its
-> "closure likely" line), and the 8/23 iPhone/iPad screenshot recaptures, day shot
-> leading the gallery.
+> **RELEASED 2026-09-02 01:49Z — this section is what the public iOS app now shows.**
+> iOS 1.0 cleared and RELEASED 2026-09-01 (auto-release, live 15:56Z, alongside
+> tvOS 1.2); Don submitted 1.2 (28) that evening as the record's first *update*
+> review — What's New below, the redrafted 1.1 description (replacing the live 1.0
+> copy and its "closure likely" line), and the 8/23 iPhone/iPad screenshot
+> recaptures, day shot leading the gallery — and it cleared overnight, in roughly
+> ten hours (vs. ~15 days for the initial 1.0 review). Verified via the iTunes lookup
+> API 2026-09-09: version 1.2. The build-18 wording caution is over. The fork
+> narrative below is history.
 
 **Read this before pasting anything on the iOS track.** ASC on 2026-08-23 shows
 **"iOS 1.0 Waiting for Review"** — iOS has never been approved and nothing of this
@@ -354,22 +357,67 @@ Ramp status still comes straight from the county's feed, refreshed every minute.
 Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under tvOS
 1.1). Promotional text, keywords, URLs, copyright: unchanged from tvOS 1.0.
 
+---
+
+## Version metadata — tvOS 1.3 (build 30, drafted 2026-09-09)
+
+**Ready to submit.** tvOS 1.2 (28) is live (released 2026-09-01); 1.3 (30) is on
+TestFlight (tag `flight/build-30`, flighted ~2026-08-26) and is the build to attach.
+The binary delta from 1.2 (28) is real this time — three tvOS commits:
+
+- `95037f5` weekend columns get two reserved headline lines (no more truncated
+  "Storms look parked over most of the…"); ramps column heads relabeled NAME /
+  NOW / RAMP PREDICTION.
+- `82e8835` sunrise and sunset in the header band (SF Symbol glyphs, left of Water);
+  today's tide curve with a now-line drawn beside the verdict headline.
+- `376b1d5` the now-line ticks every 30 s instead of freezing at launch (build 29
+  shipped the freeze to Don's TV; 30 is the fix — 29 is dead, ignore it in
+  TestFlight).
+
+### What's New in This Version
+
+```
+Sunrise, sunset, and today's tide — right on the board.
+
+• Sunrise and sunset now sit in the header, next to water, air, and wind. Beach driving runs sunrise to sunset, so the day's bookends are always in view.
+• Today's tide curve is drawn beside the verdict, with a marker that tracks the current time — one glance tells you whether the water is coming or going.
+• The weekend columns have room for a full sentence, so a stormy day's forecast no longer trails off mid-thought.
+• Ramp column labels read NAME · NOW · RAMP PREDICTION, which is what they always meant.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
+```
+
+### Description
+
+Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under tvOS
+1.1) — every claim still holds. Promotional text, keywords, URLs, copyright:
+unchanged from tvOS 1.0.
+
 ### Screenshots
 
-**Recaptured 2026-08-23** from the renamed build, all eight verified by eye:
+**Apple TV recaptured 2026-09-09** for the 1.3 submission
+(`apple/scripts/screenshots.sh tv`, Apple TV 4K (3rd generation) sim against
+prod, 3840×2160, all three verified by eye):
+
+- `appletv/01-board.png` — the ledger: sunrise/sunset in the header, "Every ramp
+  open" verdict with the tide wave and now-line beside it, NSB ramps, surf, weekend.
+- `appletv/02-outlook.png` — the 7-day Beach outlook surface.
+- `appletv/03-ramp-detail.png` — Beachway Av: today's timeline, tide against this
+  ramp, last 48 hours.
+
+Upload all three to the tvOS 1.3 version in ASC, replacing the 8/23 set, which
+predates the header band and the verdict wave.
+
+**iPhone / iPad — recaptured 2026-08-23** from the renamed build, live on the
+listing with iOS 1.2 since 2026-09-02:
 
 - `iphone-6.9/` — 01 day, 02 golden, 03 dawn (1320×2868)
 - `ipad-13/` — 01 wide, 02 portrait (2752×2064 / 2064×2752)
-- `appletv/` — 01 board, 02 outlook, 03 ramp detail (3840×2160)
 
 They show the "Volusia Beach Info" wordmark, and the iPad set also drops the
-Favorites button that was pulled on 8/21 — the old set still had it.
-
-**These are for the 1.2 submissions, not for the pending iOS 1.0.** iOS 1.0 ships
-build 18 and its ASC gallery already holds the matching 8/15 shots — leave them
-alone. If you ever need that pre-rename set from the repo, it is in git at `ff145fc`
+Favorites button that was pulled on 8/21 — the old set still had it. The pre-rename
+set that shipped with iOS 1.0 (18) is in git at `ff145fc`
 (`git show ff145fc:design/app-store-screenshots/iphone-6.9/01-board-day.png`).
-The Apple TV set is current and correct for the tvOS 1.2 submission.
 
 ---
 
