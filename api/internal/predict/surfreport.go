@@ -1,6 +1,7 @@
 package predict
 
 import (
+	"sort"
 	"strings"
 	"time"
 
@@ -130,21 +131,85 @@ func surfPhrase(now time.Time, quality, heightLabel string) string {
 	return fillHeight(pickVariant(now, "surf", surfPools[key]), heightLabel)
 }
 
+// surfPlaces is the local shorthand for each GIS city key, in coast order
+// south to north — the way a surfer would list them. The rank sorts a
+// multi-city clause so it reads up the coast, never alphabetically.
+var surfPlaces = map[string]struct {
+	name string
+	rank int
+}{
+	"NEW SMYRNA BEACH":     {"NSB", 0},
+	"PONCE INLET":          {"Ponce", 1},
+	"WILBUR-BY-THE-SEA":    {"Wilbur", 2},
+	"DAYTONA BEACH SHORES": {"the Shores", 3},
+	"DAYTONA BEACH":        {"Daytona", 4},
+	"ORMOND BEACH":         {"Ormond", 5},
+	"ORMOND-BY-THE-SEA":    {"Ormond-by-the-Sea", 6},
+}
+
+// surfPlaceList renders a set of GIS city keys as "Daytona and the Shores"
+// / "NSB, Daytona and Ormond", coast order, unknown keys prettified last.
+func surfPlaceList(cities map[string]bool) string {
+	type place struct {
+		name string
+		rank int
+	}
+	var places []place
+	for key := range cities {
+		if sp, ok := surfPlaces[key]; ok {
+			places = append(places, place{sp.name, sp.rank})
+		} else {
+			places = append(places, place{models.PrettyCityName(key), 100})
+		}
+	}
+	sort.Slice(places, func(i, j int) bool {
+		if places[i].rank != places[j].rank {
+			return places[i].rank < places[j].rank
+		}
+		return places[i].name < places[j].name
+	})
+	names := make([]string, len(places))
+	for i, p := range places {
+		names[i] = p.name
+	}
+	switch len(names) {
+	case 0:
+		return ""
+	case 1:
+		return names[0]
+	default:
+		return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+	}
+}
+
 // tideClause appends the ramp-access angle — the sentence only this app can
 // write — reusing the already-built ramp outlooks. No tide math happens here.
+//
+// The surf line is beach-wide (one buoy) but it renders on per-city boards,
+// so the clause says WHERE: "ramps are tide-closed right now" is only true
+// when every city has a ramp shut; otherwise it names the cities, so a
+// New Smyrna board reading "Every ramp open" can sit above "...tide-closed
+// right now in Daytona and the Shores" without contradicting itself.
 func tideClause(out *Outlook) string {
 	worst := ""
 	var closeAt *time.Time // earliest time a likely ramp's own copy quotes
+	allCities := map[string]bool{}
+	byTier := map[string]map[string]bool{ // tier -> cities with a ramp in it
+		RiskClosedNow: {}, RiskLikely: {}, RiskPossible: {},
+	}
 	for i := range out.Ramps {
 		ro := &out.Ramps[i]
+		allCities[ro.City] = true
 		if ro.Reason != ReasonHighTide {
 			continue
 		}
 		switch ro.Risk {
 		case RiskClosedNow:
-			return ", but ramps are tide-closed right now"
+			worst = RiskClosedNow
 		case RiskLikely:
-			worst = RiskLikely
+			if worst != RiskClosedNow {
+				worst = RiskLikely
+			}
 			if ro.quotedClose != nil && (closeAt == nil || ro.quotedClose.Before(*closeAt)) {
 				closeAt = ro.quotedClose
 			}
@@ -152,15 +217,29 @@ func tideClause(out *Outlook) string {
 			if worst == "" {
 				worst = RiskPossible
 			}
+		default:
+			continue
 		}
+		byTier[ro.Risk][ro.City] = true
+	}
+	if worst == "" {
+		return ""
+	}
+	// "where" is empty when the tier's cities cover the whole county — the
+	// bare county-wide line is then the honest one.
+	where := ""
+	if len(byTier[worst]) < len(allCities) {
+		where = " in " + surfPlaceList(byTier[worst])
 	}
 	switch {
+	case worst == RiskClosedNow:
+		return ", but ramps are tide-closed right now" + where
 	case worst == RiskLikely && closeAt != nil:
-		return ", but a closure's possible around " + fmtClock(*closeAt)
-	case worst != "":
-		return ", though the high tide could shut ramps for a bit"
+		return ", but a closure's possible around " + fmtClock(*closeAt) + where
+	case where != "":
+		return ", though the high tide could shut ramps" + where + " for a bit"
 	default:
-		return ""
+		return ", though the high tide could shut ramps for a bit"
 	}
 }
 

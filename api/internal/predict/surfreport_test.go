@@ -109,6 +109,72 @@ func TestBuildSurfReportComposesTideClause(t *testing.T) {
 		assert.Contains(t, sr.Line, "tide-closed right now")
 	})
 
+	t.Run("closed now in one city names it", func(t *testing.T) {
+		// 2026-09-09: three Daytona-area ramps shut under a New Smyrna board
+		// reading "Every ramp open" — the bare line contradicted the verdict.
+		out := surfOutlook(
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
+			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
+		)
+		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+		require.NotNil(t, sr)
+		assert.Contains(t, sr.Line, "tide-closed right now in Daytona")
+	})
+
+	t.Run("closed now in several cities lists them up the coast", func(t *testing.T) {
+		out := surfOutlook(
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
+			RampOutlook{City: "ORMOND BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
+			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
+			RampOutlook{City: "DAYTONA BEACH SHORES", Risk: RiskClosedNow, Reason: ReasonHighTide},
+		)
+		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+		require.NotNil(t, sr)
+		assert.Contains(t, sr.Line, "tide-closed right now in the Shores, Daytona and Ormond")
+	})
+
+	t.Run("closed now everywhere keeps the county-wide line", func(t *testing.T) {
+		out := surfOutlook(
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
+			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
+		)
+		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+		require.NotNil(t, sr)
+		assert.True(t, strings.HasSuffix(sr.Line, "tide-closed right now"), sr.Line)
+	})
+
+	t.Run("closed now outranks likely elsewhere", func(t *testing.T) {
+		out := surfOutlook(
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskLikely, Reason: ReasonHighTide, quotedClose: &quoted},
+			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
+		)
+		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+		require.NotNil(t, sr)
+		assert.Contains(t, sr.Line, "tide-closed right now in Daytona")
+		assert.NotContains(t, sr.Line, "1pm")
+	})
+
+	t.Run("likely in one city names it after the time", func(t *testing.T) {
+		out := surfOutlook(
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskLikely, Reason: ReasonHighTide, quotedClose: &quoted},
+			RampOutlook{City: "DAYTONA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
+		)
+		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+		require.NotNil(t, sr)
+		assert.Contains(t, sr.Line, "closure's possible around 1pm in NSB")
+	})
+
+	t.Run("possible in one city names it", func(t *testing.T) {
+		out := surfOutlook(
+			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskPossible, Reason: ReasonHighTide},
+			RampOutlook{City: "DAYTONA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
+		)
+		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+		require.NotNil(t, sr)
+		assert.Contains(t, sr.Line, "could shut ramps in NSB for a bit")
+	})
+
 	t.Run("no tide risk no clause", func(t *testing.T) {
 		out := surfOutlook(RampOutlook{Risk: RiskScheduled, Reason: ReasonEndOfDay})
 		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
