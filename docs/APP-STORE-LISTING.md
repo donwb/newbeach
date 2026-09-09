@@ -395,9 +395,10 @@ unchanged from tvOS 1.0.
 
 ### Screenshots
 
-**Apple TV recaptured 2026-09-09** for the 1.3 submission
+**Apple TV recaptured 2026-09-09 ~12:03 ET** for the 1.3 submission
 (`apple/scripts/screenshots.sh tv`, Apple TV 4K (3rd generation) sim against
-prod, 3840×2160, all three verified by eye):
+prod, 3840×2160, all three verified by eye; reshot after 78e515c so the surf
+line names where the tide closures are instead of contradicting the NSB verdict):
 
 - `appletv/01-board.png` — the ledger: sunrise/sunset in the header, "Every ramp
   open" verdict with the tide wave and now-line beside it, NSB ramps, surf, weekend.

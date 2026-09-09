@@ -115,11 +115,17 @@ last_verified: 2026-09-09 midday (DISPATCH 2026-09-09-newbeach-tvos-13-and-listi
   eyeballed); tvOS 1.3 What's New drafted; the App Store listing is now LINKED from
   beach.donwb.com — board footer (web/js/views/board.js, sw cache v27) and a "Get the
   app" section + footer link on /support, plain text links, zero JS. Don's press:
-  submit tvOS 1.3 (30) in ASC with the new gallery. Side finding, not acted on: the
-  surf line's ramp-access clause is county-wide (surfreport.go: "…but ramps are
-  tide-closed right now" while DB-051/DBS-067/DBS-076 were shut) and sits under the
-  per-city "Every ramp open" verdict on the tvOS board — reads contradictory on the
-  same screen; it is in the new 01-board shot. Prior 2026-09-01 state below.)
+  submit tvOS 1.3 (30) in ASC with the new gallery. Follow-up the same hour, at Don's
+  direction: the surf line's ramp-access clause was county-wide (surfreport.go: "…but
+  ramps are tide-closed right now" while only DB-051 was tide-closed) and sat under
+  the per-city "Every ramp open" verdict on the tvOS board. FIXED 78e515c — tideClause
+  now names the affected cities in local shorthand, up the coast ("…tide-closed right
+  now in Daytona", "closure's possible around 1pm in NSB"), county-wide wording only
+  when every city has a ramp in the tier; server-side copy, so build 30 renders it.
+  Deployed, verified live, Apple TV gallery RESHOT 12:03 ET on the fixed line (the
+  ramp-detail shot shows it in full; the board shot's one-row surf headline still
+  truncates at "tide-closed…" — a tvOS layout limit, would need a client change +
+  flight to lift). Prior 2026-09-01 state below.)
 prior_2026_09_01: (iOS 1.2 (28) SUBMITTED in ASC by Don — the update
   review — with the redrafted description, 1.0→1.2 What's New, and the 8/23
   iPhone/iPad screenshots; all five shots eyeballed pre-submit, sky-label/clock
