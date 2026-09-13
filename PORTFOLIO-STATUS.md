@@ -106,7 +106,24 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-09 midday (DISPATCH 2026-09-09-newbeach-tvos-13-and-listing-link
+last_verified: 2026-09-13 morning (Studio rebooted for a flaky network; restreamer
+  came back on its own — first roster fetch failed pre-network, 120s retry
+  succeeded, nsb/ponce-inlet/dunlawton/ormond-by-the-sea publishing and served by
+  the relay. Two PRs: (1) fix/ormond-beach-youtube-url MERGED (#9) — migration 013
+  finally committed, applies on the auto-deploy; Ormond Beach has been dark since 2026-08-31 (first "Private
+  video" in its log), new ID p1s7EdZgGvU verified live + streamable from the
+  Studio; deploy applies it, then kickstart or the 6h refresh. (2)
+  fix/restreamer-log-rotation OPEN (#10, rebased over the 9/09 work) — per-cam logs had reached 6.7 GB (2 GB each for
+  nsb/dunlawton, all yt-dlp's internal ffmpeg chatter): now run at -loglevel
+  warning -nostats plus a 64 MB tail-and-truncate backstop (`rotate_log`), and
+  the -4 IPv4 fix from 9/04 is committed at last; Makefile restreamer-status now
+  probes ormond-by-the-sea too. NOT YET DEPLOYED to the Studio — Don runs
+  `make deploy-restreamer` after merge (agent was blocked from restarting the
+  launchd job). Ormond-by-the-Sea is chronically flappy (~100 pipeline drops/day,
+  source-side starvation, not this host) — watch, not fix. gh CLI installed on
+  the Studio; origin pushurl switched to SSH because no https credential exists.
+  Prior 2026-09-09 state below.)
+prior_2026_09_09: (DISPATCH 2026-09-09-newbeach-tvos-13-and-listing-link
   executed: iOS 1.2 (28) confirmed LIVE since 2026-09-02 01:49Z via the iTunes lookup
   API and recorded here + REQUIREMENTS §19 + INTAKE + docs/APP-STORE-LISTING.md; the
   Apple TV gallery RECAPTURED for tvOS 1.3 (apple/scripts/screenshots.sh tv — the
@@ -125,7 +142,20 @@ last_verified: 2026-09-09 midday (DISPATCH 2026-09-09-newbeach-tvos-13-and-listi
   Deployed, verified live, Apple TV gallery RESHOT 12:03 ET on the fixed line (the
   ramp-detail shot shows it in full; the board shot's one-row surf headline still
   truncates at "tide-closed…" — a tvOS layout limit, would need a client change +
-  flight to lift). Prior 2026-09-01 state below.)
+  flight to lift). Prior 2026-09-04 state below.)
+prior_2026_09_04: (CAM OUTAGE FIXED: all five cams went dark at the
+  13:20 ET roster refresh — YouTube now bot-walls live-stream resolves from the home
+  connection's IPv6 egress ("Sign in to confirm you're not a bot" on every player
+  client; PO tokens don't clear it; VODs and IPv4 are unaffected). Fix: `yt-dlp -4`
+  in cam-restreamer.sh, deployed to the Studio via make deploy-restreamer, sustain-
+  tested 90s+; nsb/ponce-inlet/dunlawton/ormond-by-the-sea verified back online end
+  to end. Also upgraded yt-dlp 2026.7.4→2026.8.19 + bgutil provider/plugin
+  1.3.1→1.3.2 (needed anyway, not sufficient alone), and dropped the stale
+  ondigitalocean.app API_BASE override from ~/.cam-restreamer.env (backup kept).
+  Ormond Beach (down since 8/16) is a SEPARATE issue: its YouTube video went
+  private; new live ID p1s7EdZgGvU found on the county channel; migration
+  013_update_ormond_beach_youtube_url staged UNCOMMITTED — needs PR + deploy, then
+  a restreamer kickstart or the 6h refresh brings it back. Prior 2026-09-01 state below — this entry was never committed until 9/13.)
 prior_2026_09_01: (iOS 1.2 (28) SUBMITTED in ASC by Don — the update
   review — with the redrafted description, 1.0→1.2 What's New, and the 8/23
   iPhone/iPad screenshots; all five shots eyeballed pre-submit, sky-label/clock

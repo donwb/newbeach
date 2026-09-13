@@ -62,7 +62,7 @@ Key properties:
 | Installed copy on Mac Studio | `~/bin/cam-restreamer.sh` |
 | launchd job | `~/Library/LaunchAgents/com.donwb.cam-restreamer.plist` (source: `scripts/com.donwb.cam-restreamer.plist`) |
 | Studio config/secrets | `~/.cam-restreamer.env` (API_KEY, RELAY_HOST, RELAY_PUB_PASS, YTDLP_COOKIES) |
-| Studio logs | `~/Library/Logs/cam-restreamer/<cam-id>.log` + `/tmp/cam-restreamer.launchd.log` |
+| Studio logs | `~/Library/Logs/cam-restreamer/<cam-id>.log` + `/tmp/cam-restreamer.launchd.log` — per-cam logs copy-truncate to `<cam-id>.log.1` past `LOG_MAX_MB` (64) |
 | Relay droplet | `beach-cam-relay`, DO nyc3, 68.183.149.152 (ssh root@, ProMax key) |
 | MediaMTX config (incl. publisher password) | droplet `/opt/mediamtx/mediamtx.yml`, service `mediamtx` |
 | TLS / hostname | droplet `/etc/caddy/Caddyfile`, service `caddy`; serves `cams.donwb.com` + `68-183-149-152.sslip.io` fallback |

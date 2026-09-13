@@ -73,7 +73,7 @@ restreamer-status:  ## Show the restreamer's launchd state and recent log lines
 	@if [ -f $(RESTREAMER_LOG) ]; then tail -10 $(RESTREAMER_LOG) | sed 's/^/  /'; \
 	else echo "  no log at $(RESTREAMER_LOG)"; fi
 	@echo "  --- cam endpoints (-L: MediaMTX 302s to a cookieCheck URL first) ---"
-	@for c in nsb ponce-inlet dunlawton ormond-beach; do \
+	@for c in nsb ponce-inlet dunlawton ormond-beach ormond-by-the-sea; do \
 		printf "  %-14s %s\n" "$$c" "$$(curl -sL -o /dev/null -w '%{http_code}' --max-time 10 https://cams.donwb.com/$$c/index.m3u8)"; \
 	done
 
