@@ -27,6 +27,15 @@
 # visible downtime, and a host that just streamed for minutes is not the
 # bot-check-drawing pattern that dead-video polling is.
 #
+# Logs: one $LOG_DIR/<id>.log per camera (yt-dlp + both ffmpegs' stderr, plus
+# this script's lifecycle lines). yt-dlp's internal downloader ffmpeg is run
+# at -loglevel warning -nostats — its default chatter (every HLS manifest
+# fetch with its 1.5 KB googlevideo URL, plus a frame= line every half second)
+# was ~99% of the volume and put 2 GB per camera on disk in a month. As a
+# backstop, a log past LOG_MAX_MB is truncated, its last LOG_MAX_MB kept in
+# <id>.log.1 (one generation); truncating in place is safe because every writer opened
+# the file with >> (O_APPEND), so they carry on at the new end.
+#
 # Requires: yt-dlp, ffmpeg, jq, curl   (brew install yt-dlp ffmpeg jq)
 #
 # Config via environment or ~/.cam-restreamer.env:
@@ -64,10 +73,24 @@ RETRY_MAX=1800       # backoff cap for streams that fail to resolve at all
 ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
 RELAY_CHECK_TICKS=4  # relay liveness probe every N watchdog ticks (~60s)
 RELAY_DEAD_CHECKS=3  # consecutive probe misses before declaring half-open
+LOG_MAX_MB=64        # copy-truncate a camera log past this size (keeps one .1)
 
 mkdir -p "$LOG_DIR"
 
 log() { echo "$(date '+%F %T') $*"; }
+
+# Copy-truncate $1 once it passes LOG_MAX_MB. Runs from the camera's own
+# stream_one, so no two rotations ever race on one file.
+rotate_log() {
+    local f="$1" size
+    [ -f "$f" ] || return 0
+    size=$(stat -f %z "$f" 2>/dev/null) || return 0
+    [ "$size" -gt $(( LOG_MAX_MB * 1024 * 1024 )) ] || return 0
+    # tail, not cp: the kept generation is itself capped at LOG_MAX_MB, so
+    # disk per camera is bounded at 2x the cap however large the log got.
+    tail -c $(( LOG_MAX_MB * 1024 * 1024 )) "$f" > "$f.1" && : > "$f"
+    log "log rotated at ${size} bytes (last ${LOG_MAX_MB} MB kept in $(basename "$f").1)" >> "$f"
+}
 
 # Optional YouTube cookies for yt-dlp (empty array when unset). Expanded with
 # the ${arr[@]+...} idiom so set -u survives an empty array on bash 3.2.
@@ -103,10 +126,18 @@ stream_one() {
     local delay=$(( RETRY_SECS / 2 ))  # doubled before first use
 
     while true; do
+        rotate_log "$log_f"
         log "[$id] starting pipeline ($yt)" >> "$log_f"
         rm -f "$prog"
-        yt-dlp --no-warnings --no-part \
+        # -4: YouTube bot-walls live-stream resolves from this connection's
+        # IPv6 egress (2026-09-04: every player client walled, PO tokens and
+        # cookies-free fixes exhausted) while IPv4 resolves clean. VODs are
+        # unaffected, so test against a live stream before removing this.
+        # --downloader-args: quiet yt-dlp's internal ffmpeg (see Logs above);
+        # errors still surface, "Opening ..." and frame= chatter does not.
+        yt-dlp -4 --no-warnings --no-part \
             --extractor-args "youtube:player_client=mweb" \
+            --downloader-args "ffmpeg_i:-loglevel warning -nostats" \
             ${COOKIE_ARGS[@]+"${COOKIE_ARGS[@]}"} \
             -f "best[protocol^=m3u8]" -o - "$yt" 2>> "$log_f" \
             | ffmpeg -hide_banner -loglevel error -nostdin \
@@ -129,6 +160,7 @@ stream_one() {
         local ticks=0 relay_misses=0
         while kill -0 "$pid" 2>/dev/null; do
             sleep 15
+            rotate_log "$log_f"
             if [ -f "$prog" ]; then
                 local age=$(( $(date +%s) - $(stat -f %m "$prog") ))
                 if [ "$age" -gt "$STALL_SECS" ]; then
