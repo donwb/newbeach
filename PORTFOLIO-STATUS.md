@@ -2,7 +2,7 @@
 app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, SUBMITTED TO ASC by Don 2026-09-16 — submission in progress at the time of writing, NOT YET CONFIRMED in ASC by a human, so verify the review state next session; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, SUBMITTED TO ASC by Don 2026-09-16, confirmed by Don in session — the review OUTCOME is what remains unobserved, so check the ASC state next session; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating — web/API live at beach.donwb.com; BOTH Apple platforms RELEASED on the App Store (iOS 1.2 build 28 live 2026-09-02, tvOS 1.2 build 28 live 2026-09-01) — the public iOS app IS the current parity design; tvOS 1.3 (30) submitted 2026-09-16
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -21,9 +21,20 @@ app_review_state: |
   sunrise/sunset header + verdict tide wave, design/app-store-screenshots/appletv/)
   and the What's New in docs/APP-STORE-LISTING.md §tvOS 1.3. This is an UPDATE review
   on the tvOS side (1.2 (28) released 2026-09-01), so expect the fast queue, not the
-  initial-review tax. NOT YET CONFIRMED in ASC by a human — the next session should
-  check whether it is In Review / Ready for Distribution, and record the release here.
+  initial-review tax. The SUBMIT itself is confirmed — Don pressed it and said so in
+  session; what is unobserved is the review outcome, so the next session should check
+  whether ASC shows In Review / Ready for Distribution and record the release here.
   When it clears, both platforms are current: iOS 1.2 (28) and tvOS 1.3 (30).
+  KNOWN COSMETIC ISSUE, SUBMITTED DELIBERATELY (Don, 2026-09-16): in the lead gallery
+  shot 01-board.png the one-row surf headline truncates to "…but ramps are tide-closed…"
+  directly above "Every ramp open" and five Open rows, so it reads as a contradiction.
+  The sentence is correct and city-scoped per 78e515c — 03-ramp-detail.png shows it in
+  full, "…tide-closed right now in Daytona", a different city than the board's NSB — it
+  is the tvOS single-row layout limit clipping it. Lifting it needs a client change plus
+  a flight, so it could not be fixed for this submission. Options weighed and declined:
+  reshoot the board on a day with no closure anywhere (costs a wait on weather), or lead
+  the gallery with a different shot (the board is the app's home screen and the better
+  first impression). Fix it in a later tvOS build, not by holding a gallery for weather.
   --- history below ---
   RELEASED 2026-09-01: iOS 1.0 (build 18) AND tvOS 1.2 (build 28) are LIVE on the App
   Store — the first public release ever for this record, both platforms. Both versions
