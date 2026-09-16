@@ -315,11 +315,16 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 
 ## Git & CI
 
-- Branch naming: `feature/description`, `fix/description`
+- **Commit and push straight to `main` — this repo does not use PRs** (Don, 2026-09-16).
+  Don is the only committer; a PR here is ceremony with no reviewer on the other end.
+  Branch only when there is a reason to (parking risky work, or something that must not
+  auto-deploy yet), and merge it down yourself rather than opening a PR.
 - Commit messages: imperative mood, concise (e.g., "Add tide percentage to v2 response")
-- PR-based workflow — no direct pushes to main
-- GitHub Actions for CI: lint, test, build on every PR
+- Branch naming when you do branch: `feature/description`, `fix/description`
+- GitHub Actions for CI: lint, test, build
 - Docker build on merge to main
+- **The trade-off of pushing to main: it auto-deploys.** Nothing gates a bad commit but
+  you, so run the tests before pushing anything that touches `api/` or `web/`.
 
 ## Deployment
 
