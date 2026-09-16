@@ -2,8 +2,8 @@
 app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, READY FOR DON TO SUBMIT in ASC; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
-lifecycle: live+iterating — web/API live at beach.donwb.com; BOTH Apple platforms RELEASED on the App Store (iOS 1.2 build 28 live 2026-09-02, tvOS 1.2 build 28 live 2026-09-01) — the public iOS app IS the current parity design; tvOS 1.3 (30) staged for submission
+version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, SUBMITTED TO ASC by Don 2026-09-16 — submission in progress at the time of writing, NOT YET CONFIRMED in ASC by a human, so verify the review state next session; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+lifecycle: live+iterating — web/API live at beach.donwb.com; BOTH Apple platforms RELEASED on the App Store (iOS 1.2 build 28 live 2026-09-02, tvOS 1.2 build 28 live 2026-09-01) — the public iOS app IS the current parity design; tvOS 1.3 (30) submitted 2026-09-16
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
   Web+API: live at https://beach.donwb.com (verified 2026-08-12, INTAKE dossier).
@@ -16,11 +16,14 @@ app_review_state: |
   redrafted description. Verified from this repo 2026-09-09 via the iTunes lookup API
   (version 1.2). The build-18 wording caution is OVER — the site may pair the store
   link with new-design screenshots.
-  NEXT: tvOS 1.3 (30) — on TestFlight since ~8/26, NOT submitted. As of 2026-09-09 the
-  Apple TV gallery is recaptured (3 shots, 3840×2160, sunrise/sunset header + verdict
-  tide wave, design/app-store-screenshots/appletv/) and the What's New is drafted in
-  docs/APP-STORE-LISTING.md §tvOS 1.3. Don's press: create the tvOS 1.3 version in
-  ASC, attach build 30, upload the three shots, paste the note, submit.
+  tvOS 1.3 (30) SUBMITTED 2026-09-16 (Don, in ASC) — the assets it needed had been
+  checked in since 2026-09-09: the recaptured Apple TV gallery (3 shots, 3840×2160,
+  sunrise/sunset header + verdict tide wave, design/app-store-screenshots/appletv/)
+  and the What's New in docs/APP-STORE-LISTING.md §tvOS 1.3. This is an UPDATE review
+  on the tvOS side (1.2 (28) released 2026-09-01), so expect the fast queue, not the
+  initial-review tax. NOT YET CONFIRMED in ASC by a human — the next session should
+  check whether it is In Review / Ready for Distribution, and record the release here.
+  When it clears, both platforms are current: iOS 1.2 (28) and tvOS 1.3 (30).
   --- history below ---
   RELEASED 2026-09-01: iOS 1.0 (build 18) AND tvOS 1.2 (build 28) are LIVE on the App
   Store — the first public release ever for this record, both platforms. Both versions
@@ -106,20 +109,40 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-13 morning (Studio rebooted for a flaky network; restreamer
+last_verified: 2026-09-16 morning (QUIET, EVERYTHING GREEN. Repo: main clean, 0/0 vs
+  origin/main, no stashes, no untracked files; last commits are both 9/13 (d26d398
+  restreamer log rotation, 4e688d7 Ormond Beach URL rotation), both merged via PR.
+  Two merged branches still exist locally and on origin —
+  fix/ormond-beach-youtube-url and fix/restreamer-log-rotation — safe to prune.
+  TWO ITEMS THE 9/13 ENTRY LEFT OPEN ARE NOW CLOSED, verified from the Studio this
+  morning: (1) `make restreamer-diff` reports the deployed ~/bin copy matches the
+  repo, so the log-rotation deploy happened; (2) `make restreamer-status` shows the
+  launchd job running (pid 7462, all five cams respawned 09:24:15) and ALL FIVE cam
+  endpoints returning 200 through the relay — INCLUDING ormond-beach, dark since
+  2026-08-31, so migration 013 applied on the auto-deploy and the county's new
+  broadcast (p1s7EdZgGvU) is publishing. That clears the long-standing "Ormond Beach
+  cam offline upstream" blocker. APP STORE: Don submitted tvOS 1.3 (30) in ASC this
+  session — see app_review_state; unconfirmed, verify next session. ENVIRONMENT
+  (Don, reported not verified here): the Mac Studio is now set up to build and run
+  the native Apple targets, not just web/API — which unblocks local iOS/tvOS builds
+  and makes open item 2 (the physical Siri-remote pass) practical from this machine.
+  Still watching, not fixing: Ormond-by-the-Sea is chronically flappy (~100 pipeline
+  drops/day, source-side starvation upstream, not this host). Prior 2026-09-13 state
+  below.)
+prior_2026_09_13: (2026-09-13 morning — Studio rebooted for a flaky network; restreamer
   came back on its own — first roster fetch failed pre-network, 120s retry
   succeeded, nsb/ponce-inlet/dunlawton/ormond-by-the-sea publishing and served by
   the relay. Two PRs: (1) fix/ormond-beach-youtube-url MERGED (#9) — migration 013
   finally committed, applies on the auto-deploy; Ormond Beach has been dark since 2026-08-31 (first "Private
   video" in its log), new ID p1s7EdZgGvU verified live + streamable from the
   Studio; deploy applies it, then kickstart or the 6h refresh. (2)
-  fix/restreamer-log-rotation OPEN (#10, rebased over the 9/09 work) — per-cam logs had reached 6.7 GB (2 GB each for
+  fix/restreamer-log-rotation OPEN at the time (#10, since MERGED — rebased over the 9/09 work) — per-cam logs had reached 6.7 GB (2 GB each for
   nsb/dunlawton, all yt-dlp's internal ffmpeg chatter): now run at -loglevel
   warning -nostats plus a 64 MB tail-and-truncate backstop (`rotate_log`), and
   the -4 IPv4 fix from 9/04 is committed at last; Makefile restreamer-status now
-  probes ormond-by-the-sea too. NOT YET DEPLOYED to the Studio — Don runs
+  probes ormond-by-the-sea too. NOT YET DEPLOYED to the Studio as of 9/13 — Don to run
   `make deploy-restreamer` after merge (agent was blocked from restarting the
-  launchd job). Ormond-by-the-Sea is chronically flappy (~100 pipeline drops/day,
+  launchd job); the deployed copy was CONFIRMED matching 2026-09-16, see last_verified. Ormond-by-the-Sea is chronically flappy (~100 pipeline drops/day,
   source-side starvation, not this host) — watch, not fix. gh CLI installed on
   the Studio; origin pushurl switched to SSH because no https credential exists.
   Prior 2026-09-09 state below.)
@@ -380,10 +403,12 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    live: any new county-/24 hit shows up in the beach-traffic-check skill's output.
 0. App Store — iOS 1.2 (28) LIVE since 2026-09-02 01:49Z (update review cleared in
    ~10h); tvOS 1.2 (28) live since 2026-09-01. The public app on every Apple platform
-   is the current design. ONE THING LEFT, Don's press: submit tvOS 1.3 (30). As of
-   2026-09-09 everything it needs is checked in — the Apple TV gallery recaptured
+   is the current design. tvOS 1.3 (30) SUBMITTED 2026-09-16 by Don, using the
+   assets checked in 2026-09-09 — the recaptured Apple TV gallery
    (design/app-store-screenshots/appletv/, 3 × 3840×2160, sunrise/sunset header +
    verdict tide wave) and the What's New in docs/APP-STORE-LISTING.md §tvOS 1.3.
+   NOTHING IS BLOCKED ON THIS REPO. Next session: confirm the ASC review state and
+   record the release here; it is an update review, so it should move fast.
    DONE 2026-09-09: beach.donwb.com links the listing
    (https://apps.apple.com/us/app/volusia-beach-info/id6761724123) from the board
    footer and /support ("Get the app"); the build-18 wording caution is over.
@@ -513,8 +538,13 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   (com.donwb.bgutil-pot launchd job, no Google account) + exponential backoff for
   failed resolves (commits 5ac4920/f83314a/40e5d16, runbook in docs/CAM-RELAY.md);
   all 4 online cams verified re-resolving and publishing post-deploy.
-- Ormond Beach cam offline upstream — its YouTube video ID no longer exists; roster
-  youtube_url needs updating when the county restarts the broadcast.
+- RESOLVED 2026-09-13/16: Ormond Beach cam is BACK. Its YouTube broadcast went private
+  2026-08-31 (the second such rotation — the first killed it 8/16); the county's new
+  live ID p1s7EdZgGvU landed in migration 013 (4e688d7, PR #9), applied on the
+  auto-deploy, and the endpoint was verified serving 200 through the relay 2026-09-16
+  with all five cams publishing. Standing risk, not a blocker: the county rotates these
+  broadcast IDs without notice, so expect to repeat this — find the new ID on the county
+  channel, add a migration, deploy, then kickstart or wait for the 6h roster refresh.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
   (fixed in ff3a353 + migration 006); could recur.
 - RESOLVED 2026-09-01/02: both Apple platforms are RELEASED — tvOS 1.2 (28) live
@@ -530,7 +560,22 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
-- 2026-08-26 (latest): Stale county-data quarantine in the prediction trainer (params v6).
+- 2026-09-13 (latest, two PRs, both merged and now verified deployed 2026-09-16): Cam
+  infrastructure. (1) #9 / 4e688d7 — migration 013 rotates Ormond Beach to the county's
+  new YouTube live ID (p1s7EdZgGvU) after its old broadcast went private 2026-08-31;
+  applied on the auto-deploy, the cam is serving again and all five are online for the
+  first time since 8/16. (2) #10 / d26d398 — per-cam restreamer logs had reached 6.7 GB
+  (2 GB each for nsb/dunlawton, almost entirely yt-dlp's internal ffmpeg chatter): the
+  downloader now runs at `-loglevel warning -nostats` with a 64 MB tail-and-truncate
+  backstop (`rotate_log`), the 9/04 `-4` IPv4 fix is committed at last, and
+  `make restreamer-status` probes ormond-by-the-sea too. `make restreamer-diff` confirms
+  the deployed ~/bin copy matches the repo.
+- 2026-09-09: tvOS 1.3 listing prep + the city-scoped surf line (12b8dfb, 78e515c,
+  60bb16a) — iOS 1.2 confirmed live via the iTunes lookup API, the Apple TV gallery
+  recaptured at 3840×2160, the App Store listing linked from the board footer and
+  /support, and the surf line's ramp-access clause narrowed from county-wide wording to
+  the cities actually tide-closed (server-side copy, so build 30 renders it).
+- 2026-08-26: Stale county-data quarantine in the prediction trainer (params v6).
   Trigger: the county forgot the 8am flip — eight ramps (DB-048/051, DBS-067, five NSB)
   stood in the overnight "CLOSED - CLEARED FOR TURTLES" past noon, through a real 8:09am
   2.2 ft peak; the county's own app showed the same. Finding: the exact-string tide match
