@@ -112,8 +112,13 @@ mission_dates: |
 last_verified: 2026-09-16 morning (QUIET, EVERYTHING GREEN. Repo: main clean, 0/0 vs
   origin/main, no stashes, no untracked files; last commits are both 9/13 (d26d398
   restreamer log rotation, 4e688d7 Ormond Beach URL rotation), both merged via PR.
-  Two merged branches still exist locally and on origin —
-  fix/ormond-beach-youtube-url and fix/restreamer-log-rotation — safe to prune.
+  PRUNED the same session: fix/ormond-beach-youtube-url and
+  fix/restreamer-log-rotation are gone locally and on origin (both were
+  squash-merged, so their tips were not ancestors of main — confirmed
+  patch-equivalent with `git cherry` before deleting). Only main remains.
+  WORKFLOW CHANGE (Don, 2026-09-16): this repo does NOT use PRs — commit and
+  push straight to main; CLAUDE.md §Git & CI corrected, which had told every
+  session the opposite. Branch only to park work that must not auto-deploy.
   TWO ITEMS THE 9/13 ENTRY LEFT OPEN ARE NOW CLOSED, verified from the Studio this
   morning: (1) `make restreamer-diff` reports the deployed ~/bin copy matches the
   repo, so the log-rotation deploy happened; (2) `make restreamer-status` shows the
