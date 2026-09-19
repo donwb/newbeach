@@ -2,8 +2,8 @@
 app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, SUBMITTED TO ASC by Don 2026-09-16, confirmed by Don in session — the review OUTCOME is what remains unobserved, so check the ASC state next session; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
-lifecycle: live+iterating — web/API live at beach.donwb.com; BOTH Apple platforms RELEASED on the App Store (iOS 1.2 build 28 live 2026-09-02, tvOS 1.2 build 28 live 2026-09-01) — the public iOS app IS the current parity design; tvOS 1.3 (30) submitted 2026-09-16
+version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, RELEASED on the App Store 2026-09-17 16:33:58Z, verified 2026-09-19 via the iTunes lookup API — tvOS is now public on 1.3; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+lifecycle: live+iterating — web/API live at beach.donwb.com; BOTH Apple platforms RELEASED on the App Store (iOS 1.2 build 28 live 2026-09-02, tvOS 1.2 build 28 live 2026-09-01) — every Apple platform is public on the current parity design — iOS/iPadOS 1.2 (28), tvOS 1.3 (30) live 2026-09-17
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
   Web+API: live at https://beach.donwb.com (verified 2026-08-12, INTAKE dossier).
@@ -16,15 +16,16 @@ app_review_state: |
   redrafted description. Verified from this repo 2026-09-09 via the iTunes lookup API
   (version 1.2). The build-18 wording caution is OVER — the site may pair the store
   link with new-design screenshots.
-  tvOS 1.3 (30) SUBMITTED 2026-09-16 (Don, in ASC) — the assets it needed had been
-  checked in since 2026-09-09: the recaptured Apple TV gallery (3 shots, 3840×2160,
-  sunrise/sunset header + verdict tide wave, design/app-store-screenshots/appletv/)
-  and the What's New in docs/APP-STORE-LISTING.md §tvOS 1.3. This is an UPDATE review
-  on the tvOS side (1.2 (28) released 2026-09-01), so expect the fast queue, not the
-  initial-review tax. The SUBMIT itself is confirmed — Don pressed it and said so in
-  session; what is unobserved is the review outcome, so the next session should check
-  whether ASC shows In Review / Ready for Distribution and record the release here.
-  When it clears, both platforms are current: iOS 1.2 (28) and tvOS 1.3 (30).
+  tvOS 1.3 (30) RELEASED 2026-09-17 16:33:58Z — APPROVED and LIVE. Don confirmed, and
+  verified from this repo 2026-09-19 via the iTunes lookup API (id 6761724123,
+  entity=tvSoftware: version 1.3, release date above, serving the What's New drafted in
+  docs/APP-STORE-LISTING.md §tvOS 1.3). Submitted 2026-09-16, so the update review
+  cleared in about a day — the second data point that update reviews on this record are
+  fast (iOS 1.2 took ~10h), against the ~15 days iOS 1.0's initial review cost.
+  EVERY APPLE PLATFORM IS NOW CURRENT: iOS/iPadOS 1.2 (28) and tvOS 1.3 (30), both the
+  parity design. The App Store is no longer a source of open work on this repo; the next
+  submission is whenever new client work earns one, not a backlog item.
+  It shipped with the known gallery truncation below, accepted deliberately.
   KNOWN COSMETIC ISSUE, SUBMITTED DELIBERATELY (Don, 2026-09-16): in the lead gallery
   shot 01-board.png the one-row surf headline truncates to "…but ramps are tide-closed…"
   directly above "Every ramp open" and five Open rows, so it reads as a contradiction.
@@ -130,9 +131,12 @@ last_verified: 2026-09-19 morning (FOUR OF FIVE CAMS UP — nsb is dark upstream
   on a camera the health poller reports offline — nsb is the roster default, so until
   this landed every first-time visitor got a "Reconnecting" panel with four live cams
   sitting in the same payload. Repo: main clean, 0/0 vs origin/main, main is the only
-  branch. APP STORE: tvOS 1.3 (30) was submitted 2026-09-16 and the review outcome is
-  STILL UNOBSERVED — next session should check ASC and record it; that is the one open
-  thread. CORRECTS the 2026-09-16 entry below, which reads "EVERYTHING GREEN / all five
+  branch. APP STORE, learned later the same day: tvOS 1.3 (30) was APPROVED and went
+  LIVE 2026-09-17 16:33:58Z — Don confirmed, verified here via the iTunes lookup API.
+  That closes open item 0 and the App Store thread this repo has carried since the
+  first submission on 2026-08-18; both platforms are public on the parity design and
+  nothing store-side is outstanding. The nsb outage is now the only live issue, and it
+  is the county's to fix. CORRECTS the 2026-09-16 entry below, which reads "EVERYTHING GREEN / all five
   cam endpoints 200" — true when written, overtaken by the nsb outage three days later.
   Prior 2026-09-16 state below.)
 prior_2026_09_16: (QUIET, EVERYTHING GREEN. Repo: main clean, 0/0 vs
@@ -432,14 +436,15 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    reopens: a low-pressure bump to Barnett (his side did click), Beach Safety by
    phone (386-239-7873), county Community Information. The traffic tripwire stays
    live: any new county-/24 hit shows up in the beach-traffic-check skill's output.
-0. App Store — iOS 1.2 (28) LIVE since 2026-09-02 01:49Z (update review cleared in
-   ~10h); tvOS 1.2 (28) live since 2026-09-01. The public app on every Apple platform
-   is the current design. tvOS 1.3 (30) SUBMITTED 2026-09-16 by Don, using the
-   assets checked in 2026-09-09 — the recaptured Apple TV gallery
-   (design/app-store-screenshots/appletv/, 3 × 3840×2160, sunrise/sunset header +
-   verdict tide wave) and the What's New in docs/APP-STORE-LISTING.md §tvOS 1.3.
-   NOTHING IS BLOCKED ON THIS REPO. Next session: confirm the ASC review state and
-   record the release here; it is an update review, so it should move fast.
+0. App Store — CLOSED 2026-09-17. Every Apple platform is public on the current
+   parity design: iOS/iPadOS 1.2 (28) live since 2026-09-02 01:49Z, tvOS 1.3 (30)
+   live since 2026-09-17 16:33:58Z (submitted 9/16, approved in about a day; verified
+   2026-09-19 via the iTunes lookup API, entity=tvSoftware, version 1.3). That was the
+   last thing this repo owed the store. There is no App Store backlog item any more —
+   the next submission is whatever new client work earns one, and it will be an update
+   review on both trains, which this record has now cleared twice in under a day each.
+   Shipped with the gallery truncation noted in app_review_state, accepted knowingly;
+   fix it in a later tvOS build rather than holding a release for weather.
    DONE 2026-09-09: beach.donwb.com links the listing
    (https://apps.apple.com/us/app/volusia-beach-info/id6761724123) from the board
    footer and /support ("Get the app"); the build-18 wording caution is over.
@@ -603,6 +608,12 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-09-17: tvOS 1.3 (30) RELEASED on the App Store — the sunrise/sunset header band,
+  the verdict tide wave with a now-line that ticks every 30 s (the build-29 freeze fixed
+  in 376b1d5), two-line weekend headlines, and the NAME · NOW · RAMP PREDICTION column
+  relabel. Submitted 9/16, live 9/17 16:33:58Z, verified 2026-09-19 via the iTunes
+  lookup API. Closes the App Store thread that had been open since the first submission
+  on 2026-08-18: both platforms are now public on the parity design.
 - 2026-09-19 (latest): Web camera pick became offline-aware. NSB — the roster's
   `default_id` — went dark upstream at 02:25 ET and `pickCamera` (web/js/cam.js)
   selected on ID alone, so every first-time visitor to beach.donwb.com landed on a
