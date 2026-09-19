@@ -77,7 +77,21 @@ struct ContentView: View {
     private static let streamOverride: URL? = launchArgs
         .firstIndex(of: "--stream-url")
         .flatMap { idx in launchArgs.indices.contains(idx + 1) ? URL(string: launchArgs[idx + 1]) : nil }
+    /// --idle-seconds N: shorten the idle reset so a UI test can reach it
+    /// without waiting out the real ten minutes.
+    private static let idleSecondsOverride: TimeInterval? = launchArgs
+        .firstIndex(of: "--idle-seconds")
+        .flatMap { idx in launchArgs.indices.contains(idx + 1) ? TimeInterval(launchArgs[idx + 1]) : nil }
     #endif
+
+    /// The idle window actually applied — the constant, or a DEBUG override.
+    private var idleWindow: TimeInterval {
+        #if DEBUG
+        return Self.idleSecondsOverride ?? Self.idleReset
+        #else
+        return Self.idleReset
+        #endif
+    }
 
     var body: some View {
         ZStack {
@@ -522,11 +536,20 @@ struct ContentView: View {
             sunRising = solar.isRising(at: now)
         }
 
-        // Idle: surfaces close and focus clears; the ledger stays — there is
-        // no mode to fall back to any more.
-        if Date().timeIntervalSince(lastRemoteActivity) > Self.idleReset {
+        // Idle: surfaces close and focus returns to the cam being watched;
+        // the ledger stays — there is no mode to fall back to any more.
+        //
+        // Focus parks on the watched camera rather than clearing, because on
+        // this board focus IS the channel selector (see onChange(of: focus)).
+        // Clearing it does not leave the board unfocused — tvOS re-seeds onto
+        // the first focusable view, the cam strip's first chip — so the flip
+        // fired for a camera nobody chose and the picture snapped back to the
+        // roster's first camera after ten idle minutes. selectCamera no-ops on
+        // an unchanged id, so parking here cannot move the stream. Same
+        // expression closeSurface() uses to restore focus.
+        if Date().timeIntervalSince(lastRemoteActivity) > idleWindow {
             if activeSurface != nil { closeSurface() }
-            if focus != nil { focus = nil }
+            if focus != nil { focus = viewModel.selectedCamera.map { .cam($0.id) } }
         }
     }
 

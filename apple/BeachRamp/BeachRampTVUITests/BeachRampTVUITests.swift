@@ -58,6 +58,37 @@ final class BeachRampTVUITests: XCTestCase {
                       "the focused cam should become the watched cam")
     }
 
+    /// The idle reset must not change the channel. Focus doubles as the cam
+    /// selector on this board, so clearing focus at the reset let tvOS re-seed
+    /// it onto the strip's first chip, and the picture silently snapped back to
+    /// the roster's first camera ten minutes into watching a different beach.
+    /// Launches with a 3s idle window; tick() evaluates it on its 30s timer.
+    @MainActor
+    func testIdleKeepsTheWatchedCam() throws {
+        app.terminate()
+        app.launchArguments += ["--idle-seconds", "3"]
+        app.launch()
+        XCTAssertTrue(
+            focusedElement(withPrefix: "camStrip.").waitForExistence(timeout: 20),
+            "initial focus should land on the cam strip"
+        )
+
+        remote.press(.right)
+        let chosen = focusedID
+        XCTAssertTrue(chosen.hasPrefix("camStrip."), "expected a cam chip (got \(chosen))")
+        let watched = app.buttons.matching(
+            NSPredicate(format: "identifier == %@ AND value == %@", chosen, "watching")
+        ).firstMatch
+        XCTAssertTrue(watched.waitForExistence(timeout: 3), "\(chosen) should be watched")
+
+        // One full tick past the shortened window, with no remote input.
+        Thread.sleep(forTimeInterval: 40)
+        XCTAssertTrue(
+            watched.exists,
+            "\(chosen) should still be the watched cam after the idle reset"
+        )
+    }
+
     @MainActor
     func testDownWalksIntoTheLedger() throws {
         remote.press(.down)
