@@ -121,7 +121,35 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-19 morning (FOUR OF FIVE CAMS UP — nsb is dark upstream and
+last_verified: 2026-09-19 midday (TVOS IDLE BUG FIXED ON MAIN, FLIGHT BLOCKED ON
+  APPLE ID RE-AUTH. Don reported the tvOS board switching back to New Smyrna Beach
+  after ~10 minutes on another camera. Cause: focus doubles as the cam selector
+  (ContentView onChange(of: focus)) and the idle branch cleared focus outright —
+  clearing it does not leave the board unfocused, tvOS re-seeds onto the first
+  focusable view, the cam strip's first chip, firing a channel flip nobody asked for.
+  FIXED 8127e53: idle parks focus on the cam already being watched (selectCamera
+  no-ops on an unchanged id). REPRODUCED AND PINNED in the Apple TV 4K sim —
+  testIdleKeepsTheWatchedCam fails on the old line, passes on the new one; a new
+  DEBUG hook --idle-seconds N makes the ten-minute window reachable, alongside
+  --sky-minutes and --stream-url. Full tvOS suite 9/9. Note the UI tests are FLAKY ON
+  A COLD SIMULATOR: the 20s roster-load timeout in setUpWithError failed twice on a
+  first boot and passed on every warm run — warm the sim before believing a failure.
+  MARKETING_VERSION BUMPED 1.3 → 1.4 because the 1.3 train closed when tvOS 1.3 went
+  live 9/17; a 1.3 (31) upload would be rejected like 1.0/1.1/1.2 were.
+  FLIGHT ATTEMPTED AND FAILED at Don's explicit direction (he authorized flighting
+  from this remote session, overriding the CLAUDE.md "Don runs this" rule): the
+  archive died at CodeSign with "Invalid credentials in keychain for
+  don.browning@gmail.com, missing Xcode-Token" and errSecInternalComponent. Confirmed
+  `security find-identity -v -p codesigning` shows ONLY "Apple Development" — no
+  distribution identity — which is the documented stale Apple ID session, and the
+  documented fix (remove the Apple ID in Xcode Accounts with −, re-add with
+  password/2FA) needs the console, not a remote session. So the fix is ON MAIN AND
+  UNFLIGHTED. Don's press, at the Mac: re-auth, then
+  `apple/scripts/flight.sh --tv-only --yes` (it will bump 30 → 31 itself; the build
+  number was left at 30 because build 31 never existed). TWO tvOS fixes now ride that
+  next flight — this one and the surf-headline truncation. Prior 2026-09-19 morning
+  state below.)
+prior_2026_09_19_am: (FOUR OF FIVE CAMS UP — nsb is dark upstream and
   that is the county's encoder, not us. Full diagnosis and the do-not-migrate reasoning
   are in Blockers; short version: YouTube says LIVE_STREAM_OFFLINE for 550p9smwjPM on
   every player client while this host resolves other cam IDs fine, the video is neither
@@ -605,7 +633,12 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   uploaded version: 15", proving real history behind the freeze. Accepted deliberately —
   the alternative was deleting and recreating both records, risking the reserved name
   "Beach Ramp Status" to fix a purely cosmetic identifier that users never see.
-- Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
+- Waiting on Don personally: home-cron host maintenance, any App Store Connect
+  actions, and — NEW 2026-09-19 — an Apple ID re-auth AT THE MAC before anything can
+  flight again. The keychain has no distribution identity and reports a missing
+  Xcode-Token; cloud-managed distribution signing is the only path this project has
+  (an ASC API key fails it), and re-auth needs the Xcode UI plus 2FA. Until then every
+  flight fails at CodeSign, however clean the code is.
 
 ## Recently shipped
 - 2026-09-17: tvOS 1.3 (30) RELEASED on the App Store — the sunrise/sunset header band,

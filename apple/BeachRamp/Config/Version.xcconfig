@@ -7,7 +7,7 @@
 //
 // apple/scripts/flight.sh rewrites CURRENT_PROJECT_VERSION on every flight.
 
-MARKETING_VERSION = 1.3
+MARKETING_VERSION = 1.4
 CURRENT_PROJECT_VERSION = 30
 
 // Shipped name under the icon on every platform. The App Store Connect
