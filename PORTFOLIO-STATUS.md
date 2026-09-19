@@ -120,7 +120,22 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-16 morning (QUIET, EVERYTHING GREEN. Repo: main clean, 0/0 vs
+last_verified: 2026-09-19 morning (FOUR OF FIVE CAMS UP — nsb is dark upstream and
+  that is the county's encoder, not us. Full diagnosis and the do-not-migrate reasoning
+  are in Blockers; short version: YouTube says LIVE_STREAM_OFFLINE for 550p9smwjPM on
+  every player client while this host resolves other cam IDs fine, the video is neither
+  private nor replaced, and the restreamer recovers by itself on its 30-minute backoff
+  when the county restarts the stream. Broke 02:25 ET mid-stream. SHIPPED the same
+  morning (eb23fc4, deployed and verified live, sw v28): the web board no longer opens
+  on a camera the health poller reports offline — nsb is the roster default, so until
+  this landed every first-time visitor got a "Reconnecting" panel with four live cams
+  sitting in the same payload. Repo: main clean, 0/0 vs origin/main, main is the only
+  branch. APP STORE: tvOS 1.3 (30) was submitted 2026-09-16 and the review outcome is
+  STILL UNOBSERVED — next session should check ASC and record it; that is the one open
+  thread. CORRECTS the 2026-09-16 entry below, which reads "EVERYTHING GREEN / all five
+  cam endpoints 200" — true when written, overtaken by the nsb outage three days later.
+  Prior 2026-09-16 state below.)
+prior_2026_09_16: (QUIET, EVERYTHING GREEN. Repo: main clean, 0/0 vs
   origin/main, no stashes, no untracked files; last commits are both 9/13 (d26d398
   restreamer log rotation, 4e688d7 Ormond Beach URL rotation), both merged via PR.
   PRUNED the same session: fix/ormond-beach-youtube-url and
