@@ -607,6 +607,15 @@ export function createBoardView(store) {
 
   function updateCam(s) {
     const camera = pickCamera(s.cameras, s.selectedCameraId);
+    // pickCamera stepped over a dark default for us. Record that choice so it
+    // holds for the session: the roster refreshes on every poll, and without
+    // this the default coming back online would yank the video to a different
+    // beach mid-watch. store.set notifies synchronously, so the nested call
+    // renders and this one steps aside.
+    if (camera && !s.selectedCameraId && camera.id !== s.cameras?.default_id) {
+      store.set({ selectedCameraId: camera.id });
+      return;
+    }
     const url = camera?.stream_url || s.config?.video_stream_url;
     const section = $('#cam-section');
     const scenario = new URLSearchParams(location.search).get('scenario');

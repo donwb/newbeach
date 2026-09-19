@@ -9,6 +9,7 @@ import { forSun, dayness, groundState, cssRGB } from './sky.js';
 import { buildVerdict, nextExtreme, reopenEstimate, durationText, spelled } from './verdict.js';
 import { curvePoints, curveAnchors, heightAt } from './tide.js';
 import { clock, sinceString, prettyRampName, categoryFromStatus, easternMidnight, easternToUtc } from './format.js';
+import { pickCamera } from './cam.js';
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -168,6 +169,27 @@ check('pretty ordinal', prettyRampName('3RD AV'), '3rd Av');
 check('pretty ISB wraps not truncates (name only)', prettyRampName('INTERNATIONAL SPEEDWAY BLVD'), 'International Speedway Blvd');
 check('category entrance only', categoryFromStatus('OPEN - ENTRANCE ONLY'), 'limited');
 check('category unknown defaults closed', categoryFromStatus('CLOSED - AT CAPACITY'), 'closed');
+
+// --- camera pick (a dark default must not strand a first-time visitor) ---
+const roster = {
+  default_id: 'nsb',
+  cameras: [
+    { id: 'nsb', name: 'New Smyrna Beach', online: false },
+    { id: 'ponce-inlet', name: 'Ponce Inlet', online: true },
+    { id: 'dunlawton', name: 'Dunlawton', online: true },
+  ],
+};
+check('offline default falls through to the first live cam', pickCamera(roster, null)?.id, 'ponce-inlet');
+check('an explicit pick is sticky even when dark', pickCamera(roster, 'nsb')?.id, 'nsb');
+check('a live default is still preferred', pickCamera({ ...roster, default_id: 'dunlawton' }, null)?.id, 'dunlawton');
+check('unknown selected id falls back, not crashes', pickCamera(roster, 'gone')?.id, 'ponce-inlet');
+check('missing online flag counts as live', pickCamera({ default_id: 'a', cameras: [{ id: 'a' }, { id: 'b', online: true }] }, null)?.id, 'a');
+check('every cam dark still returns the default', pickCamera({
+  default_id: 'nsb',
+  cameras: [{ id: 'nsb', online: false }, { id: 'ponce-inlet', online: false }],
+}, null)?.id, 'nsb');
+check('empty roster is null', pickCamera({ default_id: 'nsb', cameras: [] }, null), null);
+check('missing roster is null', pickCamera(null, null), null);
 
 if (failures) {
   console.error(`\n${failures} failure(s)`);

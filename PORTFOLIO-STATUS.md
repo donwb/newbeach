@@ -561,6 +561,18 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   with all five cams publishing. Standing risk, not a blocker: the county rotates these
   broadcast IDs without notice, so expect to repeat this — find the new ID on the county
   channel, add a migration, deploy, then kickstart or wait for the 6h roster refresh.
+- NSB cam offline upstream since 2026-09-19 02:25 ET — COUNTY-SIDE, no repo action.
+  YouTube reports `playabilityStatus: LIVE_STREAM_OFFLINE` / "We're experiencing
+  technical difficulties" for 550p9smwjPM on every player client, while the same host
+  resolves other cam IDs fine (PO token, m3u8, format) and the other four publish — so
+  this is the county's encoder, not our relay, yt-dlp, or the home connection. UNLIKE
+  Ormond's two rotations, the video is NOT private and NOT replaced: it still sits on
+  the Volusia Beaches channel (UCjYc5xAEWCYIcqG1-KC9nZQ) among the current five cam
+  broadcasts, titled "New Smyrna Beach Cam 180". So the ID stands and the restreamer
+  recovers on its own 30-minute backoff whenever the county restarts the stream — do
+  not write a migration for this one. Escalate to the Ormond playbook (find the new ID
+  on the channel, migrate, deploy) ONLY if the video turns private or a replacement
+  broadcast appears. Board impact is covered as of 2026-09-19 — see Recently shipped.
 - County GIS is an unstable upstream: Volusia renumbered every OBJECTID once already
   (fixed in ff3a353 + migration 006); could recur.
 - RESOLVED 2026-09-01/02: both Apple platforms are RELEASED — tvOS 1.2 (28) live
@@ -576,6 +588,16 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
 - Waiting on Don personally: home-cron host maintenance and any App Store Connect actions.
 
 ## Recently shipped
+- 2026-09-19 (latest): Web camera pick became offline-aware. NSB — the roster's
+  `default_id` — went dark upstream at 02:25 ET and `pickCamera` (web/js/cam.js)
+  selected on ID alone, so every first-time visitor to beach.donwb.com landed on a
+  "Reconnecting" panel while four cams sat live in the same roster. Now an explicit
+  viewer pick stays sticky even when dark (they chose it, it may come back), but a
+  pick the app makes steps over a camera the relay health poller reports offline; a
+  missing `online` flag counts as live, so older payloads behave as before. The views
+  record that fallback into `selectedCameraId` — without it the roster refresh that
+  brings the default back would yank the video to another beach mid-watch. Covered by
+  8 new cases in web/js/smoke.test.mjs; sw CACHE_NAME v27→v28, ?v=18→19.
 - 2026-09-13 (latest, two PRs, both merged and now verified deployed 2026-09-16): Cam
   infrastructure. (1) #9 / 4e688d7 — migration 013 rotates Ormond Beach to the county's
   new YouTube live ID (p1s7EdZgGvU) after its old broadcast went private 2026-08-31;

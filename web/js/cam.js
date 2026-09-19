@@ -24,13 +24,26 @@ const camState = {
 /**
  * Pick the active camera from the /api/v2/cameras payload: the user's pick,
  * else the roster default, else the first. Null when the roster is empty.
+ *
+ * An explicit pick is sticky even when that camera is dark — the viewer asked
+ * for it, and it may come back while they watch. A pick we made for them is
+ * not: opening on a known-offline camera when live ones are sitting in the
+ * roster just shows a "Reconnecting" panel to someone who never chose it
+ * (NSB went dark upstream 2026-09-19 while it was the roster default, and
+ * every first-time visitor landed on the empty player). `online` is the relay
+ * health poller's call; treat a missing flag as live so an older payload, or
+ * a roster where the poller has not reported yet, behaves as it always did.
  */
 export function pickCamera(roster, selectedId) {
   const cams = roster?.cameras;
   if (!cams?.length) return null;
-  return cams.find((c) => c.id === selectedId)
-    || cams.find((c) => c.id === roster.default_id)
-    || cams[0];
+
+  const chosen = cams.find((c) => c.id === selectedId);
+  if (chosen) return chosen;
+
+  const fallback = cams.find((c) => c.id === roster.default_id) || cams[0];
+  if (fallback.online !== false) return fallback;
+  return cams.find((c) => c.online !== false) || fallback;
 }
 
 function tryPlay(video) {
