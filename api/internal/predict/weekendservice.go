@@ -36,7 +36,8 @@ type WeekendService struct {
 	noaa *noaa.Client
 	fc   ForecastSource
 
-	noPersistence bool // PREDICT_PERSISTENCE_ENABLED=false
+	noPersistence bool     // PREDICT_PERSISTENCE_ENABLED=false
+	levelStations []string // empty = PREDICT_WATER_LEVEL_ENABLED=false
 
 	mu       sync.Mutex
 	cached   *WeekendOutlook
@@ -87,6 +88,12 @@ func (s *WeekendService) Get(ctx context.Context) (*WeekendOutlook, error) {
 // DisablePersistence serves memoryless verdicts (no prior-day carry-over).
 func (s *WeekendService) DisablePersistence() {
 	s.noPersistence = true
+}
+
+// EnableWaterLevel carries today's water-level anomaly into the planner,
+// read from the given CO-OPS gauges.
+func (s *WeekendService) EnableWaterLevel(stations []string) {
+	s.levelStations = stations
 }
 
 // build assembles the weekend outlook's inputs and computes it. Tides are
@@ -143,11 +150,14 @@ func (s *WeekendService) build(ctx context.Context) (*WeekendOutlook, error) {
 		}
 	}
 
+	levels := loadRecentLevels(ctx, s.noaa, s.levelStations, "weekend outlook")
+
 	var prior map[string]PriorDay
 	if !s.noPersistence {
-		prior = loadPriorDay(ctx, s.pool, now, preds, params, "weekend outlook")
+		water, _ := params.withSurge(preds, levels, now)
+		prior = loadPriorDay(ctx, s.pool, now, water, params, "weekend outlook")
 	}
 
-	out := BuildWeekendOutlook(now, ramps, params, vp, preds, land, marine, prior)
+	out := BuildWeekendOutlook(now, ramps, params, vp, preds, land, marine, levels, prior)
 	return &out, nil
 }

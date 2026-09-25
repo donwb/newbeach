@@ -12,8 +12,9 @@ const SettingsKey = "prediction_params"
 // paramsVersion identifies the blob schema. A stored blob with a different
 // version is treated as stale, so bumping this forces a retrain on deploy.
 // v4 added the county-wide wave regime params (Waves); v5 the persistence
-// prior (Persistence); v6 quarantines stale county-data days from labeling.
-const paramsVersion = 6
+// prior (Persistence); v6 quarantines stale county-data days from labeling;
+// v7 learns thresholds on surge-adjusted water heights (Surge).
+const paramsVersion = 7
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {
@@ -77,6 +78,13 @@ type Params struct {
 	// mostly closes again). Nil until training has enough labeled pairs —
 	// and nil always means "behave exactly as the memoryless model".
 	Persistence *PersistenceParams `json:"persistence,omitempty"`
+
+	// Surge is the per-gauge water-level baseline (see surge.go). When set,
+	// every peak height in this blob — thresholds, hard cutoffs, the pools
+	// behind Waves and Persistence — is the effective water height
+	// (predicted + anomaly), and serving must apply the same adjustment.
+	// Nil means predicted heights throughout.
+	Surge *SurgeParams `json:"surge,omitempty"`
 }
 
 // PersistenceParams is the learned one-day persistence prior, expressed as

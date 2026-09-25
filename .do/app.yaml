@@ -71,6 +71,17 @@ services:
       - key: NDBC_STATION
         scope: RUN_AND_BUILD_TIME
         value: "41113"
+      # Water-level anomaly (observed minus predicted) for the prediction
+      # model, from the CO-OPS gauges bracketing Volusia. Same NOAA API as the
+      # tide predictions and water temps, so no relay route is needed. These
+      # match the code defaults; PREDICT_WATER_LEVEL_ENABLED=false is the kill
+      # switch (the trainer retrains at boot to match it).
+      - key: PREDICT_WATER_LEVEL_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
+      - key: WATER_LEVEL_STATIONS
+        scope: RUN_AND_BUILD_TIME
+        value: "8721604,8720218"
       # ERDDAP wave fetches route through the cam-relay droplet's Caddy:
       # NOAA tarpits the app's egress IP (and NDBC 403s it outright), while
       # the droplet's IP is still in NOAA's good graces. Applied to the live

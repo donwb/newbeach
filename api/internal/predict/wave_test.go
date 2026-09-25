@@ -179,7 +179,7 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 
 	t.Run("fresh calm observation demotes marginal risk and surfaces surf", func(t *testing.T) {
 		calm := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 1.2}
-		out := BuildOutlook(now, ramps, params, preds, calm, nil)
+		out := BuildOutlook(now, ramps, params, preds, calm, nil, nil)
 		require.NotNil(t, out.Surf)
 		assert.Equal(t, "calm", out.Surf.Regime)
 		assert.InDelta(t, 1.2, out.Surf.WaveHeightFt, 0.001)
@@ -193,19 +193,19 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 		// 10am and four NS ramps closed — a groundswell is swell energy.
 		period := 14.0
 		swell := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 1.2, DominantPeriodS: &period}
-		out := BuildOutlook(now, ramps, params, preds, swell, nil)
+		out := BuildOutlook(now, ramps, params, preds, swell, nil, nil)
 		require.NotNil(t, out.Surf)
 		assert.Equal(t, "rough", out.Surf.Regime)
 		assert.Equal(t, RiskPossible, riskByID(out)["NS-106"], "no calm relief under a groundswell; the drop hedges")
 
 		short := 4.0
 		chop := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 1.2, DominantPeriodS: &short}
-		assert.Equal(t, "calm", BuildOutlook(now, ramps, params, preds, chop, nil).Surf.Regime, "short-period chop at the same height is still calm")
+		assert.Equal(t, "calm", BuildOutlook(now, ramps, params, preds, chop, nil, nil).Surf.Regime, "short-period chop at the same height is still calm")
 	})
 
 	t.Run("rough observation keeps the marginal call flagged", func(t *testing.T) {
 		rough := &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: 3.6}
-		out := BuildOutlook(now, ramps, params, preds, rough, nil)
+		out := BuildOutlook(now, ramps, params, preds, rough, nil, nil)
 		require.NotNil(t, out.Surf)
 		assert.Equal(t, "rough", out.Surf.Regime)
 		// The drop widens NS-106's possible band downward, but never
@@ -215,13 +215,13 @@ func TestBuildOutlookWaveHandling(t *testing.T) {
 
 	t.Run("stale observation is ignored", func(t *testing.T) {
 		stale := &models.WaveSample{Time: now.Add(-7 * time.Hour), HeightFt: 1.2}
-		out := BuildOutlook(now, ramps, params, preds, stale, nil)
+		out := BuildOutlook(now, ramps, params, preds, stale, nil, nil)
 		assert.Nil(t, out.Surf, "a 7h-old reading is no reading")
 		assert.Equal(t, RiskPossible, riskByID(out)["NS-106"], "tide-only behavior")
 	})
 
 	t.Run("nil wave is tide-only", func(t *testing.T) {
-		out := BuildOutlook(now, ramps, params, preds, nil, nil)
+		out := BuildOutlook(now, ramps, params, preds, nil, nil, nil)
 		assert.Nil(t, out.Surf)
 		assert.Equal(t, RiskPossible, riskByID(out)["NS-106"])
 	})
@@ -240,7 +240,7 @@ func TestScorecardCarriesWaveContext(t *testing.T) {
 		{Time: et(16, 8, 0), HeightFt: 2.4},
 	}
 
-	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), waves, nil)
+	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), waves, nil, nil)
 
 	require.Len(t, sc.Ramps, 1)
 	require.Len(t, sc.Ramps[0].Peaks, 1)

@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/donwb/beach/api/internal/database"
+	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/noaa"
 	"github.com/donwb/beach/api/internal/predict"
 )
@@ -110,7 +111,7 @@ func HandleAdminPredictionParams(pool *pgxpool.Pool) echo.HandlerFunc {
 // and compared with the closure history. Defaults to yesterday (Eastern);
 // ?date=YYYY-MM-DD grades any past day inside the recorded history.
 // GET /api/v2/admin/prediction/scorecard
-func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string) echo.HandlerFunc {
+func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string, levelStations []string) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
@@ -178,6 +179,19 @@ func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client,
 			slog.Warn("scorecard: loading wave observations", "err", err)
 		}
 
+		// Water-level anomaly for the graded day and the one before (the
+		// prior-day label), best-effort — without it the grades fall back
+		// to predicted heights.
+		var levels []models.WaterLevelSample
+		for _, st := range levelStations {
+			l, err := noaaClient.FetchWaterLevelResiduals(ctx, st, date.AddDate(0, 0, -2), date.AddDate(0, 0, 1))
+			if err != nil {
+				slog.Warn("scorecard: loading water levels", "station", st, "err", err)
+				continue
+			}
+			levels = append(levels, l...)
+		}
+
 		// Manually quarantined days — best-effort, the heuristics run either way.
 		var excludedDays map[string]bool
 		if raw, err := database.GetSetting(ctx, pool, predict.ExcludedDaysKey); err != nil {
@@ -186,6 +200,6 @@ func HandleAdminPredictionScorecard(pool *pgxpool.Pool, noaaClient *noaa.Client,
 			excludedDays = predict.ParseExcludedDays(raw)
 		}
 
-		return c.JSON(http.StatusOK, predict.BuildScorecard(date, history, closureHeights, params, preds, waves, excludedDays))
+		return c.JSON(http.StatusOK, predict.BuildScorecard(date, history, closureHeights, params, preds, waves, levels, excludedDays))
 	}
 }

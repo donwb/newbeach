@@ -36,6 +36,11 @@ type PeakGrade struct {
 	DominantPeriodS *float64   `json:"dominant_period_s,omitempty"`
 	WaveObservedAt  *time.Time `json:"wave_observed_at,omitempty"`
 
+	// SurgeFt is the water-level anomaly the grade was made under: the
+	// graded water height is PeakFt + SurgeFt. Absent when no gauge
+	// reading covered the peak (graded on the predicted height).
+	SurgeFt *float64 `json:"surge_ft,omitempty"`
+
 	// Yesterday is the persistence prior the grade was made under.
 	Yesterday *YesterdayContext `json:"yesterday,omitempty"`
 
@@ -149,12 +154,17 @@ func matchClosure(peak models.TidePrediction, closures []closureEvent) *closureE
 // series covering the day (any order; nil is fine) — it annotates each grade
 // with the sea state nearest the peak. excludedDays (ParseExcludedDays; nil
 // is fine) joins the staleness heuristics: a quarantined day's peaks grade
-// "stale" and stay out of the accuracy summary. Pure — no I/O.
-func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEvent, closureHeights map[string]*float64, params Params, preds []models.TidePrediction, waves []models.WaveSample, excludedDays map[string]bool) Scorecard {
+// "stale" and stay out of the accuracy summary. levels is the gauge
+// water-level series covering the day (nil grades on predicted heights).
+// Pure — no I/O.
+func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEvent, closureHeights map[string]*float64, params Params, preds []models.TidePrediction, waves []models.WaveSample, levels []models.WaterLevelSample, excludedDays map[string]bool) Scorecard {
 	sortWaveSamples(waves)
 	et := date.In(eastern)
 	dayStart := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern)
 	dayEnd := dayStart.AddDate(0, 0, 1)
+	// The graded day is history, so every peak carries the anomaly observed
+	// at it — the same effective height training learned on.
+	water, _ := params.withSurge(preds, levels, dayEnd)
 	excl := findExclusions(historyByRamp, dayEnd, excludedDays)
 
 	// The day's schedule, framed from early morning so buildSchedule never
@@ -162,10 +172,13 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 	season, sched := buildSchedule(dayStart.Add(5*time.Hour), params)
 
 	// Daytime peaks on the target date.
-	var dayPeaks []models.TidePrediction
-	for _, p := range tidePeaks(preds) {
-		if !p.Time.Before(dayStart) && p.Time.Before(dayEnd) {
+	// dayPeaks carry NOAA's predicted heights for the payload; waterPeaks
+	// (same order) the effective heights the grades are made on.
+	var dayPeaks, waterPeaks []models.TidePrediction
+	for i, p := range preds {
+		if isDaytimePeak(p) && !p.Time.Before(dayStart) && p.Time.Before(dayEnd) {
 			dayPeaks = append(dayPeaks, p)
+			waterPeaks = append(waterPeaks, water[i])
 		}
 	}
 
@@ -184,7 +197,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 
 	// The same prior the live model would have had that morning: yesterday
 	// from the full history, today never leaking in.
-	prior := priorDayFacts(dayStart.Add(5*time.Hour), historyByRamp, preds, params.hardOpen(), excludedDays)
+	prior := priorDayFacts(dayStart.Add(5*time.Hour), historyByRamp, water, params.hardOpen(), excludedDays)
 
 	accessIDs := make([]string, 0, len(historyByRamp))
 	for id := range historyByRamp {
@@ -230,7 +243,8 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 				waveFt = &w.HeightFt
 				periodS = w.DominantPeriodS
 			}
-			risk := riskForPeak(*peak.Height, clampTotalShift(params.waveShiftFor(waveFt, periodS)+persist), rp, params.hardOpen(), params.hardClose())
+			waterFt := *waterPeaks[i].Height
+			risk := riskForPeak(waterFt, clampTotalShift(params.waveShiftFor(waveFt, periodS)+persist), rp, params.hardOpen(), params.hardClose())
 			closed := labels[i]
 			pg := PeakGrade{
 				PeakTime:  peak.Time,
@@ -239,6 +253,9 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 				Closed:    closed,
 				Outcome:   outcomeFor(risk, closed),
 				Yesterday: yesterday,
+			}
+			if surge := math.Round((waterFt-*peak.Height)*1000) / 1000; surge != 0 {
+				pg.SurgeFt = &surge
 			}
 			if w != nil {
 				h := w.HeightFt

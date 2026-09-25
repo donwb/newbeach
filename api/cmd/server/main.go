@@ -102,6 +102,20 @@ func main() {
 	// serving goes memoryless; training still learns the shifts.
 	predictPersistenceEnabled := os.Getenv("PREDICT_PERSISTENCE_ENABLED") != "false"
 
+	// Water-level anomaly: observed-minus-predicted water at the CO-OPS
+	// gauges bracketing Volusia (the county has no observing gauge). The
+	// kill switch covers training too — thresholds are learned on
+	// surge-adjusted heights — and the trainer retrains at boot when the
+	// stored params disagree with it.
+	var waterLevelStations []string
+	if os.Getenv("PREDICT_WATER_LEVEL_ENABLED") != "false" {
+		wl := os.Getenv("WATER_LEVEL_STATIONS")
+		if wl == "" {
+			wl = "8721604,8720218" // Trident Pier, Mayport
+		}
+		waterLevelStations = strings.Split(wl, ",")
+	}
+
 	// Weekend outlook: NWS forecast gridpoints (land + marine) feed the
 	// multi-day verdicts. The base URL is overridable in case the App
 	// Platform egress IP ever gets blocked — point it at the cam-relay
@@ -180,6 +194,7 @@ func main() {
 	if !predictPersistenceEnabled {
 		outlookSvc.DisablePersistence()
 	}
+	outlookSvc.EnableWaterLevel(waterLevelStations)
 
 	// Surf report: one casual surf line on the outlook. Its switch is
 	// independent of PREDICT_WAVES_ENABLED — killing the copy must not kill
@@ -198,8 +213,9 @@ func main() {
 		if !predictPersistenceEnabled {
 			weekendSvc.DisablePersistence()
 		}
+		weekendSvc.EnableWaterLevel(waterLevelStations)
 	}
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, ndbcStation)
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, ndbcStation, waterLevelStations)
 
 	// Serve static website files from the filesystem, after API routes so the
 	// CORS and logging middleware registered there wrap static responses too.
@@ -259,6 +275,7 @@ func main() {
 	// Nightly prediction trainer — learns per-ramp tide-closure thresholds
 	// from ramp_status_history and persists them to the settings table.
 	trainer := predict.NewTrainer(pool, noaaClient, ndbcStation)
+	trainer.EnableWaterLevel(waterLevelStations)
 	go trainer.Start(ctx)
 
 	// Start the HTTP server in a goroutine.

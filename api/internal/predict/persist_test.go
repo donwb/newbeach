@@ -122,23 +122,23 @@ func TestBuildOutlookPersistence(t *testing.T) {
 
 	find := func(out Outlook) RampOutlook { return out.Ramps[0] }
 
-	memoryless := find(BuildOutlook(now, ramps, params, preds, nil, nil))
+	memoryless := find(BuildOutlook(now, ramps, params, preds, nil, nil, nil))
 	assert.Equal(t, RiskPossible, memoryless.Risk)
 	assert.Nil(t, memoryless.Yesterday)
 
-	rode := find(BuildOutlook(now, ramps, params, preds, nil, map[string]PriorDay{"NS-106": {Known: true, MaxPeakFt: 3.3}}))
+	rode := find(BuildOutlook(now, ramps, params, preds, nil, nil, map[string]PriorDay{"NS-106": {Known: true, MaxPeakFt: 3.3}}))
 	assert.Equal(t, RiskScheduled, rode.Risk, "rode out a near-identical tide yesterday → no tide call today")
 	require.NotNil(t, rode.Yesterday)
 	assert.True(t, rode.Yesterday.Applied)
 	assert.False(t, rode.Yesterday.Closed)
 
-	closed := find(BuildOutlook(now, ramps, params, preds, nil, map[string]PriorDay{"NS-106": {Known: true, Closed: true, MaxPeakFt: 3.3}}))
+	closed := find(BuildOutlook(now, ramps, params, preds, nil, nil, map[string]PriorDay{"NS-106": {Known: true, Closed: true, MaxPeakFt: 3.3}}))
 	assert.Equal(t, RiskPossible, closed.Risk, "closed yesterday never promotes to likely")
 	require.NotNil(t, closed.Yesterday)
 	assert.True(t, closed.Yesterday.Closed)
 	assert.Contains(t, closed.Detail, "closed for yesterday's tide too")
 
-	unknown := find(BuildOutlook(now, ramps, params, preds, nil, map[string]PriorDay{"NS-106": {}}))
+	unknown := find(BuildOutlook(now, ramps, params, preds, nil, nil, map[string]PriorDay{"NS-106": {}}))
 	assert.Equal(t, memoryless.Risk, unknown.Risk)
 	assert.Nil(t, unknown.Yesterday, "an unknown prior is not echoed")
 }
@@ -193,9 +193,8 @@ func TestTrainPersistParams(t *testing.T) {
 }
 
 func TestTrainLearnsPersistenceFromFixture(t *testing.T) {
-	history := loadHistoryFixture(t)
-	hilo := loadHiloFixture(t)
-	params := Train(history, hilo, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern), nil)
+	history, hilo, _ := loadSummerFixtures(t)
+	params := Train(history, hilo, nil, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern), nil)
 	require.NotNil(t, params.Persistence)
 	assert.Greater(t, params.Persistence.OpenRaiseFt, 0.0)
 	own := 0
@@ -209,10 +208,9 @@ func TestTrainLearnsPersistenceFromFixture(t *testing.T) {
 }
 
 func TestScorecardGradesWithPrior(t *testing.T) {
-	history := loadHistoryFixture(t)
-	hilo := loadHiloFixture(t)
-	params := Train(history, hilo, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern), nil)
-	sc := BuildScorecard(time.Date(2026, 7, 10, 0, 0, 0, 0, eastern), history, nil, params, hilo, nil, nil)
+	history, hilo, _ := loadSummerFixtures(t)
+	params := Train(history, hilo, nil, nil, time.Date(2026, 8, 16, 0, 0, 0, 0, eastern), nil)
+	sc := BuildScorecard(time.Date(2026, 7, 10, 0, 0, 0, 0, eastern), history, nil, params, hilo, nil, nil, nil)
 	require.NotEmpty(t, sc.Ramps)
 	assert.NotNil(t, sc.Persistence)
 	seen := false
@@ -245,8 +243,8 @@ func TestWeekendPersistenceIsHeightAnchored(t *testing.T) {
 	}
 	land := flatLand(now, now.AddDate(0, 0, 7), nil)
 
-	memoryless := BuildWeekendOutlook(now, testRamps(), params, DefaultVerdictParams(), preds, land, nil, nil)
-	withPrior := BuildWeekendOutlook(now, testRamps(), params, DefaultVerdictParams(), preds, land, nil, prior)
+	memoryless := BuildWeekendOutlook(now, testRamps(), params, DefaultVerdictParams(), preds, land, nil, nil, nil)
+	withPrior := BuildWeekendOutlook(now, testRamps(), params, DefaultVerdictParams(), preds, land, nil, nil, prior)
 
 	assert.Equal(t, PressureSome, day(t, memoryless, "Friday").ClosurePressure)
 	assert.Equal(t, PressureNone, day(t, withPrior, "Friday").ClosurePressure, "same tide as the one they rode out → carried forward")

@@ -111,10 +111,21 @@ func main() {
 	}
 	waves = deduped
 
+	// Gauge water levels for the anomaly, the same gauges prod reads.
+	var levels []models.WaterLevelSample
+	for _, st := range []string{"8721604", "8720218"} {
+		l, err := noaaClient.FetchWaterLevelResiduals(ctx, st, histStart, time.Now())
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: water levels for %s: %v (grading on predicted heights)\n", st, err)
+			continue
+		}
+		levels = append(levels, l...)
+	}
+
 	// nil manual exclusions: this harness has no settings access, but the
 	// automatic staleness heuristics still run inside Train/BuildScorecard.
-	params := predict.Train(history, preds, waves, time.Now(), nil)
-	sc := predict.BuildScorecard(date, history, closureHeights, params, preds, waves, nil)
+	params := predict.Train(history, preds, waves, levels, time.Now(), nil)
+	sc := predict.BuildScorecard(date, history, closureHeights, params, preds, waves, levels, nil)
 	out, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {
 		fail("marshaling: %v", err)

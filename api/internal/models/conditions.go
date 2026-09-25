@@ -15,6 +15,16 @@ type WaveSample struct {
 	DominantPeriodS *float64  `json:"dpd_s,omitempty"`
 }
 
+// WaterLevelSample is one hourly observed-minus-predicted water level at a
+// NOAA CO-OPS gauge — how far the real ocean is running above (positive) or
+// below the astronomical tide. Shared by the NOAA fetcher, the trainer, and
+// the predict engine, so predict never imports noaa.
+type WaterLevelSample struct {
+	Station    string    `json:"s"`
+	Time       time.Time `json:"t"`
+	ResidualFt float64   `json:"r"`
+}
+
 type BeachConditions struct {
 	ID               int64      `json:"id"`
 	RecordedAt       time.Time  `json:"recorded_at"`

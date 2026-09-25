@@ -40,6 +40,11 @@ type Service struct {
 	// left alone.
 	noPersistence bool
 
+	// levelStations are the CO-OPS gauges whose recent residuals feed the
+	// water-level anomaly; empty serves on predicted heights
+	// (PREDICT_WATER_LEVEL_ENABLED=false).
+	levelStations []string
+
 	mu       sync.Mutex
 	cached   *Outlook
 	cachedAt time.Time
@@ -77,6 +82,27 @@ func loadPriorDay(ctx context.Context, pool *pgxpool.Pool, now time.Time, preds 
 		excludedDays = ParseExcludedDays(raw)
 	}
 	return priorDayFacts(now, events, preds, params.hardOpen(), excludedDays)
+}
+
+// EnableWaterLevel turns on the water-level anomaly, read from the given
+// CO-OPS gauges.
+func (s *Service) EnableWaterLevel(stations []string) {
+	s.levelStations = stations
+}
+
+// loadRecentLevels fetches the recent gauge residuals. Best-effort: the
+// outlook must never fail because NOAA's gauges did, and nil is read as
+// normal water (predicted heights).
+func loadRecentLevels(ctx context.Context, client *noaa.Client, stations []string, label string) []models.WaterLevelSample {
+	if len(stations) == 0 {
+		return nil
+	}
+	levels, err := client.RecentWaterLevels(ctx, stations)
+	if err != nil {
+		slog.Warn(label+": water levels unavailable, assuming normal water", "err", err)
+		return nil
+	}
+	return levels
 }
 
 // SetWeatherClient hands the service the NWS client used for surf-report
@@ -175,12 +201,17 @@ func (s *Service) build(ctx context.Context) (*Outlook, error) {
 		modelWave = nil // PREDICT_WAVES_ENABLED=false: tide-only risk calls
 	}
 
+	levels := loadRecentLevels(ctx, s.noaa, s.levelStations, "outlook")
+
+	// Yesterday is labeled on the water that arrived, the same effective
+	// heights the params were trained on.
 	var prior map[string]PriorDay
 	if !s.noPersistence {
-		prior = loadPriorDay(ctx, s.pool, now, preds, params, "outlook")
+		water, _ := params.withSurge(preds, levels, now)
+		prior = loadPriorDay(ctx, s.pool, now, water, params, "outlook")
 	}
 
-	out := BuildOutlook(now, ramps, params, preds, modelWave, prior)
+	out := BuildOutlook(now, ramps, params, preds, modelWave, levels, prior)
 
 	// The surf line rides on top — best-effort, never fails the outlook.
 	if s.surfStation != "" {

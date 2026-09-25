@@ -202,6 +202,30 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   camera infrastructure. Full pipeline, evidence, and runbook: `docs/WAVE-DATA.md`.
   Don't "simplify" the fallback away, and don't debug missing prod wave data by
   fetching NDBC from a home machine — it will work there and prove nothing.
+- **The water-level anomaly ("surge", 2026-09-25, params v7) — the model reads the water
+  that arrives, not just the moon's prediction.** `predict/surge.go`: hourly
+  observed-minus-predicted residuals at the two CO-OPS gauges bracketing Volusia (Trident
+  Pier 8721604, Mayport 8720218 — the county has no observing gauge; 8721164 is
+  prediction-only), each read as a trailing-12h deviation from its own learned baseline
+  (`Params.Surge.BaselineFt`, the gauge's median; Trident runs ~+0.5 ft on a normal day)
+  and averaged. `withSurge` raises every predicted extreme by it: past peaks by the
+  anomaly observed then, future ones by today's reading decayed 25%/day (measured
+  autocorrelation 0.8 / 0.5 / 0.35 at 1/2/3 days). **Training learns thresholds, hard
+  cutoffs, and the wave/persistence pools on these effective heights**, so serving must
+  apply the same adjustment everywhere a height is compared — outlook, weekend, scorecard,
+  and the prior-day labels. Unlike the waves this is tide evidence, so it may promote to
+  `likely` and cross the hard cutoffs; below-normal water counts **half**
+  (`surgeDownFactor`) because August showed the county closing anyway on low-water days.
+  Payload: NOAA's own predicted numbers stay in `tide`; the anomaly applied echoes as
+  `surge {anomaly_ft, observed_at, stations}`; scorecard grades carry `surge_ft`.
+  Backtest (`TestBacktestSurgeCounty`, 27 ramps on 8721164, walk-forward May–Sep):
+  misses 111 → 21, likely precision 0.59 → 0.74, better grade score every month,
+  September misses 28 → 4. It also absorbs much of what the persistence prior was
+  proxying (high water persists for days). Needs the county-wide pool — on the six-ramp
+  summer fixture it soaks up the storm days that teach the rough-water drop.
+  `PREDICT_WATER_LEVEL_ENABLED=false` turns it off in training *and* serving (thresholds
+  change units), and the trainer retrains at boot when stored params disagree with the
+  switch. Gauge outages degrade to normal-water (predicted heights), never an error.
 - **The end-of-day close is learned, not posted.** The county clears the beach before the
   posted time — turtle-season 7pm has been running ~6:30 — so the trainer learns the
   median offset from history into `day_close_offset_min` and `buildSchedule` applies it
@@ -213,9 +237,14 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   peak, then hands off to the day's close. `decayRisk` + the phases in `tideText`.
 - **A non-NULL `ramp_metadata.closure_height_ft` overrides the learned threshold** — only
   curate it deliberately.
-- `api/internal/predict/backtest_test.go` replays five months of checked-in real history
-  and pins recall/calibration floors — engine changes that degrade real-world behavior
-  fail tests. Refresh fixtures from `/api/v2/ramps/:id/history` + NOAA hilo when needed.
+- `api/internal/predict/backtest_test.go` replays checked-in real history and pins
+  recall/calibration floors — engine changes that degrade real-world behavior fail tests.
+  Two fixture sets: the original six ramps on 8721147 (`history.json`/`hilo.json`, now
+  through 2026-09-24 but read trimmed to the Mar–Aug span their floors were measured on,
+  `loadSummerFixtures`), and the county-wide set on the prod station
+  (`history_county.json`/`hilo_8721164.json`, `cmd/gen-county-fixture`). `waves.json`
+  (`cmd/gen-waves-fixture`, extends — never rebuilds) and `levels.json`
+  (`cmd/gen-levels-fixture`) are shared.
 - **Persistence prior (2026-08-21): "did it close yesterday?" is the strongest single
   predictor inside the learnable band.** Five months of history show the county's call
   carries over day to day far beyond what the tide height explains (DBS-075 at a ~3.0 ft
@@ -359,6 +388,8 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `NDBC_STATION` | Conditions logger, prediction | NDBC wave buoy ID (default: 41113, Ponce Inlet) |
 | `PREDICT_WAVES_ENABLED` | API | Set `false` to serve tide-only outlooks (wave series keeps accumulating) |
 | `PREDICT_PERSISTENCE_ENABLED` | API | Set `false` to serve memoryless outlooks — no "did it close yesterday?" prior (training still learns it) |
+| `PREDICT_WATER_LEVEL_ENABLED` | API | Set `false` to drop the water-level anomaly from training and serving (predicted heights only; retrains at boot) |
+| `WATER_LEVEL_STATIONS` | Prediction | CO-OPS gauges for the anomaly (default `8721604,8720218`, Trident Pier + Mayport) |
 | `WEEKEND_OUTLOOK_ENABLED` | API | Set `false` to remove `/api/v2/outlook/weekend` entirely (clients hide the section) |
 | `NWS_BASE_URL` | Weekend outlook | NWS API base override; unset = api.weather.gov. If the app egress ever gets blocked, point at a cams.donwb.com Caddy proxy route (`NDBC_ERDDAP_URL` precedent) |
 | `NWS_LAND_GRIDPOINT` | Weekend outlook | NWS land gridpoint `OFFICE/x,y` (default `MLB/42,92`, New Smyrna) |

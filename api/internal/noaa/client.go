@@ -36,6 +36,7 @@ type Client struct {
 	tideStationID  string
 	tempStationIDs []string
 	predCache      predictionCache
+	levels         levelsCache
 }
 
 // NewClient creates a NOAA API client.

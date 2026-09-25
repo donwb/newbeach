@@ -2,6 +2,7 @@ package predict
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -28,7 +29,12 @@ type fixtureEvent struct {
 
 func loadHistoryFixture(t *testing.T) map[string][]models.StatusEvent {
 	t.Helper()
-	raw, err := os.ReadFile("testdata/history.json")
+	return loadHistoryFile(t, "testdata/history.json")
+}
+
+func loadHistoryFile(t *testing.T, path string) map[string][]models.StatusEvent {
+	t.Helper()
+	raw, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var byRamp map[string][]fixtureEvent
 	require.NoError(t, json.Unmarshal(raw, &byRamp))
@@ -46,7 +52,12 @@ func loadHistoryFixture(t *testing.T) map[string][]models.StatusEvent {
 
 func loadHiloFixture(t *testing.T) []models.TidePrediction {
 	t.Helper()
-	raw, err := os.ReadFile("testdata/hilo.json")
+	return loadHiloFile(t, "testdata/hilo.json")
+}
+
+func loadHiloFile(t *testing.T, path string) []models.TidePrediction {
+	t.Helper()
+	raw, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var rows []struct {
 		T    string `json:"t"`
@@ -79,6 +90,46 @@ func loadWavesFixture(t *testing.T) []models.WaveSample {
 	return samples
 }
 
+// summerFixtureEnd bounds the span the original backtests were measured on
+// (history fetched 2026-08-16; hilo and waves ran a little past it). The
+// fixtures have since been extended through king-tide season; trimming back
+// reproduces the original data exactly, so the summer floors below keep
+// meaning what they were measured to mean.
+var (
+	summerHistoryEnd = time.Date(2026, 8, 16, 12, 10, 0, 0, time.UTC)
+	summerHiloEnd    = time.Date(2026, 8, 19, 4, 0, 0, 0, time.UTC) // midnight ET
+	summerWavesEnd   = time.Date(2026, 8, 17, 0, 0, 0, 0, time.UTC)
+)
+
+// loadSummerFixtures returns the history, hilo, and wave fixtures trimmed to
+// the original Mar–Aug 2026 backtest span.
+func loadSummerFixtures(t *testing.T) (map[string][]models.StatusEvent, []models.TidePrediction, []models.WaveSample) {
+	t.Helper()
+	history := loadHistoryFixture(t)
+	for id, evs := range history {
+		var kept []models.StatusEvent
+		for _, e := range evs {
+			if e.RecordedAt.Before(summerHistoryEnd) {
+				kept = append(kept, e)
+			}
+		}
+		history[id] = kept
+	}
+	var hilo []models.TidePrediction
+	for _, p := range loadHiloFixture(t) {
+		if p.Time.Before(summerHiloEnd) {
+			hilo = append(hilo, p)
+		}
+	}
+	var waves []models.WaveSample
+	for _, w := range loadWavesFixture(t) {
+		if w.Time.Before(summerWavesEnd) {
+			waves = append(waves, w)
+		}
+	}
+	return history, hilo, waves
+}
+
 // actualClosureDays returns the set of ET dates on which the ramp began a
 // tide closure during plausible driving hours.
 func actualClosureDays(events []models.StatusEvent) map[string]bool {
@@ -99,15 +150,28 @@ type backtestTally struct {
 	noneDays, noneRight     int // days flagged none, and those that stayed open
 }
 
+// loadLevelsFixture returns hourly observed-minus-predicted water levels at
+// Trident Pier and Mayport covering the history span. Regenerate with
+// cmd/gen-levels-fixture.
+func loadLevelsFixture(t *testing.T) []models.WaterLevelSample {
+	t.Helper()
+	raw, err := os.ReadFile("testdata/levels.json")
+	require.NoError(t, err)
+	var levels []models.WaterLevelSample
+	require.NoError(t, json.Unmarshal(raw, &levels))
+	return levels
+}
+
 // runBacktest trains on the full fixture span and replays each day's 9am ET
 // outlook against what actually happened. waves nil replays tide-only —
-// exactly the pre-wave engine. persistence false replays memoryless (no
+// exactly the pre-wave engine. levels nil replays on predicted heights —
+// exactly the pre-surge engine. persistence false replays memoryless (no
 // prior-day carry-over) — exactly the pre-persistence engine.
-func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []models.TidePrediction, waves []models.WaveSample, persistence bool) (Params, map[string]*backtestTally) {
+func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []models.TidePrediction, waves []models.WaveSample, levels []models.WaterLevelSample, persistence bool) (Params, map[string]*backtestTally) {
 	t.Helper()
 
 	trainedAt := time.Date(2026, 8, 16, 0, 0, 0, 0, eastern)
-	params := Train(history, hilo, waves, trainedAt, nil)
+	params := Train(history, hilo, waves, levels, trainedAt, nil)
 	require.NotEmpty(t, params.Ramps, "fixture ramps should all learn")
 
 	ramps := make([]models.RampStatusWithSince, 0, len(history))
@@ -137,9 +201,10 @@ func runBacktest(t *testing.T, history map[string][]models.StatusEvent, hilo []m
 		// dropped by priorDayFacts so the replay never peeks at its answer.
 		var prior map[string]PriorDay
 		if persistence {
-			prior = priorDayFacts(at, history, hilo, params.hardOpen(), nil)
+			water, _ := params.withSurge(hilo, levels, at)
+			prior = priorDayFacts(at, history, water, params.hardOpen(), nil)
 		}
-		out := BuildOutlook(at, ramps, params, hilo, waveNearTime(waves, at), prior)
+		out := BuildOutlook(at, ramps, params, hilo, waveNearTime(waves, at), levels, prior)
 		date := day.Format("2006-01-02")
 
 		for _, ro := range out.Ramps {
@@ -214,11 +279,9 @@ var recallFloors = map[string]float64{
 }
 
 func TestBacktestAgainstRealHistory(t *testing.T) {
-	history := loadHistoryFixture(t)
-	hilo := loadHiloFixture(t)
-	waves := loadWavesFixture(t)
+	history, hilo, waves := loadSummerFixtures(t)
 
-	params, tallies := runBacktest(t, history, hilo, waves, true)
+	params, tallies := runBacktest(t, history, hilo, waves, nil, true)
 	assertBacktestFloors(t, tallies, recallFloors, 0.60)
 
 	// The persistence prior must learn from this span — the data shows a
@@ -246,10 +309,9 @@ func TestBacktestAgainstRealHistory(t *testing.T) {
 // The tide-only path must keep reproducing the pre-wave engine: with no wave
 // data at train or serve time, every floor still holds.
 func TestBacktestTideOnlyFallback(t *testing.T) {
-	history := loadHistoryFixture(t)
-	hilo := loadHiloFixture(t)
+	history, hilo, _ := loadSummerFixtures(t)
 
-	params, tallies := runBacktest(t, history, hilo, nil, false)
+	params, tallies := runBacktest(t, history, hilo, nil, nil, false)
 	assertBacktestFloors(t, tallies, recallFloors, 0.50)
 	assert.Nil(t, params.Waves, "no wave data must mean no wave params")
 }
@@ -257,10 +319,143 @@ func TestBacktestTideOnlyFallback(t *testing.T) {
 // The memoryless path must keep reproducing the pre-persistence engine:
 // with no prior at serve time, every floor still holds.
 func TestBacktestPersistenceOff(t *testing.T) {
-	history := loadHistoryFixture(t)
-	hilo := loadHiloFixture(t)
-	waves := loadWavesFixture(t)
+	history, hilo, waves := loadSummerFixtures(t)
 
-	_, tallies := runBacktest(t, history, hilo, waves, false)
+	_, tallies := runBacktest(t, history, hilo, waves, nil, false)
 	assertBacktestFloors(t, tallies, recallFloors, 0.60)
+}
+
+// peakTally aggregates scorecard outcomes over many graded days.
+type peakTally struct {
+	n, closed, misses, likely, likelyRight int
+	cost                                   float64
+}
+
+func (p *peakTally) add(pg PeakGrade) {
+	switch pg.Outcome {
+	case OutcomeStale:
+		return // never graded
+	case OutcomeHit:
+		p.likelyRight++
+		p.likely++
+		p.closed++
+	case OutcomeCovered:
+		p.closed++
+		p.cost += costCovered
+	case OutcomeMiss:
+		p.closed++
+		p.misses++
+		p.cost += costMiss
+	case OutcomeFalseAlarm:
+		p.likely++
+		p.cost += costFalseAlarm
+	case OutcomeHedged:
+		p.cost += costHedged
+	}
+	p.n++
+}
+
+// score is gradeScore's scale over the tally: 1 is every call a hit or quiet.
+func (p peakTally) score() float64 { return 1 - p.cost/(costMiss*float64(p.n)) }
+
+func (p peakTally) precision() float64 { return float64(p.likelyRight) / float64(p.likely) }
+
+func (p peakTally) String() string {
+	return fmt.Sprintf("graded=%d closed=%d misses=%d likely=%d/%d score=%.3f",
+		p.n, p.closed, p.misses, p.likelyRight, p.likely, p.score())
+}
+
+// walkForward grades every day in [from, to) the way production would have
+// served it: params retrained each Monday on only the history before it (a
+// weekly stand-in for the nightly trainer that keeps the test fast), each
+// day's peaks graded by the scorecard. Tallies are keyed by "all" and by
+// "YYYY-MM"; per-ramp recall counts ride alongside.
+func walkForward(history map[string][]models.StatusEvent, hilo []models.TidePrediction, waves []models.WaveSample, levels []models.WaterLevelSample, from, to time.Time) (map[string]*peakTally, map[string]*peakTally) {
+	tallies := map[string]*peakTally{}
+	byRamp := map[string]*peakTally{}
+	var params Params
+	trained := false
+	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
+		if !trained || d.Weekday() == time.Monday {
+			params = Train(history, hilo, waves, levels, d, nil)
+			trained = true
+		}
+		for _, rg := range BuildScorecard(d, history, nil, params, hilo, waves, levels, nil).Ramps {
+			if byRamp[rg.AccessID] == nil {
+				byRamp[rg.AccessID] = &peakTally{}
+			}
+			for _, pg := range rg.Peaks {
+				for _, k := range []string{"all", d.Format("2006-01")} {
+					if tallies[k] == nil {
+						tallies[k] = &peakTally{}
+					}
+					tallies[k].add(pg)
+				}
+				byRamp[rg.AccessID].add(pg)
+			}
+		}
+	}
+	return tallies, byRamp
+}
+
+// The water-level anomaly, graded county-wide on the production tide
+// station: all 27 ramps, May–Sep 2026, walk-forward. The anomaly exists for
+// king-tide season — September ran +0.4–0.8 ft over prediction for weeks and
+// +1.2 ft on 9/24, and the predicted-tide engine missed whole days of
+// closures under it — but it has to earn its keep all season, so the whole
+// span is graded and the surge engine must beat the predicted-tide engine
+// on the metrics the outcome taxonomy cares about.
+//
+// This needs the county-wide pool. On the six-ramp summer fixture the
+// anomaly soaks up the storm days that taught the rough-water drop, the drop
+// trains to zero, and PI-097 (whose recall is all rough-water drop) loses
+// it; with 27 ramps the drop still learns and PI-097 improves.
+//
+// Measured 2026-09-25 (weekly retrain as below): misses 111 → 21, likely
+// precision 0.593 → 0.742, grade score 0.857 → 0.892 and better in every
+// month; September misses 28 → 4. Daily retrain agrees (114 → 28). Two ramps
+// gave recall back — DBS-067 (1.00 → 0.83, twelve closures) and NS-106
+// (0.80 → 0.74) — both on normal-water days, as training on real water
+// raised their bars; 22 ramps gained.
+func TestBacktestSurgeCounty(t *testing.T) {
+	history := loadHistoryFile(t, "testdata/history_county.json")
+	hilo := loadHiloFile(t, "testdata/hilo_8721164.json")
+	waves := loadWavesFixture(t)
+	levels := loadLevelsFixture(t)
+
+	from := time.Date(2026, 5, 1, 0, 0, 0, 0, eastern)
+	to := time.Date(2026, 9, 25, 0, 0, 0, 0, eastern)
+	off, offRamps := walkForward(history, hilo, waves, nil, from, to)
+	surge, surgeRamps := walkForward(history, hilo, waves, levels, from, to)
+
+	for _, k := range []string{"2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "all"} {
+		t.Logf("%-7s off   %s", k, off[k])
+		t.Logf("%-7s surge %s", k, surge[k])
+	}
+	// The headline claims, pinned below the measured run so the weekly
+	// retrain and small fixture refreshes don't flake them.
+	assert.LessOrEqual(t, surge["all"].misses*3, off["all"].misses, "surge should cut misses by at least two thirds")
+	assert.GreaterOrEqual(t, surge["all"].score(), off["all"].score()+0.02, "surge should grade clearly better")
+	assert.GreaterOrEqual(t, surge["all"].precision(), off["all"].precision(), "'likely' must not get less trustworthy")
+	assert.LessOrEqual(t, surge["2026-09"].misses, 8, "king-tide season is the point")
+	for _, k := range []string{"2026-05", "2026-06", "2026-07", "2026-08", "2026-09"} {
+		assert.GreaterOrEqual(t, surge[k].score(), off[k].score()-0.005, "%s: surge should never grade worse than the predicted-tide engine", k)
+	}
+
+	// No ramp may give back much recall for the county's gain. The worst
+	// measured is DBS-067 (−0.17, twelve closures).
+	for id, o := range offRamps {
+		s := surgeRamps[id]
+		offRecall := 1 - float64(o.misses)/float64(max(o.closed, 1))
+		surgeRecall := 1 - float64(s.misses)/float64(max(s.closed, 1))
+		t.Logf("%-8s closed=%3d recall off=%.2f surge=%.2f", id, o.closed, offRecall, surgeRecall)
+		assert.GreaterOrEqual(t, surgeRecall, offRecall-0.20, "%s gave back too much recall", id)
+	}
+
+	params := Train(history, hilo, waves, levels, to, nil)
+	require.NotNil(t, params.Surge)
+	assert.Len(t, params.Surge.BaselineFt, 2, "both gauges should baseline")
+	require.NotNil(t, params.Waves)
+	assert.Greater(t, params.Waves.RoughDropFt, 0.0, "county-wide, surge must not absorb the rough-water drop")
+	t.Logf("surge: %+v  waves: %+v  persistence: %+v", *params.Surge, *params.Waves, params.Persistence)
 }

@@ -144,6 +144,7 @@ type Outlook struct {
 	Schedule    Schedule      `json:"schedule"`
 	Tide        TideContext   `json:"tide"`
 	Surf        *SurfContext  `json:"surf,omitempty"`
+	Surge       *SurgeContext `json:"surge,omitempty"`
 	SurfReport  *SurfReport   `json:"surf_report,omitempty"`
 	Ramps       []RampOutlook `json:"ramps"`
 	Cities      []CityVerdict `json:"cities,omitempty"`
@@ -422,15 +423,20 @@ func reopenEstimate(preds []models.TidePrediction, closedAt, now time.Time) time
 // or silent buoy degrades cleanly to tide-only behavior. Pure — no I/O,
 // fully testable. prior is each ramp's previous-day fact (priorDayFacts);
 // nil — or a ramp missing from it — means no persistence prior, i.e. the
-// memoryless model.
-func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample, prior map[string]PriorDay) Outlook {
+// memoryless model. levels is the recent gauge water-level series (the last
+// surgeWindow or more); nil — or a stale series — assumes normal water, i.e.
+// predicted heights. The payload's tide context always carries NOAA's own
+// predicted numbers; only the risk calls see the surge-adjusted water.
+func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample, levels []models.WaterLevelSample, prior map[string]PriorDay) Outlook {
 	season, sched := buildSchedule(now, params)
+	water, surge := params.withSurge(preds, levels, now)
 
 	out := Outlook{
 		GeneratedAt: now.UTC(),
 		Season:      season,
 		Schedule:    sched,
 		Ramps:       make([]RampOutlook, 0, len(ramps)),
+		Surge:       surge,
 	}
 
 	// One shift for the whole response: the sea state is county-wide.
@@ -465,7 +471,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 	// Peaks that could disturb the current driving day: highs from the
 	// recent past (still inside their closure lag) through the day's close.
 	var dayPeaks []models.TidePrediction
-	for _, p := range preds {
+	for _, p := range water {
 		if p.Type != "H" || p.Height == nil || p.Time.Before(now.Add(-peakLookback)) {
 			continue
 		}
@@ -510,7 +516,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			if ramp.StatusSince != nil {
 				closedAt = *ramp.StatusSince
 			}
-			reopen := reopenEstimate(preds, closedAt, now)
+			reopen := reopenEstimate(water, closedAt, now)
 			ro.Headline, ro.Detail, ro.Reopen = closedNowText(reopen, sched)
 			out.Ramps = append(out.Ramps, ro)
 			continue

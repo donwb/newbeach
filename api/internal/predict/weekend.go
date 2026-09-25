@@ -128,9 +128,10 @@ type WeekendDay struct {
 
 // WeekendOutlook is the response served at /api/v2/outlook/weekend.
 type WeekendOutlook struct {
-	GeneratedAt time.Time    `json:"generated_at"`
-	Headline    string       `json:"headline"`
-	Days        []WeekendDay `json:"days"`
+	GeneratedAt time.Time     `json:"generated_at"`
+	Headline    string        `json:"headline"`
+	Days        []WeekendDay  `json:"days"`
+	Surge       *SurgeContext `json:"surge,omitempty"`
 }
 
 // dayFacts is everything dayVerdict and dayText need about one day, gathered
@@ -167,8 +168,11 @@ type timeRange struct{ start, end time.Time }
 // basis says so).
 // prior is each ramp's previous-day fact (priorDayFacts), nil for none; the
 // planner carries it forward height-anchored (persistDayShift).
-func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast, prior map[string]PriorDay) WeekendOutlook {
-	out := WeekendOutlook{GeneratedAt: now.UTC()}
+// levels is the recent gauge water-level series; today's anomaly rides every
+// future peak, decayed per day ahead (withSurge). Nil assumes normal water.
+func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast, levels []models.WaterLevelSample, prior map[string]PriorDay) WeekendOutlook {
+	preds, surge := params.withSurge(preds, levels, now)
+	out := WeekendOutlook{GeneratedAt: now.UTC(), Surge: surge}
 
 	// Today stays in the list only while its driving day is live.
 	startOffset := 0

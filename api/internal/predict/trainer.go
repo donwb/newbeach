@@ -35,6 +35,10 @@ type Trainer struct {
 	noaa    *noaa.Client
 	station string // NDBC buoy for the wave series; empty disables wave upkeep
 	logger  *slog.Logger
+
+	// levelStations are the CO-OPS gauges for the water-level anomaly;
+	// empty trains on predicted heights (PREDICT_WATER_LEVEL_ENABLED=false).
+	levelStations []string
 }
 
 // NewTrainer creates a Trainer.
@@ -45,6 +49,12 @@ func NewTrainer(pool *pgxpool.Pool, noaaClient *noaa.Client, ndbcStation string)
 		station: ndbcStation,
 		logger:  slog.Default().With("component", "trainer"),
 	}
+}
+
+// EnableWaterLevel trains thresholds on surge-adjusted water heights, with
+// residuals read from the given CO-OPS gauges.
+func (t *Trainer) EnableWaterLevel(stations []string) {
+	t.levelStations = stations
 }
 
 // Start runs the nightly training loop until ctx is cancelled. On boot it
@@ -99,6 +109,12 @@ func (t *Trainer) paramsStale(ctx context.Context) bool {
 	if p.Version != paramsVersion {
 		return true
 	}
+	// Flipping PREDICT_WATER_LEVEL_ENABLED changes what the thresholds are
+	// measured in (predicted vs. effective water height), so the switch
+	// only fully takes hold after a retrain — do it at boot.
+	if (p.Surge != nil) != (len(t.levelStations) > 0) {
+		return true
+	}
 	return time.Since(p.ComputedAt) > staleAfter
 }
 
@@ -150,6 +166,20 @@ func (t *Trainer) train(ctx context.Context) {
 		}
 	}
 
+	// Gauge residuals over the whole history span, straight from NOAA
+	// (~30 requests; nothing to persist — the series is reproducible). A
+	// failing gauge is skipped; with none, training falls back to predicted
+	// heights and Params.Surge stays nil, which serving honors.
+	var levels []models.WaterLevelSample
+	for _, st := range t.levelStations {
+		l, err := t.noaa.FetchWaterLevelResiduals(ctx, st, histStart, time.Now())
+		if err != nil {
+			t.logger.Warn("training: water levels unavailable for gauge", "station", st, "err", err)
+			continue
+		}
+		levels = append(levels, l...)
+	}
+
 	var excludedDays map[string]bool
 	if raw, err := database.GetSetting(ctx, t.pool, ExcludedDaysKey); err != nil {
 		t.logger.Warn("training: reading excluded days, ignoring", "err", err)
@@ -157,7 +187,7 @@ func (t *Trainer) train(ctx context.Context) {
 		excludedDays = ParseExcludedDays(raw)
 	}
 
-	params := Train(history, preds, waves, time.Now(), excludedDays)
+	params := Train(history, preds, waves, levels, time.Now(), excludedDays)
 
 	blob, err := json.Marshal(params)
 	if err != nil {
@@ -175,5 +205,6 @@ func (t *Trainer) train(ctx context.Context) {
 		"default_threshold_ft", params.Default.ThresholdFt,
 		"wave_params_learned", params.Waves != nil,
 		"persistence_learned", params.Persistence != nil,
+		"surge_learned", params.Surge != nil,
 	)
 }

@@ -149,20 +149,20 @@ func TestTrainQuarantinesStaleDay(t *testing.T) {
 	}
 	baseline := Train(map[string][]models.StatusEvent{
 		"NS-999": buildSeparableHistory(peaks, 2.8),
-	}, peaks, nil, et(15, 0, 0), nil)
+	}, peaks, nil, nil, et(15, 0, 0), nil)
 
 	peaks = append(peaks, h(et(15, 13, 0), 3.2))
 	stuckDay := append(buildSeparableHistory(peaks[:14], 2.8),
 		ev(turtleClearedStatus, et(15, 6, 51)),
 		ev("OPEN", et(15, 12, 30)),
 	)
-	quarantined := Train(map[string][]models.StatusEvent{"NS-999": stuckDay}, peaks, nil, et(16, 0, 0), nil)
+	quarantined := Train(map[string][]models.StatusEvent{"NS-999": stuckDay}, peaks, nil, nil, et(16, 0, 0), nil)
 	assert.Equal(t, baseline.Ramps["NS-999"], quarantined.Ramps["NS-999"])
 
 	// Sanity: had the ramp genuinely stayed open that day, the close rate
 	// would have moved — the quarantine, not coincidence, kept it fixed.
 	openDay := append(buildSeparableHistory(peaks[:14], 2.8), ev("OPEN", et(15, 6, 51)))
-	counted := Train(map[string][]models.StatusEvent{"NS-999": openDay}, peaks, nil, et(16, 0, 0), nil)
+	counted := Train(map[string][]models.StatusEvent{"NS-999": openDay}, peaks, nil, nil, et(16, 0, 0), nil)
 	assert.NotEqual(t, baseline.Ramps["NS-999"].CloseRate, counted.Ramps["NS-999"].CloseRate)
 }
 
@@ -178,7 +178,7 @@ func TestBuildScorecardStaleDay(t *testing.T) {
 		"NS-106": statusEvents(ev("OPEN", et(1, 8, 0))),
 	}
 
-	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), nil, nil)
+	sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), nil, nil, nil)
 
 	byID := map[string]RampGrade{}
 	for _, rg := range sc.Ramps {
@@ -197,8 +197,9 @@ func TestBuildScorecardStaleDay(t *testing.T) {
 	assert.Equal(t, 1, sc.Summary.Graded, "stale pairs stay out of the graded count")
 
 	t.Run("a manually excluded day stales every ramp", func(t *testing.T) {
-		sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), nil,
+		sc := BuildScorecard(et(16, 0, 0), history, nil, testParams(), scorecardPreds(), nil, nil,
 			map[string]bool{"2026-06-16": true})
+
 		assert.Equal(t, 2, sc.Summary.Stale)
 		assert.Equal(t, 0, sc.Summary.Graded)
 		assert.Nil(t, sc.Summary.Recall)

@@ -89,15 +89,20 @@ func closureEvents(events []models.StatusEvent) []closureEvent {
 func tidePeaks(preds []models.TidePrediction) []models.TidePrediction {
 	var peaks []models.TidePrediction
 	for _, p := range preds {
-		if p.Type != "H" || p.Height == nil {
-			continue
-		}
-		h := p.Time.In(eastern).Hour()
-		if h >= 7 && h < 20 {
+		if isDaytimePeak(p) {
 			peaks = append(peaks, p)
 		}
 	}
 	return peaks
+}
+
+// isDaytimePeak is tidePeaks' filter for a single prediction.
+func isDaytimePeak(p models.TidePrediction) bool {
+	if p.Type != "H" || p.Height == nil {
+		return false
+	}
+	h := p.Time.In(eastern).Hour()
+	return h >= 7 && h < 20
 }
 
 // labelPeaks marks, for each daytime peak, whether the ramp was tide-closed
@@ -526,12 +531,12 @@ func trainWaveParams(pooled []wavePeakSample) *WaveParams {
 }
 
 // Train derives Params from full status-event history (per access_id,
-// ascending), hilo tide predictions covering the same span, and the buoy
-// wave series (any order; nil trains tide-only). excludedDays manually
-// quarantines whole ET dates (ParseExcludedDays; nil is fine) on top of the
-// automatic staleness heuristics.
-func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, waves []models.WaveSample, now time.Time, excludedDays map[string]bool) Params {
-	peaks := tidePeaks(preds)
+// ascending), hilo tide predictions covering the same span, the buoy wave
+// series (any order; nil trains tide-only), and the gauge water-level
+// residuals (any order; nil trains on predicted heights). excludedDays
+// manually quarantines whole ET dates (ParseExcludedDays; nil is fine) on
+// top of the automatic staleness heuristics.
+func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePrediction, waves []models.WaveSample, levels []models.WaterLevelSample, now time.Time, excludedDays map[string]bool) Params {
 	sortWaveSamples(waves)
 	excl := findExclusions(historyByRamp, now, excludedDays)
 
@@ -540,7 +545,13 @@ func Train(historyByRamp map[string][]models.StatusEvent, preds []models.TidePre
 		ComputedAt: now.UTC(),
 		Default:    DefaultParams,
 		Ramps:      make(map[string]RampParams),
+		Surge:      trainSurgeParams(newLevelSeries(levels), now),
 	}
+
+	// Everything below learns on the water that actually arrived: each
+	// peak raised by the anomaly observed at it (see surge.go).
+	preds, _ = params.withSurge(preds, levels, now)
+	peaks := tidePeaks(preds)
 
 	// County-wide hard cutoffs from the peak distribution (see Params).
 	// P05/P97 reproduce the original 2.0/3.5 ft analysis on station 8721147
