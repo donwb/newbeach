@@ -261,16 +261,16 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 		from = now
 	}
 
-	// Daytime tide peaks for this frame (an hour of slack past close, same
-	// as the live outlook's filter).
+	// Tide peaks that can close ramps during this frame — the evening highs
+	// the county clears ahead of included, the same filter as the live
+	// outlook (servePeakInPlay).
 	for _, p := range preds {
-		if p.Type != "H" || p.Height == nil {
+		if p.Type != "H" || p.Height == nil || p.Time.Before(from.Add(-peakLookback)) {
 			continue
 		}
-		if p.Time.Before(from.Add(-peakLookback)) || p.Time.After(closes.Add(time.Hour)) {
-			continue
+		if servePeakInPlay(p, closes) {
+			facts.tidePeaks = append(facts.tidePeaks, p)
 		}
-		facts.tidePeaks = append(facts.tidePeaks, p)
 	}
 
 	// Marine shift for the day.
@@ -303,7 +303,7 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 		pd := prior[ramp.AccessID]
 		for _, p := range facts.tidePeaks {
 			shift := clampTotalShift(dayShift + params.persistDayShift(pd, rp, *p.Height, daysOut))
-			r := riskForPeak(*p.Height, shift, rp, params.hardOpen(), params.hardClose())
+			r := eveningRisk(riskForPeak(*p.Height, shift, rp, params.hardOpen(), params.hardClose()), p, &closes)
 			if riskRank(r) > riskRank(worst) {
 				worst = r
 			}

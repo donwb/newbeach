@@ -226,6 +226,19 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `PREDICT_WATER_LEVEL_ENABLED=false` turns it off in training *and* serving (thresholds
   change units), and the trainer retrains at boot when stored params disagree with the
   switch. Gauge outages degrade to normal-water (predicted heights), never an error.
+- **Evening highs close ramps before the beach clears (2026-09-25).** The county pulls
+  drivers off ahead of a high that peaks *after* the day's close — 3–6pm closures for
+  8–9pm highs — so serving (outlook, weekend, scorecard) keeps a peak in play through
+  the learned close + `eveningReach` (2.5h; closure-before-close rate by offset:
+  +1h 38%, +2h 21%, +2.5h 6%, +3h 0%). Such a peak is capped at `possible`
+  (`eveningRisk` — county-posted tide closure vs. just clearing early is a coin-flip),
+  its window and quoted time anchor on the close minus the ramp's lead, and its copy says
+  "Could close early for the ~8:30pm high tide". **Training deliberately keeps the fixed
+  7am–8pm window** (`tidePeaks`): evening labels read "stayed open" when the beach simply
+  cleared first, and including them dragged thresholds to the top of the range (NS-106
+  3.17 → 3.87). A taper past the reach was tried and over-hedged. Day-level walk-forward:
+  9am misses 157 → 38, 2pm 132 → 39. Still open: the same thing at the *morning* end —
+  highs just before 7am keep ramps closed at the 8am open (~150 unattributed closures).
 - **The end-of-day close is learned, not posted.** The county clears the beach before the
   posted time — turtle-season 7pm has been running ~6:30 — so the trainer learns the
   median offset from history into `day_close_offset_min` and `buildSchedule` applies it

@@ -96,8 +96,14 @@ func endOfDayText(season string, sched Schedule) (headline, detail, short string
 // the learned close (peak minus lead) when the tide is likely to shut the
 // ramp, the peak itself when a closure is only possible. Rounded to the half
 // hour like every time in the copy. The city verdict reuses it so the two
-// layers never disagree about when trouble starts.
-func quotedCloseAt(risk string, peak models.TidePrediction, rp RampParams) time.Time {
+// layers never disagree about when trouble starts. An evening high that
+// peaks after the day's close (closes, nil for none) quotes the ramp's lead
+// before the close instead — the county clears ahead of it, and the peak
+// itself lands after everyone has gone home.
+func quotedCloseAt(risk string, peak models.TidePrediction, rp RampParams, closes *time.Time) time.Time {
+	if isEveningPeak(peak, closes) {
+		return roundNearest30(closes.Add(-time.Duration(rp.LeadMin) * time.Minute))
+	}
 	if risk == RiskLikely {
 		return roundNearest30(peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute))
 	}
@@ -113,14 +119,27 @@ func quotedCloseAt(risk string, peak models.TidePrediction, rp RampParams) time.
 // when it actually moved the call, earns one clause so the reader knows
 // the county's recent form is part of the read.
 func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampParams, sched Schedule, laterPeakRisky bool, yesterday *YesterdayContext) (headline, detail, short string) {
-	closeAt := quotedCloseAt(RiskLikely, peak, rp)
+	closeAt := quotedCloseAt(RiskLikely, peak, rp, sched.ClosesAt)
 	reopenAt := roundNearest30(peak.Time.Add(time.Duration(rp.LagMin) * time.Minute))
 	reopenCopy := "Often back open by " + fmtClock(reopenAt) + " once the tide drops"
 	if sched.ClosesAt != nil && reopenAt.After(*sched.ClosesAt) {
 		reopenCopy = "Might not reopen before the day's " + sched.ClosesLabel + " close"
 	}
 
+	evening := isEveningPeak(peak, sched.ClosesAt)
+	peakAt := roundNearest30(peak.Time)
+
 	switch {
+	case evening && !now.Before(closeAt):
+		// An evening high after the close: nothing to quote but the tide
+		// itself — the county may clear early any time from here.
+		headline = "Could close early for the ~" + fmtClock(peakAt) + " high tide"
+		detail = "The county often clears ahead of an evening high · could just as well stay open"
+		short = "may close early for the evening tide"
+	case evening:
+		headline = "Could close early for the ~" + fmtClock(peakAt) + " high tide"
+		detail = "Possible from around " + fmtClock(closeAt) + " · the county often clears ahead of an evening high"
+		short = "may close ~" + fmtClock(closeAt) + " for the evening tide"
 	case !now.Before(peak.Time):
 		// The high is behind us and the ramp is still open — it has beaten
 		// this tide so far, but the county does close late sometimes.
@@ -138,7 +157,6 @@ func tideText(now time.Time, risk string, peak models.TidePrediction, rp RampPar
 		detail = reopenCopy
 		short = "tide closure possible ~" + fmtClock(closeAt)
 	default:
-		peakAt := roundNearest30(peak.Time)
 		headline = "Could close around the " + fmtClock(peakAt) + " high tide"
 		detail = "Depends on surf and sand · could just as well stay open"
 		short = "could close on the ~" + fmtClock(peakAt) + " tide"
@@ -169,4 +187,11 @@ func closedNowText(reopen time.Time, sched Schedule) (headline, detail string, r
 	}
 	detail = "The tide is the boss here · " + label
 	return headline, detail, &Reopen{Label: label}
+}
+
+// isEveningPeak reports whether a high tide peaks after the driving day's
+// close (closes, offset-corrected; nil for none) — the evening highs the
+// county clears the beach ahead of (eveningReach).
+func isEveningPeak(peak models.TidePrediction, closes *time.Time) bool {
+	return closes != nil && peak.Time.After(*closes)
 }

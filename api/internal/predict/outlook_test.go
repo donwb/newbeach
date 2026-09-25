@@ -388,3 +388,30 @@ func TestDayCloseOffsetIsLearned(t *testing.T) {
 	// A wild offset can never drag the close somewhere absurd.
 	assert.Equal(t, -maxDayCloseOffsetMin*time.Minute, Params{DayCloseOffsetMin: -600}.dayCloseOffset())
 }
+
+// An evening high that peaks after the close still threatens the driving
+// day — the county clears ahead of it — but only as "possible", with the
+// window and quoted time anchored on the close, never the after-hours peak.
+func TestBuildOutlookEveningPeak(t *testing.T) {
+	// June: posted close 7pm, no learned offset in testParams.
+	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "OPEN")}
+	preds := []models.TidePrediction{h(et(16, 20, 30), 3.0)} // well over NS-141's 2.1 ft
+
+	morning := BuildOutlook(et(16, 10, 0), ramps, testParams(), preds, nil, nil, nil).Ramps[0]
+	assert.Equal(t, RiskPossible, morning.Risk, "an evening high is capped at possible, however big")
+	assert.Equal(t, ReasonHighTide, morning.Reason)
+	assert.Equal(t, "Could close early for the ~8:30pm high tide", morning.Headline)
+	assert.Equal(t, "Possible from around 5pm · the county often clears ahead of an evening high", morning.Detail)
+	assert.Equal(t, "may close ~5pm for the evening tide", morning.Short)
+	require.NotNil(t, morning.Window)
+	assert.Equal(t, et(16, 16, 0), morning.Window.Start, "a lead (+padding) before the close, not before the peak")
+	assert.Equal(t, et(16, 19, 0), morning.Window.End)
+
+	late := BuildOutlook(et(16, 17, 30), ramps, testParams(), preds, nil, nil, nil).Ramps[0]
+	assert.Equal(t, RiskPossible, late.Risk)
+	assert.Equal(t, "may close early for the evening tide", late.Short, "a quoted time already passed is never repeated")
+
+	// Past eveningReach the day ends first: the close is the only story.
+	beyond := []models.TidePrediction{h(et(16, 19, 0).Add(eveningReach), 3.0)}
+	assert.Equal(t, RiskScheduled, BuildOutlook(et(16, 10, 0), ramps, testParams(), beyond, nil, nil, nil).Ramps[0].Risk)
+}

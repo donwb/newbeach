@@ -171,12 +171,16 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 	// rolls to the next day.
 	season, sched := buildSchedule(dayStart.Add(5*time.Hour), params)
 
-	// Daytime peaks on the target date.
+	// Peaks on the target date the live outlook would have called: daytime,
+	// plus the evening highs inside eveningReach of the close.
 	// dayPeaks carry NOAA's predicted heights for the payload; waterPeaks
 	// (same order) the effective heights the grades are made on.
 	var dayPeaks, waterPeaks []models.TidePrediction
 	for i, p := range preds {
-		if isDaytimePeak(p) && !p.Time.Before(dayStart) && p.Time.Before(dayEnd) {
+		if p.Time.Before(dayStart) || !p.Time.Before(dayEnd) {
+			continue
+		}
+		if gradedPeak(p, sched) {
 			dayPeaks = append(dayPeaks, p)
 			waterPeaks = append(waterPeaks, water[i])
 		}
@@ -244,7 +248,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 				periodS = w.DominantPeriodS
 			}
 			waterFt := *waterPeaks[i].Height
-			risk := riskForPeak(waterFt, clampTotalShift(params.waveShiftFor(waveFt, periodS)+persist), rp, params.hardOpen(), params.hardClose())
+			risk := eveningRisk(riskForPeak(waterFt, clampTotalShift(params.waveShiftFor(waveFt, periodS)+persist), rp, params.hardOpen(), params.hardClose()), peak, sched.ClosesAt)
 			closed := labels[i]
 			pg := PeakGrade{
 				PeakTime:  peak.Time,
@@ -326,4 +330,16 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 
 func round3(v float64) float64 {
 	return math.Round(v*1000) / 1000
+}
+
+// gradedPeak is the scorecard's peak filter: the training window's daytime
+// peaks plus any evening high the live outlook serves (servePeakInPlay).
+func gradedPeak(p models.TidePrediction, sched Schedule) bool {
+	if isDaytimePeak(p) {
+		return true
+	}
+	if p.Type != "H" || p.Height == nil || p.Time.In(eastern).Hour() < 7 || sched.ClosesAt == nil {
+		return false
+	}
+	return servePeakInPlay(p, *sched.ClosesAt)
 }

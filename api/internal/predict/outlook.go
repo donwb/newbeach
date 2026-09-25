@@ -150,6 +150,43 @@ type Outlook struct {
 	Cities      []CityVerdict `json:"cities,omitempty"`
 }
 
+// eveningReach is how far past the driving day's (learned) close a high tide
+// can peak and still close ramps before the beach clears — the county pulls
+// drivers off ahead of an evening high, often hours early (2026-09-25: DBS and
+// NS closed ~3pm for an 8:42pm peak, 2.2h past the ~6:30 close). Measured
+// across 27 ramps, Mar–Sep 2026, share of ramp-peaks closed before the day's
+// close by the peak's offset past it: +0.5h 51%, +1h 38%, +1.5h 20%, +2h 21%,
+// +2.5h 6%, +3h 0%. Walk-forward, day-level (did the ramp tide-close that
+// driving day?), 27 ramps May–Sep: 9am-outlook misses 157 → 38, 2pm 132 → 39;
+// grade score 0.868 → 0.880 and 0.906 → 0.912. A taper (judging later peaks
+// by the water at close+reach) caught more but over-hedged open evenings —
+// past +2.5h the day ends first.
+//
+// Serving only. Training keeps its fixed daytime window (tidePeaks): an
+// evening high usually "stays open" because the beach clears first or the
+// county posts plain CLOSED early, and those labels drag thresholds to the
+// top of the range (NS-106 3.17 → 3.87 ft when tried) — daytime-learned
+// thresholds grade evening peaks better than evening-contaminated ones.
+const eveningReach = 150 * time.Minute
+
+// servePeakInPlay reports whether a high tide peaking at p can still close
+// ramps during the driving day that ends at closes (offset-corrected).
+func servePeakInPlay(p models.TidePrediction, closes time.Time) bool {
+	return p.Time.Before(closes.Add(eveningReach))
+}
+
+// eveningRisk caps a peak landing after the day's close at "possible":
+// whether the county posts a tide closure ahead of an evening high or just
+// clears the beach early is a coin-flip even for a big tide (the reach table
+// above tops out near 50%). Walk-forward, 9am outlook: "likely" precision
+// 0.729 → 0.765 at an unchanged miss count; grade score flat.
+func eveningRisk(risk string, p models.TidePrediction, closes *time.Time) string {
+	if risk == RiskLikely && isEveningPeak(p, closes) {
+		return RiskPossible
+	}
+	return risk
+}
+
 // inTurtleSeason reports whether the Eastern date falls in Volusia County's
 // sea-turtle nesting season, May 1 through October 31.
 func inTurtleSeason(t time.Time) bool {
@@ -319,9 +356,15 @@ func roundUp30(t time.Time) time.Time {
 }
 
 // closureWindow builds the coarse window around a peak, clamped to the
-// driving day.
+// driving day. An evening high that peaks after the close anchors on the
+// close instead: the county clears ahead of it, so the window runs from a
+// lead before the close to the close (2026 evening closures began 3–6:30pm
+// for 8–9pm highs against a ~6:30pm close).
 func closureWindow(peak models.TidePrediction, rp RampParams, sched Schedule) *Window {
 	start := peak.Time.Add(-time.Duration(rp.LeadMin)*time.Minute - windowPadding)
+	if isEveningPeak(peak, sched.ClosesAt) {
+		start = sched.ClosesAt.Add(-time.Duration(rp.LeadMin)*time.Minute - windowPadding)
+	}
 	end := peak.Time.Add(time.Duration(rp.LagMin)*time.Minute + windowPadding)
 	if sched.OpensAt != nil && start.Before(*sched.OpensAt) {
 		start = *sched.OpensAt
@@ -469,13 +512,14 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 	}
 
 	// Peaks that could disturb the current driving day: highs from the
-	// recent past (still inside their closure lag) through the day's close.
+	// recent past (still inside their closure lag) through the evening highs
+	// the county clears the beach ahead of (eveningReach).
 	var dayPeaks []models.TidePrediction
 	for _, p := range water {
 		if p.Type != "H" || p.Height == nil || p.Time.Before(now.Add(-peakLookback)) {
 			continue
 		}
-		if sched.ClosesAt != nil && p.Time.After(sched.ClosesAt.Add(time.Hour)) {
+		if sched.ClosesAt != nil && !servePeakInPlay(p, *sched.ClosesAt) {
 			continue
 		}
 		dayPeaks = append(dayPeaks, p)
@@ -528,7 +572,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		riskIdx := -1
 		risks := make([]string, len(dayPeaks))
 		for i := range dayPeaks {
-			r := riskForPeak(*dayPeaks[i].Height, shiftFt, rp, params.hardOpen(), params.hardClose())
+			r := eveningRisk(riskForPeak(*dayPeaks[i].Height, shiftFt, rp, params.hardOpen(), params.hardClose()), dayPeaks[i], sched.ClosesAt)
 			risks[i] = decayRisk(r, now, dayPeaks[i], rp)
 			if riskRank(risks[i]) > riskRank(risk) {
 				risk = risks[i]
@@ -550,7 +594,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			ro.Risk = risk
 			ro.Reason = ReasonHighTide
 			ro.Window = closureWindow(*riskPeak, rp, sched)
-			qc := quotedCloseAt(risk, *riskPeak, rp)
+			qc := quotedCloseAt(risk, *riskPeak, rp, sched.ClosesAt)
 			ro.quotedClose = &qc
 			ro.Headline, ro.Detail, ro.Short = tideText(now, risk, *riskPeak, rp, sched, laterPeakRisky, ro.Yesterday)
 		case sched.ClosesAt != nil:
