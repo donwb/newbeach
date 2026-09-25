@@ -3,7 +3,8 @@
 #
 # Deliberately separate from the commit/push/test loop: flighting is an
 # explicit, bandwidth-heavy act you kick off when you're on a real link.
-# DON RUNS THIS — it is not something an agent does to finish a task.
+# Run it when Don asks (in person or via a dispatch) — never as a routine
+# step an agent takes to finish a task.
 #
 #   apple/scripts/flight.sh                 bump build number, archive, upload both
 #   apple/scripts/flight.sh --build 12      flight as a specific build number

@@ -60,7 +60,10 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `make flight-check` archives without uploading. Implementation:
   `apple/scripts/flight.sh` (ported from the bkmks project's equivalent).
 - **Flighting is deliberately outside the commit/push/test loop** — it is bandwidth-heavy
-  and account-bound. **Don runs this**; agents must not flight as part of finishing work.
+  and account-bound. Never flight as a side effect of finishing work. An agent flights
+  **only when Don asks for it or a dispatch says to** (2026-09-25: headless dispatch;
+  `.claude/settings.json` allows the flight commands so the run isn't blocked). Pass
+  `--yes`, commit the `Version.xcconfig` bump, and report the build number.
 - **`apple/BeachRamp/Config/Version.xcconfig` is the single source of truth** for
   `MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`, the display name, and the
   export-compliance key. It is the project-level base configuration, so every target

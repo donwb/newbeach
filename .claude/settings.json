@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make flight)",
+      "Bash(make flight-ios)",
+      "Bash(make flight-tv)",
+      "Bash(make flight-check)",
+      "Bash(apple/scripts/flight.sh)",
+      "Bash(apple/scripts/flight.sh *)",
+      "Bash(./apple/scripts/flight.sh)",
+      "Bash(./apple/scripts/flight.sh *)"
+    ]
+  }
+}
