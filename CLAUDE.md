@@ -56,14 +56,17 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 ## Apple Releases
 
 - **`make flight`** — bumps the build number, archives iOS + tvOS Release, and uploads
-  both to TestFlight. `make flight-ios` / `make flight-tv` for one platform;
-  `make flight-check` archives without uploading. Implementation:
-  `apple/scripts/flight.sh` (ported from the bkmks project's equivalent).
+  both to TestFlight. `make flight ARGS="--only ios"` (or `tvos`) for one platform;
+  `make flight-check` archives without uploading. Implementation: the **shared `flight`
+  tool** (`~/dev/flight`, symlinked at `~/bin/flight`) — the one flight process for all
+  of Don's Apple apps. This repo contributes only `flight.conf` and
+  `apple/scripts/flight-preflight.sh` (the hostname tripwire); change the process in
+  the tool, never here.
 - **Flighting is deliberately outside the commit/push/test loop** — it is bandwidth-heavy
   and account-bound. Never flight as a side effect of finishing work. An agent flights
   **only when Don asks for it or a dispatch says to** (2026-09-25: headless dispatch;
-  `.claude/settings.json` allows the flight commands so the run isn't blocked). Pass
-  `--yes`, commit the `Version.xcconfig` bump, and report the build number.
+  `.claude/settings.json` allows the flight commands so the run isn't blocked). Run
+  `make flight ARGS="--yes"`, commit the `Version.xcconfig` bump, and report the build number.
 - **`apple/BeachRamp/Config/Version.xcconfig` is the single source of truth** for
   `MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`, the display name, and the
   export-compliance key. It is the project-level base configuration, so every target
@@ -86,16 +89,19 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   archive. Re-adding that phase is how it ships later.
 - **Shared schemes are committed** at `BeachRamp.xcodeproj/xcshareddata/xcschemes/`.
   Without them `xcodebuild -scheme` is not reproducible across machines.
-- **Auth: flight uses Xcode's signed-in Apple ID session, and it expires.** The export
-  step re-signs with cloud-managed distribution signing, which only the Apple ID session
-  can do — an App Store Connect API key fails here with "Cloud signing permission error /
-  No signing certificate iOS Distribution found." Symptoms of a stale session are
-  misleading ("Failed to Use Accounts", keychain "missing Xcode-Username"), and **Xcode's
-  Accounts pane lies** — it shows signed-in while dead. Fix: remove the Apple ID with the
-  − button and re-add with password/2FA, **at the Mac, not over a remote session**.
-  Recovery is cheap — the archive survives, so rerun `apple/scripts/flight.sh --no-bump --yes`.
-- **Hostname tripwire**: flight refuses (with a confirm) if `APIClient.swift` still points
-  at the `ondigitalocean.app` hostname instead of `beach.donwb.com`.
+- **Auth: an App Store Connect API key (Admin) plus a local Apple Distribution cert**,
+  configured once per machine in `~/.config/appstore/asc.env` — setup runbook in
+  `~/dev/flight/README.md`, `flight doctor` checks it. Without it, flight falls back to
+  Xcode's signed-in Apple ID session, which expires: the 9/19 flight died at CodeSign
+  on exactly that. A non-Admin key without a local distribution cert fails at export
+  with "Cloud signing permission error / No signing certificate iOS Distribution found".
+  Stale-session symptoms are misleading ("Failed to Use Accounts", keychain "missing
+  Xcode-Username"), and **Xcode's Accounts pane lies** — it shows signed-in while dead;
+  the fix is remove + re-add the Apple ID with 2FA, **at the Mac**. Recovery is cheap
+  either way — the archive survives: `make flight ARGS="--no-bump --yes"`.
+- **Hostname tripwire** (`apple/scripts/flight-preflight.sh`): flight refuses (with a
+  confirm) if `APIClient.swift` still points at the `ondigitalocean.app` hostname
+  instead of `beach.donwb.com`.
 
 ## Database
 

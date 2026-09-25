@@ -24,7 +24,7 @@ distribution:
     the iOS and tvOS app targets (that shared ID is what allows a single ASC
     record to carry both platforms), plus com.donwb.BeachRampTV.watchkitapp for
     the watch app, which is out of scope for 1.0. Release automation:
-    `make flight` → apple/scripts/flight.sh.
+    `make flight` → the shared ~/dev/flight tool (flight.conf).
   other: https://beach.donwb.com (primary domain, .do/app.yaml:14; donwb.com is
     an ALIAS during transition, .do/app.yaml:16). Web app is an installable PWA
     (web/manifest.json, web/sw.js).

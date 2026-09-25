@@ -1,7 +1,7 @@
 # Volusia Beach Info — top-level targets.
 #
 # The Go API and ingester have their own Makefile in api/. This one covers
-# the Apple release process (see apple/scripts/flight.sh) and deploying the
+# the Apple release process (flight.conf → ~/dev/flight) and deploying the
 # cam restreamer to the Mac Studio (see docs/CAM-RELAY.md).
 
 RESTREAMER_LABEL := com.donwb.cam-restreamer
@@ -10,7 +10,7 @@ RESTREAMER_DEST  := $(HOME)/bin/cam-restreamer.sh
 RESTREAMER_ENV   := $(HOME)/.cam-restreamer.env
 RESTREAMER_LOG   := /tmp/cam-restreamer.launchd.log
 
-.PHONY: help flight flight-ios flight-tv flight-check screenshots \
+.PHONY: help flight flight-check screenshots \
         deploy-restreamer restreamer-status restreamer-diff
 
 help:  ## Show available targets
@@ -19,17 +19,13 @@ help:  ## Show available targets
 
 # ---------------------------------------------------------------- Apple ----
 
-flight:  ## Bump build, archive iOS + tvOS, upload to TestFlight
-	apple/scripts/flight.sh
+FLIGHT ?= $(HOME)/bin/flight
 
-flight-ios:  ## Same, iOS only
-	apple/scripts/flight.sh --ios-only
+flight:        ## Bump build, archive, upload to TestFlight (ARGS="--yes" etc.; see flight --help)
+	$(FLIGHT) $(ARGS)
 
-flight-tv:  ## Same, tvOS only
-	apple/scripts/flight.sh --tv-only
-
-flight-check:  ## Archive both platforms without uploading (dry run)
-	apple/scripts/flight.sh --archive-only --no-bump
+flight-check:  ## Archive without uploading (dry run)
+	$(FLIGHT) --archive-only $(ARGS)
 
 screenshots:  ## Capture App Store gallery screenshots (iPhone, iPad, watch)
 	apple/scripts/screenshots.sh

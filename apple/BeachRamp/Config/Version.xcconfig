@@ -5,7 +5,8 @@
 // individual target: a per-target value silently wins over this file and the
 // build bump becomes a no-op for that target.
 //
-// apple/scripts/flight.sh rewrites CURRENT_PROJECT_VERSION on every flight.
+// `make flight` (the shared flight tool, see flight.conf) rewrites
+// CURRENT_PROJECT_VERSION on every flight.
 
 MARKETING_VERSION = 1.4
 CURRENT_PROJECT_VERSION = 30
