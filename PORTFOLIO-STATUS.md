@@ -121,7 +121,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-25 (BUILD 1.4 (31) UPLOADED — iOS + tvOS on TestFlight, carrying
+last_verified: 2026-09-25 (API: water-level anomaly shipped to the prediction model, params v7 — see Recently shipped. Earlier today: BUILD 1.4 (31) UPLOADED — iOS + tvOS on TestFlight, carrying
   the tvOS idle-reset fix 8127e53, the only app change since build 30. The surf-headline
   gallery truncation the 9/19 note expected to ride along was NEVER FIXED — still open,
   see app_review_state. Tag flight/build-31.
@@ -655,6 +655,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   API key + local Apple Distribution identity via the shared flight tool.
 
 ## Recently shipped
+- 2026-09-25: Prediction model reads the water that arrives — observed-minus-predicted water level at Trident Pier + Mayport raises every predicted tide to effective water height, in training and serving (outlook, weekend, scorecard); below-normal water counts half; params v7 (retrain on deploy). Walk-forward backtest, 27 ramps May–Sep: misses 111 → 21, "likely" precision 0.59 → 0.74, September (king-tide season) misses 28 → 4. Kill switch PREDICT_WATER_LEVEL_ENABLED. Still open: after-hours evening peaks that close ramps mid-afternoon aren't in the outlook or scorecard.
 - 2026-09-25: 1.4 (31) uploaded to TestFlight, iOS + tvOS — the tvOS idle-reset fix (8127e53: idle no longer flips the cam back to New Smyrna). First build through the shared flight tool (github.com/donwb/flight) on an API key. Tag flight/build-31.
 - 2026-09-17: tvOS 1.3 (30) RELEASED on the App Store — the sunrise/sunset header band,
   the verdict tide wave with a now-line that ticks every 30 s (the build-29 freeze fixed
