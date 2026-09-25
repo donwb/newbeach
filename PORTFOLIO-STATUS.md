@@ -2,7 +2,7 @@
 app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
-version: Apple targets 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, RELEASED on the App Store 2026-09-17 16:33:58Z, verified 2026-09-19 via the iTunes lookup API — tvOS is now public on 1.3; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
+version: Apple targets 1.4 (build 31 — the tvOS idle-reset fix 8127e53; iOS + tvOS uploaded to TestFlight 2026-09-25 by Don via `make flight`, tag flight/build-31 — the first flight through the shared ~/dev/flight tool on an App Store Connect API key, no Apple ID session involved. Not yet submitted for review. Prior: 1.3 (build 30 — the tvOS tide-wave now-line fix, on TestFlight, tag flight/build-30, flighted by Don ~2026-08-26; Apple TV gallery recaptured 2026-09-09, listing copy drafted, RELEASED on the App Store 2026-09-17 16:33:58Z, verified 2026-09-19 via the iTunes lookup API — tvOS is now public on 1.3; supersedes build 29 which did upload 2026-08-24. PUBLIC App Store: iOS 1.2 (28) live 2026-09-02 01:49Z (the update review cleared in ~10h); tvOS 1.2 (28) live 2026-09-01; iOS 1.0 (18) was live 2026-09-01 for ~10h — see app_review_state. Prior: build 29 — tvOS sunrise/sunset header + verdict tide wave, commit 82e8835, archived 2026-08-23 evening. MARKETING_VERSION bumped 1.2 → 1.3 because ASC closed the 1.2 train on tvOS — tvOS 1.2 (28) APPROVED then released, see app_review_state. Prior: 1.2 (build 28 — the "Volusia Beach Info" rename, flighted 2026-08-23; MARKETING_VERSION bumped 1.1 → 1.2 because ASC closed the 1.1 train on tvOS, see app_review_state. Prior: 1.1 (build 26 — iOS/iPadOS flighted to TestFlight 2026-08-21 14:08 ET, tag flight/build-26: the parity pass + favorites→Pin to widget; tvOS is on 1.1 (25), flighted 08:39 ET, tag flight/build-25, submitted for review. MARKETING_VERSION bumped 1.0 → 1.1 on 2026-08-21 because App Store Connect closed the 1.0 train — see app_review_state), single source of truth apple/BeachRamp/Config/Version.xcconfig; API/web unversioned — continuous deploy from main, no git tags
 lifecycle: live+iterating — web/API live at beach.donwb.com; BOTH Apple platforms RELEASED on the App Store (iOS 1.2 build 28 live 2026-09-02, tvOS 1.2 build 28 live 2026-09-01) — every Apple platform is public on the current parity design — iOS/iPadOS 1.2 (28), tvOS 1.3 (30) live 2026-09-17
 platforms: web (PWA) / iOS / iPadOS / watchOS / tvOS / TRMNL e-ink (OG + X)
 distribution: |
@@ -121,7 +121,23 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-19 midday (TVOS IDLE BUG FIXED ON MAIN, FLIGHT BLOCKED ON
+last_verified: 2026-09-25 (BUILD 1.4 (31) UPLOADED — iOS + tvOS on TestFlight, carrying
+  the tvOS idle-reset fix 8127e53, the only app change since build 30. The surf-headline
+  gallery truncation the 9/19 note expected to ride along was NEVER FIXED — still open,
+  see app_review_state. Tag flight/build-31.
+  THE APPLE ID RE-AUTH BLOCKER IS GONE, structurally: flighting moved to ONE shared tool
+  for all of Don's Apple apps — github.com/donwb/flight (private), cloned at ~/dev/flight,
+  symlinked ~/bin/flight. This repo keeps only flight.conf + apple/scripts/flight-preflight.sh
+  (the hostname tripwire); apple/scripts/flight.sh and ExportOptions.plist are deleted.
+  Auth is now an App Store Connect API key (F39TT64YFQ, in ~/.config/appstore/asc.env)
+  passed to archive AND export, plus a local Apple Distribution identity in the keychain —
+  so neither step touches Xcode's expiring Apple ID session. `flight doctor` passes on the
+  Studio. Refrain (bkmks) and AirStory (DroneFlight) were ported to the same tool the same
+  day. CLAUDE.md now lets agents flight when Don asks or a dispatch says to
+  (.claude/settings.json allows `make flight*`) — but auto mode's classifier still blocked
+  an agent's `make flight` as a production deploy on 9/25, so headless flighting by an
+  agent is NOT yet proven; Don ran this upload himself. Prior 2026-09-19 midday state below.)
+prior_2026_09_19_midday: (TVOS IDLE BUG FIXED ON MAIN, FLIGHT BLOCKED ON
   APPLE ID RE-AUTH. Don reported the tvOS board switching back to New Smyrna Beach
   after ~10 minutes on another camera. Cause: focus doubles as the cam selector
   (ContentView onChange(of: focus)) and the idle branch cleared focus outright —
@@ -633,14 +649,13 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   uploaded version: 15", proving real history behind the freeze. Accepted deliberately —
   the alternative was deleting and recreating both records, risking the reserved name
   "Beach Ramp Status" to fix a purely cosmetic identifier that users never see.
-- Waiting on Don personally: home-cron host maintenance, any App Store Connect
-  actions, and — NEW 2026-09-19 — an Apple ID re-auth AT THE MAC before anything can
-  flight again. The keychain has no distribution identity and reports a missing
-  Xcode-Token; cloud-managed distribution signing is the only path this project has
-  (an ASC API key fails it), and re-auth needs the Xcode UI plus 2FA. Until then every
-  flight fails at CodeSign, however clean the code is.
+- Waiting on Don personally: home-cron host maintenance and any App Store Connect
+  actions (next: submit 1.4 (31) for review when he wants the idle fix public). The
+  2026-09-19 Apple ID re-auth blocker is RESOLVED 2026-09-25 — flights now use an ASC
+  API key + local Apple Distribution identity via the shared flight tool.
 
 ## Recently shipped
+- 2026-09-25: 1.4 (31) uploaded to TestFlight, iOS + tvOS — the tvOS idle-reset fix (8127e53: idle no longer flips the cam back to New Smyrna). First build through the shared flight tool (github.com/donwb/flight) on an API key. Tag flight/build-31.
 - 2026-09-17: tvOS 1.3 (30) RELEASED on the App Store — the sunrise/sunset header band,
   the verdict tide wave with a now-line that ticks every 30 s (the build-29 freeze fixed
   in 376b1d5), two-line weekend headlines, and the NAME · NOW · RAMP PREDICTION column
