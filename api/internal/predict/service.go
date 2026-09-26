@@ -227,7 +227,7 @@ func (s *Service) build(ctx context.Context) (*Outlook, error) {
 				srf = nil
 			}
 		}
-		out.SurfReport = BuildSurfReport(now, &out, wave, cond, srf)
+		out.SurfReport = BuildSurfReport(now, wave, cond, srf)
 	}
 
 	return &out, nil

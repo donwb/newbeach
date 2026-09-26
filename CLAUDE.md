@@ -304,16 +304,15 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - **Surf report (2026-08-19): the surf info is an adjective, not a feature.** One
   casual line (`surf_report` block on both outlook endpoints, `predict/surfreport.go`):
   a deterministic classifier over buoy height/period + NWS wind direction
-  (flat/blown/choppy/clean_small/good/firing, surfer-terms heights), with the
-  ramp-access clause appended only when the surf is worth driving to — reusing
-  the already-built ramp outlooks, never recomputing tide risk. **Rip current
+  (flat/blown/choppy/clean_small/good/firing, surfer-terms heights). **The line
+  is surf only — no ramp/tide clause** (removed 2026-09-26: it truncated the tvOS
+  surf line, and the boards already carry closure risk). **Rip current
   risk is relayed verbatim from the KMLB Surf Zone Forecast (`weather/srf.go`),
   never computed here**; rip rides the `rip_risk` field for the clients' facts
   row, never the prose (2026-08-25: it doubled the tvOS facts line and squeezed
   the surf line) — except with no buoy read, where an elevated call is the
   whole line.
-  No dedicated surf page anywhere — surfers have Surfline; the unique angle is
-  surf × ramp access. `surf_report` never touches `risk` or `SurfContext`
+  No dedicated surf page anywhere — surfers have Surfline. `surf_report` never touches `risk` or `SurfContext`
   (the model echo), and `SURF_REPORT_ENABLED=false` removes the block while
   leaving wave-conditioned predictions alone.
 - `api/internal/conditions` snapshots tide/wind/NDBC-buoy waves + ramp counts to

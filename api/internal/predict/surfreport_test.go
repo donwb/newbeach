@@ -63,11 +63,6 @@ func TestWindShore(t *testing.T) {
 	assert.Equal(t, "cross", windShore(180))
 }
 
-// surfOutlook builds a minimal Outlook carrying the given per-ramp risks.
-func surfOutlook(risks ...RampOutlook) *Outlook {
-	return &Outlook{Ramps: risks}
-}
-
 func freshWave(now time.Time, heightFt float64, periodS *float64) *models.WaveSample {
 	return &models.WaveSample{Time: now.Add(-30 * time.Minute), HeightFt: heightFt, DominantPeriodS: periodS}
 }
@@ -76,121 +71,23 @@ func offshoreCond() *weather.Conditions {
 	return &weather.Conditions{WindDirDeg: fp(270), WindSpeedMph: fp(6)}
 }
 
-func TestBuildSurfReportComposesTideClause(t *testing.T) {
+func TestBuildSurfReportOmitsRampAccess(t *testing.T) {
+	// 2026-09-26: the ramp clause truncated the tvOS surf line — the line is
+	// surf only, whatever the tide is doing.
 	now := time.Date(2026, 8, 22, 9, 0, 0, 0, eastern)
-	windowStart := time.Date(2026, 8, 22, 12, 0, 0, 0, eastern)
-	// The time the ramp's own line quotes (peak minus lead) — later than the
-	// window's lower bound, and the one the surf clause must repeat.
-	quoted := time.Date(2026, 8, 22, 13, 0, 0, 0, eastern)
-
-	t.Run("good surf plus likely closure", func(t *testing.T) {
-		out := surfOutlook(RampOutlook{Risk: RiskLikely, Reason: ReasonHighTide,
-			Window: &Window{Start: windowStart}, quotedClose: &quoted})
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Equal(t, SurfGood, sr.Quality)
-		assert.Contains(t, sr.Line, "closure's possible around 1pm")
-		assert.NotContains(t, sr.Line, "12pm", "must quote the ramp line's time, not the window start")
-	})
-
-	t.Run("blown surf suppresses tide clause", func(t *testing.T) {
-		out := surfOutlook(RampOutlook{Risk: RiskLikely, Reason: ReasonHighTide, Window: &Window{Start: windowStart}})
-		cond := &weather.Conditions{WindDirDeg: fp(90), WindSpeedMph: fp(20)}
-		sr := BuildSurfReport(now, out, freshWave(now, 3.0, fp(9)), cond, nil)
-		require.NotNil(t, sr)
-		assert.Equal(t, SurfBlown, sr.Quality)
-		assert.NotContains(t, sr.Line, "closure", "blown out + closure clause is noise")
-	})
-
-	t.Run("closed now beats window copy", func(t *testing.T) {
-		out := surfOutlook(RampOutlook{Risk: RiskClosedNow, Reason: ReasonHighTide})
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Contains(t, sr.Line, "tide-closed right now")
-	})
-
-	t.Run("closed now in one city names it", func(t *testing.T) {
-		// 2026-09-09: three Daytona-area ramps shut under a New Smyrna board
-		// reading "Every ramp open" — the bare line contradicted the verdict.
-		out := surfOutlook(
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
-			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
-		)
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Contains(t, sr.Line, "tide-closed right now in Daytona")
-	})
-
-	t.Run("closed now in several cities lists them up the coast", func(t *testing.T) {
-		out := surfOutlook(
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
-			RampOutlook{City: "ORMOND BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
-			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
-			RampOutlook{City: "DAYTONA BEACH SHORES", Risk: RiskClosedNow, Reason: ReasonHighTide},
-		)
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Contains(t, sr.Line, "tide-closed right now in the Shores, Daytona and Ormond")
-	})
-
-	t.Run("closed now everywhere keeps the county-wide line", func(t *testing.T) {
-		out := surfOutlook(
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
-			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
-		)
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.True(t, strings.HasSuffix(sr.Line, "tide-closed right now"), sr.Line)
-	})
-
-	t.Run("closed now outranks likely elsewhere", func(t *testing.T) {
-		out := surfOutlook(
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskLikely, Reason: ReasonHighTide, quotedClose: &quoted},
-			RampOutlook{City: "DAYTONA BEACH", Risk: RiskClosedNow, Reason: ReasonHighTide},
-		)
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Contains(t, sr.Line, "tide-closed right now in Daytona")
-		assert.NotContains(t, sr.Line, "1pm")
-	})
-
-	t.Run("likely in one city names it after the time", func(t *testing.T) {
-		out := surfOutlook(
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskLikely, Reason: ReasonHighTide, quotedClose: &quoted},
-			RampOutlook{City: "DAYTONA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
-		)
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Contains(t, sr.Line, "closure's possible around 1pm in NSB")
-	})
-
-	t.Run("possible in one city names it", func(t *testing.T) {
-		out := surfOutlook(
-			RampOutlook{City: "NEW SMYRNA BEACH", Risk: RiskPossible, Reason: ReasonHighTide},
-			RampOutlook{City: "DAYTONA BEACH", Risk: RiskScheduled, Reason: ReasonEndOfDay},
-		)
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.Contains(t, sr.Line, "could shut ramps in NSB for a bit")
-	})
-
-	t.Run("no tide risk no clause", func(t *testing.T) {
-		out := surfOutlook(RampOutlook{Risk: RiskScheduled, Reason: ReasonEndOfDay})
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
-		require.NotNil(t, sr)
-		assert.NotContains(t, sr.Line, "closure")
-		assert.NotContains(t, sr.Line, "tide")
-	})
+	sr := BuildSurfReport(now, freshWave(now, 4.0, fp(9)), offshoreCond(), nil)
+	require.NotNil(t, sr)
+	assert.Equal(t, SurfGood, sr.Quality)
+	assert.NotContains(t, sr.Line, "ramp")
+	assert.NotContains(t, sr.Line, "closure")
 }
 
 func TestBuildSurfReportDegradation(t *testing.T) {
 	now := time.Date(2026, 8, 22, 9, 0, 0, 0, eastern)
-	out := surfOutlook()
 
 	t.Run("elevated rip rides the field, not the prose", func(t *testing.T) {
 		srf := &weather.SurfZone{RipCurrentRisk: "High"}
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
+		sr := BuildSurfReport(now, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
 		require.NotNil(t, sr)
 		assert.Equal(t, "High", sr.RipRisk)
 		assert.NotContains(t, strings.ToLower(sr.Line), "rip")
@@ -198,14 +95,14 @@ func TestBuildSurfReportDegradation(t *testing.T) {
 
 	t.Run("low rip stays out of the prose", func(t *testing.T) {
 		srf := &weather.SurfZone{RipCurrentRisk: "Low"}
-		sr := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
+		sr := BuildSurfReport(now, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
 		require.NotNil(t, sr)
 		assert.Equal(t, "Low", sr.RipRisk)
 		assert.NotContains(t, strings.ToLower(sr.Line), "rip")
 	})
 
 	t.Run("no wind data still phrases", func(t *testing.T) {
-		sr := BuildSurfReport(now, out, freshWave(now, 3.0, fp(9)), nil, nil)
+		sr := BuildSurfReport(now, freshWave(now, 3.0, fp(9)), nil, nil)
 		require.NotNil(t, sr)
 		assert.NotEmpty(t, sr.Line)
 		assert.Equal(t, "waist-high", sr.HeightLabel)
@@ -214,7 +111,7 @@ func TestBuildSurfReportDegradation(t *testing.T) {
 	t.Run("stale wave with elevated rip is rip-only", func(t *testing.T) {
 		stale := &models.WaveSample{Time: now.Add(-8 * time.Hour), HeightFt: 4.0}
 		srf := &weather.SurfZone{RipCurrentRisk: "Moderate"}
-		sr := BuildSurfReport(now, out, stale, nil, srf)
+		sr := BuildSurfReport(now, stale, nil, srf)
 		require.NotNil(t, sr)
 		assert.Empty(t, sr.Quality)
 		assert.Contains(t, sr.Line, "rip current risk is moderate")
@@ -223,19 +120,18 @@ func TestBuildSurfReportDegradation(t *testing.T) {
 	t.Run("stale wave and low rip is no report", func(t *testing.T) {
 		stale := &models.WaveSample{Time: now.Add(-8 * time.Hour), HeightFt: 4.0}
 		srf := &weather.SurfZone{RipCurrentRisk: "Low"}
-		assert.Nil(t, BuildSurfReport(now, out, stale, nil, srf))
+		assert.Nil(t, BuildSurfReport(now, stale, nil, srf))
 	})
 
 	t.Run("nothing at all is no report", func(t *testing.T) {
-		assert.Nil(t, BuildSurfReport(now, out, nil, nil, nil))
+		assert.Nil(t, BuildSurfReport(now, nil, nil, nil))
 	})
 }
 
 func TestBuildSurfReportDeterministic(t *testing.T) {
 	now := time.Date(2026, 8, 22, 9, 0, 0, 0, eastern)
-	out := surfOutlook()
 	srf := &weather.SurfZone{RipCurrentRisk: "Moderate"}
-	a := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
-	b := BuildSurfReport(now, out, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
+	a := BuildSurfReport(now, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
+	b := BuildSurfReport(now, freshWave(now, 4.0, fp(9)), offshoreCond(), srf)
 	assert.Equal(t, a.Line, b.Line, "same inputs must produce the same string")
 }
