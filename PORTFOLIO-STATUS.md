@@ -475,7 +475,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
    return visits since, no forwarding cluster. Read: the pitch was seen and evidently
    not escalated; Beach Safety likely never engaged. DECISION (Don, 2026-08-26):
    step back from courting the county directly; next move is a PORTFOLIO-LEVEL
-   messaging campaign across all the apps, run from the hub (~/atc) — this repo
+   messaging campaign across all the apps, run from the hub (~/dev/atc) — this repo
    holds until that campaign dictates otherwise. Untouched fallbacks if it ever
    reopens: a low-pressure bump to Barnett (his side did click), Beach Safety by
    phone (386-239-7873), county Community Information. The traffic tripwire stays
