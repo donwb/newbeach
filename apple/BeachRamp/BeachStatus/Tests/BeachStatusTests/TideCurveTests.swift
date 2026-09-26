@@ -68,4 +68,39 @@ struct TideCurveTests {
         let heights = points.map(\.height)
         #expect(heights == heights.sorted())
     }
+
+    @Test func tomorrowOverlaySharesTodaysAxis() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = Self.eastern
+        let start = at(0, 0)
+        let range = start...cal.date(byAdding: .day, value: 1, to: start)!
+        let tomorrow = [
+            TidePrediction(time: at(5, 30).addingTimeInterval(86_400), type: "L", height: 0.2),
+            TidePrediction(time: at(11, 34).addingTimeInterval(86_400), type: "H", height: 3.1),
+            TidePrediction(time: at(17, 47).addingTimeInterval(86_400), type: "L", height: 0.2),
+        ]
+        let overlay = TideCurve.tomorrowOverlay(today: extremes, tomorrow: tomorrow,
+                                                in: range, calendar: cal)
+        let first = try #require(overlay.first)
+        let last = try #require(overlay.last)
+        #expect(first.time == range.lowerBound)
+        #expect(last.time == range.upperBound)
+        // Tomorrow's 11:34 high lands at today's 11:34 on the shared axis.
+        // (Daytime only: the reflected phantom past tomorrow's last low
+        // repeats the 3.1 at midnight.)
+        let peak = try #require(overlay.filter { $0.time < at(18, 0) }
+            .max { $0.height < $1.height })
+        #expect(abs(peak.time.timeIntervalSince(at(11, 34))) <= 10 * 60)
+        #expect(abs(peak.height - 3.1) < 0.05)
+        // The join at midnight follows today's 11:07pm high, not a phantom.
+        #expect(first.height > 2.5)
+    }
+
+    @Test func tomorrowOverlayEmptyWithoutData() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = Self.eastern
+        let range = at(0, 0)...at(23, 59)
+        #expect(TideCurve.tomorrowOverlay(today: extremes, tomorrow: [],
+                                          in: range, calendar: cal).isEmpty)
+    }
 }

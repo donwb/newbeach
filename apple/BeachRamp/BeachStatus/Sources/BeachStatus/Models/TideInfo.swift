@@ -90,17 +90,23 @@ public struct TideChartData: Codable, Sendable {
     public let currentTime: Date
     public let highLow: [TidePrediction]
     public let hourly: [HourlyTidePoint]
+    /// Tomorrow's extremes, for the next-day overlay. Nil on older server
+    /// responses and cached snapshots, or when the server's fetch failed.
+    public let tomorrowHighLow: [TidePrediction]?
 
-    public init(currentTime: Date, highLow: [TidePrediction], hourly: [HourlyTidePoint]) {
+    public init(currentTime: Date, highLow: [TidePrediction], hourly: [HourlyTidePoint],
+                tomorrowHighLow: [TidePrediction]? = nil) {
         self.currentTime = currentTime
         self.highLow = highLow
         self.hourly = hourly
+        self.tomorrowHighLow = tomorrowHighLow
     }
 
     enum CodingKeys: String, CodingKey {
         case currentTime = "current_time"
         case highLow = "high_low"
         case hourly
+        case tomorrowHighLow = "tomorrow_high_low"
     }
 }
 

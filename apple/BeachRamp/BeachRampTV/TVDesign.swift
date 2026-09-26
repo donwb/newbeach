@@ -136,6 +136,54 @@ func tvStatusWord(_ raw: String) -> String {
     }
 }
 
+// MARK: - Tide wave
+
+/// Today's Eastern day plus what the tvOS tide waves draw on it: today's
+/// curve, tomorrow's dashed on the same axis, and today's turns as markers.
+struct TVTideWave {
+    static let eastern = TimeZone(identifier: "America/New_York")!
+    static var calendar: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = eastern
+        return cal
+    }
+
+    let range: ClosedRange<Date>
+    let points: [TideCurve.Point]
+    let tomorrow: [TideCurve.Point]
+    let markers: [TideCurveMarker]
+
+    /// `labeled: false` keeps the dots but drops the time captions — for a
+    /// surface that already lists the turns beneath the curve.
+    init(chart: TideChartData?, now: Date, labeled: Bool = true) {
+        let cal = Self.calendar
+        let start = cal.startOfDay(for: now)
+        range = start...cal.date(byAdding: .day, value: 1, to: start)!
+        let today = chart?.highLow ?? []
+        points = TideCurve.points(extremes: today, in: range)
+        tomorrow = TideCurve.tomorrowOverlay(today: today,
+                                             tomorrow: chart?.tomorrowHighLow ?? [],
+                                             in: range, calendar: cal)
+        let range = range
+        markers = today.compactMap { p in
+            guard let h = p.height, range.contains(p.time) else { return nil }
+            return TideCurveMarker(time: p.time, height: h, isHigh: p.type == "H",
+                                   label: labeled ? Self.clock(p.time) : nil)
+        }
+    }
+
+    /// "9:05am" — compact enough to sit over a peak.
+    static func clock(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = eastern
+        formatter.dateFormat = "h:mma"
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+        return formatter.string(from: date)
+    }
+}
+
 // MARK: - Button styles
 
 /// Contributes no focus chrome of its own — the label draws all focus and

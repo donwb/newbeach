@@ -104,8 +104,9 @@ func HandleV2Tides(noaaClient *noaa.Client) echo.HandlerFunc {
 }
 
 // HandleV2TideChart returns granular tide data suitable for rendering a smooth
-// tide chart. It includes the hourly prediction curve, high/low markers, and the
-// current server time for plotting a "now" indicator.
+// tide chart. It includes the hourly prediction curve, high/low markers, the
+// current server time for plotting a "now" indicator, and (best-effort)
+// tomorrow's high/low markers for a next-day overlay.
 // GET /api/v2/tides/chart
 func HandleV2TideChart(noaaClient *noaa.Client) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -127,11 +128,22 @@ func HandleV2TideChart(noaaClient *noaa.Client) echo.HandlerFunc {
 			})
 		}
 
-		return c.JSON(http.StatusOK, map[string]interface{}{
+		resp := map[string]interface{}{
 			"hourly":       hourly,
 			"high_low":     highLow,
 			"current_time": time.Now(),
-		})
+		}
+
+		// Tomorrow's extremes let clients overlay the next day's curve.
+		// Best-effort: today's chart still renders without them.
+		tomorrow := time.Now().AddDate(0, 0, 1)
+		if next, err := noaaClient.FetchTidePredictionsRange(ctx, tomorrow, tomorrow); err != nil {
+			slog.Warn("fetching tomorrow's high/low predictions for tide chart", "err", err)
+		} else {
+			resp["tomorrow_high_low"] = next
+		}
+
+		return c.JSON(http.StatusOK, resp)
 	}
 }
 

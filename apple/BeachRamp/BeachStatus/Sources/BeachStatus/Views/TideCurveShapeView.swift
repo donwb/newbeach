@@ -1,7 +1,25 @@
 import SwiftUI
 
+/// A high or low turn drawn on the curve: a dot, plus an optional caption
+/// (above a high, below a low) the caller formats — e.g. "9:05am".
+public struct TideCurveMarker: Equatable, Sendable {
+    public let time: Date
+    public let height: Double
+    public let isHigh: Bool
+    public let label: String?
+
+    public init(time: Date, height: Double, isHigh: Bool, label: String? = nil) {
+        self.time = time
+        self.height = height
+        self.isHigh = isHigh
+        self.label = label
+    }
+}
+
 /// The curve itself: tidefill under a 2px ink stroke, 2px accent now-line,
 /// and (on the ramp detail) a dashed amber line at the ramp's closure height.
+/// Optionally: a dashed overlay curve (tomorrow's tide on today's axis) and
+/// high/low markers with time captions.
 public struct TideCurveShapeView: View {
     public let points: [TideCurve.Point]
     public let range: ClosedRange<Date>
@@ -25,13 +43,29 @@ public struct TideCurveShapeView: View {
     /// Date() at construction, so the field changes every time a caller's
     /// body runs; tickers (the tvOS board) pass their own clock explicitly.
     public var now: Date
+    /// A second curve on the same axis and scale, drawn dashed with no fill —
+    /// tomorrow's tide on tvOS. Empty draws nothing.
+    public var overlayPoints: [TideCurve.Point]
+    public var overlayColor: Color?
+    /// High/low turns. Labeled markers reserve `labelBand` points above and
+    /// below the plot so captions never clip at the frame edge.
+    public var markers: [TideCurveMarker]
+    public var markerFont: Font
+    public var markerLabelColor: Color?
+    public var labelBand: CGFloat
     @Environment(\.ground) private var ground
 
     public init(points: [TideCurve.Point], range: ClosedRange<Date>,
                 height: CGFloat, threshold: Double? = nil,
                 strokeWidth: CGFloat = 2, strokeColor: Color? = nil,
                 fillColor: Color? = nil, nowLineColor: Color? = nil,
-                now: Date = Date()) {
+                now: Date = Date(),
+                overlayPoints: [TideCurve.Point] = [],
+                overlayColor: Color? = nil,
+                markers: [TideCurveMarker] = [],
+                markerFont: Font = .caption,
+                markerLabelColor: Color? = nil,
+                labelBand: CGFloat = 28) {
         self.points = points
         self.range = range
         self.height = height
@@ -41,6 +75,12 @@ public struct TideCurveShapeView: View {
         self.fillColor = fillColor
         self.nowLineColor = nowLineColor
         self.now = now
+        self.overlayPoints = overlayPoints
+        self.overlayColor = overlayColor
+        self.markers = markers
+        self.markerFont = markerFont
+        self.markerLabelColor = markerLabelColor
+        self.labelBand = labelBand
     }
 
     public var body: some View {
@@ -50,6 +90,13 @@ public struct TideCurveShapeView: View {
             ZStack(alignment: .topLeading) {
                 fillPath(in: size).fill(fillColor ?? t.tideFill)
                 strokePath(in: size).stroke(strokeColor ?? t.ink, lineWidth: strokeWidth)
+                if !overlayPoints.isEmpty {
+                    linePath(overlayPoints, in: size)
+                        .stroke(overlayColor ?? (strokeColor ?? t.ink).opacity(0.55),
+                                style: StrokeStyle(lineWidth: max(1.5, strokeWidth - 1),
+                                                   lineCap: .round,
+                                                   dash: [strokeWidth * 3, strokeWidth * 3]))
+                }
                 if let threshold {
                     Path { p in
                         let ty = y(for: threshold, in: size)
@@ -63,13 +110,18 @@ public struct TideCurveShapeView: View {
                     .fill(nowLineColor ?? t.accent)
                     .frame(width: 2)
                     .offset(x: x(for: now, in: size) - 1)
+                ForEach(markers, id: \.time) { marker in
+                    markerView(marker, color: strokeColor ?? t.ink,
+                               labelColor: markerLabelColor ?? strokeColor ?? t.ink,
+                               in: size)
+                }
             }
         }
         .frame(height: height)
     }
 
     private var heights: (min: Double, max: Double) {
-        var values = points.map(\.height)
+        var values = points.map(\.height) + overlayPoints.map(\.height)
         if let threshold { values.append(threshold) }
         let lo = values.min() ?? 0
         let hi = values.max() ?? 1
@@ -84,13 +136,49 @@ public struct TideCurveShapeView: View {
         return CGFloat(min(max(t, 0), 1)) * size.width
     }
 
+    /// Vertical room held for captions, top and bottom.
+    private var band: CGFloat {
+        markers.contains { $0.label != nil } ? labelBand : 0
+    }
+
     private func y(for height: Double, in size: CGSize) -> CGFloat {
         let (lo, hi) = heights
         let t = (height - lo) / (hi - lo)
-        return (1 - CGFloat(t)) * size.height
+        return band + (1 - CGFloat(t)) * (size.height - 2 * band)
+    }
+
+    @ViewBuilder
+    private func markerView(_ marker: TideCurveMarker, color: Color,
+                            labelColor: Color, in size: CGSize) -> some View {
+        let mx = x(for: marker.time, in: size)
+        let my = y(for: marker.height, in: size)
+        let dot: CGFloat = strokeWidth * 3 + 2
+        Circle()
+            .fill(color)
+            .frame(width: dot, height: dot)
+            .position(x: mx, y: my)
+        if let label = marker.label {
+            // Captions sit just outside the curve; the x clamp keeps an
+            // early-morning or late-night turn's caption on screen.
+            let halfWidth: CGFloat = 70
+            Text(label)
+                .font(markerFont)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(labelColor)
+                .frame(width: halfWidth * 2, height: labelBand)
+                .position(x: min(max(mx, halfWidth), size.width - halfWidth),
+                          y: marker.isHigh ? my - dot / 2 - labelBand / 2
+                                           : my + dot / 2 + labelBand / 2)
+        }
     }
 
     private func strokePath(in size: CGSize) -> Path {
+        linePath(points, in: size)
+    }
+
+    private func linePath(_ points: [TideCurve.Point], in size: CGSize) -> Path {
         Path { path in
             guard let first = points.first else { return }
             path.move(to: CGPoint(x: x(for: first.time, in: size), y: y(for: first.height, in: size)))

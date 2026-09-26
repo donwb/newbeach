@@ -89,33 +89,32 @@ struct LedgerView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Today's wave with each high and low captioned by its time, and
+    /// tomorrow's tide dashed over it on the same clock.
     @ViewBuilder private var verdictTideWave: some View {
-        let range = todayRange
-        let points = tideChart.map { TideCurve.points(extremes: $0.highLow, in: range) } ?? []
-        if points.isEmpty {
+        let wave = TVTideWave(chart: tideChart, now: now)
+        if wave.points.isEmpty {
             Spacer(minLength: 0)
         } else {
             TideCurveShapeView(
-                points: points,
-                range: range,
-                height: 128,
+                points: wave.points,
+                range: wave.range,
+                height: 148,
                 strokeWidth: 3,
                 strokeColor: TVInk.type.opacity(0.8),
                 fillColor: TVInk.type.opacity(0.10),
                 nowLineColor: TVInk.sand,
-                now: now
+                now: now,
+                overlayPoints: wave.tomorrow,
+                overlayColor: TVInk.type.opacity(0.45),
+                markers: wave.markers,
+                markerFont: .archivo(22, weight: .semiBold),
+                markerLabelColor: TVInk.typeMuted,
+                labelBand: 28
             )
             .frame(minWidth: 220, maxWidth: .infinity)
             .accessibilityIdentifier("verdictTideWave")
         }
-    }
-
-    /// Midnight to midnight, Eastern — the same day the detail surface draws.
-    private var todayRange: ClosedRange<Date> {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "America/New_York")!
-        let start = cal.startOfDay(for: now)
-        return start...cal.date(byAdding: .day, value: 1, to: start)!
     }
 
     private var boxes: some View {

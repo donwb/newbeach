@@ -58,6 +58,28 @@ public enum TideCurve {
         return points
     }
 
+    /// Tomorrow's curve laid over today's `range`: sampled across the next
+    /// day, then shifted back a day so both share one time axis. Today's
+    /// extremes anchor the join at midnight, so the dashed line starts from
+    /// real water instead of a reflected guess. Empty without tomorrow's data.
+    public static func tomorrowOverlay(today: [TidePrediction],
+                                       tomorrow: [TidePrediction],
+                                       in range: ClosedRange<Date>,
+                                       calendar: Calendar,
+                                       stepMinutes: Int = 10) -> [Point] {
+        guard !tomorrow.isEmpty,
+              let start = calendar.date(byAdding: .day, value: 1, to: range.lowerBound),
+              let end = calendar.date(byAdding: .day, value: 1, to: range.upperBound)
+        else { return [] }
+        // Shift by calendar day, not a fixed 24h, so a DST night keeps
+        // tomorrow's 3pm over today's 3pm.
+        return points(extremes: today + tomorrow, in: start...end, stepMinutes: stepMinutes)
+            .compactMap { p in
+                calendar.date(byAdding: .day, value: -1, to: p.time)
+                    .map { Point(time: $0, height: p.height) }
+            }
+    }
+
     /// Height at a single moment, interpolated between the bracketing anchors.
     static func height(at time: Date, anchors: [Point]) -> Double? {
         guard let first = anchors.first, let last = anchors.last else { return nil }

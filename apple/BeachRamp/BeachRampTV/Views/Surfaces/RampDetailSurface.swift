@@ -160,17 +160,23 @@ struct RampDetailSurface: View {
                 Rectangle().fill(TVInk.rule).frame(height: 2)
             }
 
-            if let chart = tideChart, !curvePoints(chart).isEmpty {
+            // Dots mark the turns (their times are listed just below);
+            // tomorrow's tide runs dashed on the same clock.
+            let wave = TVTideWave(chart: tideChart, now: now, labeled: false)
+            if !wave.points.isEmpty {
                 TideCurveShapeView(
-                    points: curvePoints(chart),
-                    range: todayRange,
+                    points: wave.points,
+                    range: wave.range,
                     height: 170,
                     threshold: nil,
                     strokeWidth: 3,
                     strokeColor: TVInk.type,
                     fillColor: TVInk.type.opacity(0.13),
                     nowLineColor: TVInk.type,
-                    now: now
+                    now: now,
+                    overlayPoints: wave.tomorrow,
+                    overlayColor: TVInk.type.opacity(0.45),
+                    markers: wave.markers
                 )
                 .padding(.top, 8)
             } else {
@@ -230,10 +236,6 @@ struct RampDetailSurface: View {
         let start = Self.calendar.startOfDay(for: now)
         let end = Self.calendar.date(byAdding: .day, value: 1, to: start)!
         return start...end
-    }
-
-    private func curvePoints(_ chart: TideChartData) -> [TideCurve.Point] {
-        TideCurve.points(extremes: chart.highLow, in: todayRange)
     }
 
     private var todayTurns: [(kind: String, time: Date, height: String)] {

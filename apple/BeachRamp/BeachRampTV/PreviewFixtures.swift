@@ -257,7 +257,13 @@ enum PreviewFixtures {
             TidePrediction(time: at(15, 51), type: "H", height: 2.5),
             TidePrediction(time: at(22, 23), type: "L", height: 0.6),
         ],
-        hourly: []
+        hourly: [],
+        tomorrowHighLow: [
+            TidePrediction(time: at(3, 52).addingTimeInterval(86_400), type: "H", height: 2.1),
+            TidePrediction(time: at(10, 8).addingTimeInterval(86_400), type: "L", height: 0.2),
+            TidePrediction(time: at(16, 37).addingTimeInterval(86_400), type: "H", height: 2.7),
+            TidePrediction(time: at(23, 5).addingTimeInterval(86_400), type: "L", height: 0.5),
+        ]
     )
 }
 #endif
