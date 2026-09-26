@@ -429,7 +429,7 @@ When working as part of an agent team on this project:
 
 ## Portfolio Control Tower
 
-This repo is one of four in Don's portfolio, managed from a hub at `~/atc`. Two rules:
+This repo is one of the repos in Don's portfolio, managed from a hub at `~/dev/atc`. Two rules:
 
 **1. `PORTFOLIO-STATUS.md` freshness is a requirement, not a courtesy.** At the end of any
 session that changes status-relevant facts — version/build, App Review state, punch-list
@@ -439,10 +439,10 @@ whole portfolio and cross-checks it against git; a stale file is worse than none
 the hub will flag it and stop trusting it.
 
 **2. Work arrives as dispatches.** The hub sends instructions as brief files in
-`/Users/donwb/atc/dispatches/` (named `YYYY-MM-DD-<repo>-<topic>.md`); Don points a session
+`/Users/donwb/dev/atc/dispatches/` (named `YYYY-MM-DD-<repo>-<topic>.md`); Don points a session
 here at one when it's time to execute. Read the whole brief first — it carries cross-repo
 context this repo can't see. Verify its claims against this repo before editing
 (skip-and-report on mismatch), honor any "do now" vs. "stage until <trigger>" tiers, and
 this repo's own rules (tests, freezes, branch discipline) always still govern. When the
 work lands, record the outcome in `PORTFOLIO-STATUS.md` — that update is how the hub finds
-out. Never edit files in `~/atc` from this repo.
+out. Never edit files in `~/dev/atc` from this repo.
