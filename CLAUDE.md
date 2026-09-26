@@ -431,12 +431,14 @@ When working as part of an agent team on this project:
 
 This repo is one of the repos in Don's portfolio, managed from a hub at `~/dev/atc`. Two rules:
 
-**1. `PORTFOLIO-STATUS.md` freshness is a requirement, not a courtesy.** At the end of any
-session that changes status-relevant facts — version/build, App Review state, punch-list
-items, target dates, blockers, shipped work — update `PORTFOLIO-STATUS.md` to match and
-bump its `last_verified` date. The hub reads this file to answer "where are we" across the
-whole portfolio and cross-checks it against git; a stale file is worse than none, because
-the hub will flag it and stop trusting it.
+**1. Portfolio status (schema 2).** `PORTFOLIO-STATUS.md` follows the shape in
+`/Users/donwb/dev/atc/STATUS-REQUEST.md`. At the end of any session that changes
+status-relevant facts (version/build, review state, dates, blockers, shipped work,
+dispatch outcomes), update the header, bump `last_verified`, and append the history to
+`STATUS-LOG.md`. A Stop hook (`.claude/hooks/status-guard.sh`) enforces this: if commits
+landed on a later day than `last_verified`, it asks once per session. Either update the
+file, or say in one line why nothing status-relevant changed. Never edit files in
+`~/dev/atc` from this repo.
 
 **2. Work arrives as dispatches.** The hub sends instructions as brief files in
 `/Users/donwb/dev/atc/dispatches/` (named `YYYY-MM-DD-<repo>-<topic>.md`); Don points a session
@@ -444,5 +446,5 @@ here at one when it's time to execute. Read the whole brief first — it carries
 context this repo can't see. Verify its claims against this repo before editing
 (skip-and-report on mismatch), honor any "do now" vs. "stage until <trigger>" tiers, and
 this repo's own rules (tests, freezes, branch discipline) always still govern. When the
-work lands, record the outcome in `PORTFOLIO-STATUS.md` — that update is how the hub finds
-out. Never edit files in `~/dev/atc` from this repo.
+work lands, record the outcome in the `dispatches:` list of `PORTFOLIO-STATUS.md` — that
+update is how the hub finds out.
