@@ -121,7 +121,7 @@ app_review_state: |
   watchOS: out of scope for 1.0 — target builds but is excluded from the iOS archive.
 mission_dates: |
   none found — no deadlines in REQUIREMENTS.md, README, or intake dossier
-last_verified: 2026-09-26 (BUILD 1.4 (33) UPLOADED — iOS + tvOS on TestFlight, carrying the tvOS tide-wave time captions + tomorrow dashed overlay, tag flight/build-33 — see Recently shipped. API: evening-high warnings shipped — see Recently shipped. 2026-09-25: water-level anomaly shipped to the prediction model, params v7 — see Recently shipped. Earlier today: BUILD 1.4 (31) UPLOADED — iOS + tvOS on TestFlight, carrying
+last_verified: 2026-09-26 (BUILD 1.4 (33) UPLOADED — iOS + tvOS on TestFlight, carrying the tvOS tide-wave time captions + tomorrow dashed overlay, tag flight/build-33 — see Recently shipped. API: surf line dropped its ramp/tide clause (f95b1c7) and evening-high warnings shipped — see Recently shipped. 2026-09-25: water-level anomaly shipped to the prediction model, params v7 — see Recently shipped. Earlier today: BUILD 1.4 (31) UPLOADED — iOS + tvOS on TestFlight, carrying
   the tvOS idle-reset fix 8127e53, the only app change since build 30. The surf-headline
   gallery truncation the 9/19 note expected to ride along was NEVER FIXED — still open,
   see app_review_state. Tag flight/build-31.
@@ -655,6 +655,7 @@ prior_2026_08_18: (SUBMITTED FOR APP REVIEW — build 1.0 (18), first submission
   API key + local Apple Distribution identity via the shared flight tool.
 
 ## Recently shipped
+- 2026-09-26: Surf report is surf-only — the ramp/tide clause ("…but ramps are tide-closed right now in …") is gone from the `surf_report` line; it truncated the tvOS Surf Now row, and closure risk already lives on the boards and outlook. Server-side only (f95b1c7), no client release needed.
 - 2026-09-26: tvOS tide wave gets time references + tomorrow — the verdict-row wave captions each high/low with its time ("9:05am" above highs, below lows) and draws tomorrow's tide as a dashed curve on the same clock and scale; the ramp detail wave gets the dots + dashed overlay (its turns row already lists times). API: /api/v2/tides/chart adds tomorrow_high_low (additive, best-effort) — live on deploy. Flighted as 1.4 (33), iOS + tvOS, tag flight/build-33.
 - 2026-09-26: Outlook warns ahead of evening high tides — a high peaking up to 2.5h after the day's close is now in play (the county clears the beach 3–6pm ahead of 8–9pm highs), capped at "possible", copy "Could close early for the ~8:30pm high tide". Serving only; training keeps its daytime window. Day-level walk-forward, 27 ramps May–Sep: 9am misses 157 → 38, 2pm 132 → 39. Server-side only — no app build needed. Still open: the morning mirror (highs just before 7am keeping ramps closed at the 8am open).
 - 2026-09-25: Prediction model reads the water that arrives — observed-minus-predicted water level at Trident Pier + Mayport raises every predicted tide to effective water height, in training and serving (outlook, weekend, scorecard); below-normal water counts half; params v7 (retrain on deploy). Walk-forward backtest, 27 ramps May–Sep: misses 111 → 21, "likely" precision 0.59 → 0.74, September (king-tide season) misses 28 → 4. Kill switch PREDICT_WATER_LEVEL_ENABLED. Still open: after-hours evening peaks that close ramps mid-afternoon aren't in the outlook or scorecard.
