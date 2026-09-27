@@ -24,10 +24,9 @@ dispatches:
 ## Top open items
 1. **Submit 1.4 (33) for review** when Don wants it public. It carries the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-33`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
-3. **Prediction, morning mirror of the evening-high fix.** Highs just before 7am keep ramps closed at the 8am open (~150 closures with no cause attached). Authority: CLAUDE.md §Prediction ("Evening highs close ramps before the beach clears").
-4. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
-5. **County outreach is on hold.** It was sent 2026-08-17. One county-network reader opened it and nobody replied. Don pivoted (8/26) to a portfolio-level messaging campaign run from the hub. The beach-traffic-check skill still flags any new county visitor.
-6. **Long-standing backlog:** populate `ramp_metadata` values (optional now that thresholds are learned; a curated `closure_height_ft` overrides the model). Also: the historical analytics dashboard (REQUIREMENTS.md §16.1), TRMNL consumption of the outlook, the APNs Live Activity sender, and stale `slides/screenshots/` (INTAKE §8).
+3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
+4. **County outreach is on hold.** It was sent 2026-08-17. One county-network reader opened it and nobody replied. Don pivoted (8/26) to a portfolio-level messaging campaign run from the hub. The beach-traffic-check skill still flags any new county visitor.
+5. **Long-standing backlog:** populate `ramp_metadata` values (optional now that thresholds are learned; a curated `closure_height_ft` overrides the model). Also: the historical analytics dashboard (REQUIREMENTS.md §16.1), TRMNL consumption of the outlook, the APNs Live Activity sender, and stale `slides/screenshots/` (INTAKE §8).
 
 ## Blockers & risks
 - **NSB cam:** YouTube reports 550p9smwjPM as LIVE_STREAM_OFFLINE on every player client, but the video is not private and has not been replaced, so no migration is needed. Switch to the Ormond playbook (new ID → migration → deploy) only if it goes private or a replacement broadcast appears. Still offline as of 2026-09-26 (roster `online: false`, relay 404). Web already skips offline cams on first load (eb23fc4).
@@ -38,6 +37,8 @@ dispatches:
 - **The bundle ID is permanently frozen at `com.donwb.BeachRampTV`** for every platform. This was accepted deliberately and users never see it.
 
 ## Recently shipped
+- 2026-09-26: Prediction handles morning highs. Before the open, a high tide around it now reads "Opens around 8am, but the ~9am high tide could keep it closed until ~11am"; walk-forward catches 64% of held-at-open mornings (0% before). Closures posted at the open after the high quote peak + 4.5h (error 5.05h → 3.29h). Server-side only.
+- 2026-09-26: High-water days: reopen estimates floored at peak + 3.5h when water runs ≥ 0.9 ft over normal ("said open too early" on Sep 24–26: 50% → 25%), and the evening window stretches 30 min per foot. Server-side only.
 - 2026-09-26: Surf report is surf-only (f95b1c7). The ramp/tide clause that truncated the tvOS Surf Now row is gone. Server-side only.
 - 2026-09-26: 1.4 (33) is on TestFlight for iOS + tvOS: the tvOS tide wave captions each high/low with its time and overlays tomorrow's curve as a dashed line. `/api/v2/tides/chart` gains `tomorrow_high_low`.
 - 2026-09-26: The outlook now warns ahead of evening high tides, capped at "possible". Walk-forward 9am misses 157 → 38.
