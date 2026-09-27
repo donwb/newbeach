@@ -449,3 +449,54 @@ func TestServePeakInPlaySurge(t *testing.T) {
 	assert.True(t, servePeakInPlay(peak, closes, 1.0), "+1 ft buys another half hour")
 	assert.False(t, servePeakInPlay(peak, closes, -1.0), "low water never shrinks the reach")
 }
+
+// Before the open, a high tide around it that may hold the ramp shut past
+// the open says so — the open first, then the tide, with a hedged reopen.
+func TestBuildOutlookOpenLate(t *testing.T) {
+	ramps := []models.RampStatusWithSince{ramp(1, "NS-141", "CLOSED")}
+	preds := []models.TidePrediction{
+		{Time: et(16, 2, 0), Type: "L", Height: ptrF(0.1)},
+		h(et(16, 8, 30), 3.0), // NS-141 closes ~2h ahead of a high: already shut at the 8am open
+		{Time: et(16, 14, 40), Type: "L", Height: ptrF(0.3)},
+	}
+	ro := BuildOutlook(et(16, 6, 30), ramps, testParams(), preds, nil, nil, nil).Ramps[0]
+	assert.Equal(t, RiskClosedNow, ro.Risk, "closed right now is a fact")
+	assert.Equal(t, ReasonOvernight, ro.Reason)
+	assert.Equal(t, "Closed until morning", ro.Headline)
+	assert.Equal(t, "Opens around 8am, but the ~8:30am high tide could keep it closed until ~10:30am", ro.Detail)
+	require.NotNil(t, ro.Reopen)
+	assert.Equal(t, "may open late, ~10:30am, for the tide", ro.Reopen.Label)
+
+	// The city line hedges the open too — never "every ramp reopens around 8am".
+	two := []models.RampStatusWithSince{ramp(1, "NS-141", "CLOSED"), ramp(2, "NS-106", "CLOSED")}
+	for i := range two {
+		two[i].City = "NEW SMYRNA BEACH"
+	}
+	out := BuildOutlook(et(16, 6, 30), two, testParams(), preds, nil, nil, nil)
+	require.Len(t, out.Cities, 1)
+	assert.Equal(t, "Opens around 8am, but the morning high tide could keep any of them closed past it", out.Cities[0].Detail)
+
+	// A high just before the open is quoted like a closure posted after
+	// its peak, so the number holds when the county posts it.
+	before := []models.TidePrediction{h(et(16, 7, 40), 3.0), {Time: et(16, 13, 50), Type: "L", Height: ptrF(0.3)}}
+	pre := BuildOutlook(et(16, 6, 30), ramps, testParams(), before, nil, nil, nil).Ramps[0]
+	require.NotNil(t, pre.Reopen)
+	assert.Equal(t, "may open late, ~"+fmtClock(roundNearest30(et(16, 7, 40).Add(postedAfterPeakLag)))+", for the tide", pre.Reopen.Label)
+
+	// A high well before the open is gone by then: plain open copy.
+	early := []models.TidePrediction{h(et(16, 4, 0), 3.0), {Time: et(16, 10, 10), Type: "L", Height: ptrF(0.3)}}
+	plain := BuildOutlook(et(16, 3, 0), ramps, testParams(), early, nil, nil, nil).Ramps[0]
+	assert.Equal(t, "Beach driving opens around 8am, once ramps are cleared for turtles", plain.Detail)
+}
+
+// A closure the county posts at the open after the high has passed runs
+// long; the estimate is peak + postedAfterPeakLag, not low tide + 90 min.
+func TestPostedAtOpenReopen(t *testing.T) {
+	water := []models.TidePrediction{h(et(16, 7, 40), 3.0), {Time: et(16, 13, 50), Type: "L", Height: ptrF(0.3)}}
+	opens := et(16, 8, 0)
+	fallback := et(16, 15, 20)
+	assert.Equal(t, et(16, 7, 40).Add(postedAfterPeakLag), postedAtOpenReopen(fallback, water, et(16, 8, 2), opens))
+	assert.Equal(t, fallback, postedAtOpenReopen(fallback, water, et(16, 11, 0), opens), "mid-day postings keep their estimate")
+	rising := []models.TidePrediction{h(et(16, 9, 5), 3.0)}
+	assert.Equal(t, fallback, postedAtOpenReopen(fallback, rising, et(16, 8, 2), opens), "peak still ahead: the mirror stands")
+}

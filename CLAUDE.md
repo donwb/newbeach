@@ -239,8 +239,16 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   3.17 → 3.87). A taper past the reach was tried and over-hedged. Day-level walk-forward:
   9am misses 157 → 38, 2pm 132 → 39. High water stretches the reach 30 min per foot of
   anomaly (`eveningSurgeReachPerFt`; 9/26: 4–5pm closures for a 9:23pm high at +1.0 ft).
-  Still open: the same thing at the *morning* end — highs just before 7am keep ramps closed
-  at the 8am open (~150 unattributed closures).
+- **Highs around the morning open (2026-09-26).** Highs peaking within ~45 min before
+  to after the open keep 34–48% of ramps shut at it (the county posts the closure at the
+  open); a high 1h+ before the open, 1–7% (`earlyHighCutoff`). Pre-open, the outlook now
+  runs the day's risk and, when the riskiest high's closure would already be under way at
+  the open (`heldAtOpen`), says "Opens around 8am, but the ~9am high tide could keep it
+  closed until ~11am" — risk stays the factual `closed_now/overnight`; the city line hedges
+  the open too. Quoted reopen: peak + max(lag, 2h), or peak + 4.5h for a high before the
+  open; closures the county posts at the open *after* the peak get peak + 4.5h
+  (`postedAtOpenReopen`) instead of the low-tide fallback that ran ~5h off. Walk-forward:
+  64% of held-at-open mornings caught (0% before), 42% of flags held.
 - **High-water reopen floor (2026-09-26).** The reopen estimate (`reopenEstimate`) mirrors the
   closure around the peak; on 1 ft-water mornings the county held closures posted at the 8am
   open ~3–4.5h past the peak while the mirror said ~1h (9/24–26). `highWaterReopen`: anomaly

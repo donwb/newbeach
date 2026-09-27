@@ -76,6 +76,24 @@ func beforeOpenText(season string, sched Schedule) (headline, detail string, r *
 	return headline, detail, &Reopen{Label: "opens around " + at}
 }
 
+// openLateText is the pre-open copy when a high tide around the open may
+// hold the ramp shut past it: the open, the tide, and a hedged reopen.
+func openLateText(season string, sched Schedule, peak models.TidePrediction, until time.Time) (detail string, r *Reopen) {
+	opens := fmtClock(roundNearest30(*sched.OpensAt))
+	tide := fmtClock(roundNearest30(peak.Time))
+	back := fmtClock(roundNearest30(until))
+	if season == "turtle" {
+		detail = "Opens around " + opens + ", but the ~" + tide + " high tide could keep it closed until ~" + back
+	} else {
+		detail = "Opens at sunrise, around " + opens + ", but the ~" + tide + " high tide could keep it closed until ~" + back
+	}
+	if sched.ClosesAt != nil && !until.Before(*sched.ClosesAt) {
+		detail = "Opens around " + opens + ", but the ~" + tide + " high tide could keep it closed for the day"
+		return detail, &Reopen{Label: "may stay closed for the day"}
+	}
+	return detail, &Reopen{Label: "may open late, ~" + back + ", for the tide"}
+}
+
 // endOfDayText is the copy for the day's close — the county clearing the
 // beach at dark, which has nothing to do with the tide. The posted time is
 // itself soft (they often start early), so it stays hedged like every other

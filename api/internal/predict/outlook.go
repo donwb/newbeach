@@ -105,6 +105,10 @@ type RampOutlook struct {
 	// possible). The city verdict aggregates it so "first around" never
 	// names an hour no ramp line mentions. Not serialized.
 	quotedClose *time.Time
+
+	// openLate is the reopen time quoted when a high tide around the
+	// morning open may hold the ramp shut past it. Not serialized.
+	openLate *time.Time
 }
 
 // Schedule is the driving-hours frame for the day: fixed clock hours in
@@ -516,6 +520,80 @@ func highWaterReopen(est time.Time, water []models.TidePrediction, closedAt time
 	return est
 }
 
+// heldAtOpen reports whether a high tide's closure would already be under
+// way at the morning open — the county posts it at the open rather than
+// opening the ramp. Highs peaking within about an hour of the open keep
+// 34–48% of ramps shut at it (2026: 41% for a high ~30 min before the
+// open); a high 1h+ before the open, 1–7% — the water is already dropping
+// when the county arrives. earlyHighCutoff sits between.
+func heldAtOpen(peak models.TidePrediction, rp RampParams, opens time.Time) bool {
+	if peak.Time.Before(opens.Add(-earlyHighCutoff)) {
+		return false
+	}
+	return !peak.Time.Add(-time.Duration(rp.LeadMin) * time.Minute).After(opens)
+}
+
+// Morning-open timing. A ramp held shut at the morning open is quoted a
+// reopen no earlier than openLateMinLag past the high. Walk-forward May–Sep,
+// served 90 min before the open: 428 ramp-mornings flagged, 42% held shut —
+// a "could", in line with possible elsewhere — catching 64% of the 282
+// held-at-open mornings the old "opens around 8am" never mentioned; quoted
+// reopens said open >30 min too early 19% of the time (the 2h floor alone
+// took that 34% → 24%). When the
+// county posts the closure at the open *after* the high has passed, the
+// water is still over the line on its way down and the closure runs long:
+// the falling-limb mirror has nothing to mirror and fell back to low tide
+// + 90 min, 5.05h off on average; peak + postedAfterPeakLag is 3.29h off
+// with no more too-early calls (22%, 63 closures). Mid-day closures posted
+// after the peak are too thin a sample (16) to change.
+const (
+	openLateMinLag     = 2 * time.Hour
+	postedAfterPeakLag = 270 * time.Minute
+	atOpenWindow       = 45 * time.Minute
+	earlyHighCutoff    = 45 * time.Minute
+)
+
+// openLateUntil is the pre-open reopen quote for a ramp a high tide may
+// hold shut past the open: the ramp's learned lag after the peak, at least
+// openLateMinLag. A high that peaks before the open would be a closure
+// posted after its peak — quoted like one (postedAtOpenReopen), so the
+// number doesn't jump when the county posts it. The caller applies the
+// high-water floor.
+func openLateUntil(peak models.TidePrediction, rp RampParams, opens time.Time) time.Time {
+	if peak.Time.Before(opens) {
+		return peak.Time.Add(postedAfterPeakLag)
+	}
+	lag := time.Duration(rp.LagMin) * time.Minute
+	if lag < openLateMinLag {
+		lag = openLateMinLag
+	}
+	return peak.Time.Add(lag)
+}
+
+// postedAtOpenReopen replaces the reopen estimate for a closure the county
+// posted at the morning open after its high had already passed with peak +
+// postedAfterPeakLag. Any other closure keeps est.
+func postedAtOpenReopen(est time.Time, water []models.TidePrediction, closedAt, opens time.Time) time.Time {
+	if closedAt.Before(opens.Add(-90*time.Minute)) || !closedAt.Before(opens.Add(atOpenWindow)) {
+		return est
+	}
+	var peak *models.TidePrediction
+	for i := range water {
+		p := &water[i]
+		if p.Type != "H" || p.Height == nil {
+			continue
+		}
+		d := p.Time.Sub(closedAt).Abs()
+		if d <= peakMatchWindow && (peak == nil || d < peak.Time.Sub(closedAt).Abs()) {
+			peak = p
+		}
+	}
+	if peak == nil || !peak.Time.Before(closedAt) {
+		return est
+	}
+	return peak.Time.Add(postedAfterPeakLag)
+}
+
 // BuildOutlook computes the full outlook. preds are hilo predictions
 // covering at least [now-1d, now+2d]; ramps come from
 // GetRampsWithStatusSince. wave is the latest buoy observation, nil when
@@ -604,29 +682,6 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			ro.Yesterday = &YesterdayContext{Closed: pd.Closed, PeakFt: pd.MaxPeakFt, Applied: ps != 0}
 		}
 
-		// Outside driving hours nothing is open and no tide matters — the
-		// next thing that happens is the morning open, so say that.
-		if sched.OpensAt != nil && now.Before(*sched.OpensAt) {
-			ro.Risk = RiskClosedNow
-			ro.Reason = ReasonOvernight
-			ro.Headline, ro.Detail, ro.Reopen = beforeOpenText(season, sched)
-			out.Ramps = append(out.Ramps, ro)
-			continue
-		}
-
-		if ramp.AccessStatus == tideClosedStatus {
-			ro.Risk = RiskClosedNow
-			ro.Reason = ReasonHighTide
-			closedAt := now
-			if ramp.StatusSince != nil {
-				closedAt = *ramp.StatusSince
-			}
-			reopen := highWaterReopen(reopenEstimate(water, closedAt, now), water, closedAt, surge)
-			ro.Headline, ro.Detail, ro.Reopen = closedNowText(reopen, sched)
-			out.Ramps = append(out.Ramps, ro)
-			continue
-		}
-
 		// Riskiest remaining peak wins; note a later troublesome peak.
 		risk := RiskNone
 		var riskPeak *models.TidePrediction
@@ -641,6 +696,43 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 				riskIdx = i
 			}
 		}
+
+		// Outside driving hours nothing is open — the next thing that
+		// happens is the morning open, so say that. A high tide around the
+		// open can hold the ramp shut past it; then the open is the story's
+		// first half and the tide its second.
+		if sched.OpensAt != nil && now.Before(*sched.OpensAt) {
+			ro.Risk = RiskClosedNow
+			ro.Reason = ReasonOvernight
+			ro.Headline, ro.Detail, ro.Reopen = beforeOpenText(season, sched)
+			if riskPeak != nil && riskRank(risk) >= 1 && heldAtOpen(*riskPeak, rp, *sched.OpensAt) {
+				until := highWaterReopen(openLateUntil(*riskPeak, rp, *sched.OpensAt), water, *sched.OpensAt, surge)
+				if until.After(sched.OpensAt.Add(15 * time.Minute)) {
+					ro.openLate = &until
+					ro.Window = closureWindow(*riskPeak, rp, sched)
+					ro.Detail, ro.Reopen = openLateText(season, sched, *riskPeak, until)
+				}
+			}
+			out.Ramps = append(out.Ramps, ro)
+			continue
+		}
+
+		if ramp.AccessStatus == tideClosedStatus {
+			ro.Risk = RiskClosedNow
+			ro.Reason = ReasonHighTide
+			closedAt := now
+			if ramp.StatusSince != nil {
+				closedAt = *ramp.StatusSince
+			}
+			reopen := highWaterReopen(reopenEstimate(water, closedAt, now), water, closedAt, surge)
+			if sched.OpensAt != nil {
+				reopen = postedAtOpenReopen(reopen, water, closedAt, *sched.OpensAt)
+			}
+			ro.Headline, ro.Detail, ro.Reopen = closedNowText(reopen, sched)
+			out.Ramps = append(out.Ramps, ro)
+			continue
+		}
+
 		var laterPeakRisky bool
 		for i := riskIdx + 1; i > 0 && i < len(dayPeaks); i++ {
 			if riskRank(risks[i]) >= 1 {

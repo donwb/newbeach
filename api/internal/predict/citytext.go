@@ -188,7 +188,7 @@ func cityGoldenText(now time.Time, agg *cityAgg, season string, sched Schedule) 
 
 // cityOvernightText: outside driving hours entirely — the next thing that
 // happens is the morning open.
-func cityOvernightText(now time.Time, season string, sched Schedule) (headline, detail string) {
+func cityOvernightText(now time.Time, season string, sched Schedule, agg *cityAgg) (headline, detail string) {
 	headline = "Driving is done for the day"
 	if sched.OpensAt != nil {
 		nowET, opensET := now.In(eastern), sched.OpensAt.In(eastern)
@@ -200,6 +200,19 @@ func cityOvernightText(now time.Time, season string, sched Schedule) (headline, 
 		detail = "Every ramp reopens " + sched.OpensLabel
 	} else {
 		detail = "Every ramp reopens at " + sched.OpensLabel
+	}
+	// A high tide around the open: the ramp rows hedge the open, so the
+	// city never promises it outright.
+	if agg.openLate > 0 {
+		opens := "around " + fmtClock(roundNearest30(*sched.OpensAt))
+		switch {
+		case agg.openLate == agg.rampCount && agg.rampCount > 1:
+			detail = "Opens " + opens + ", but the morning high tide could keep any of them closed past it"
+		case agg.openLate == 1 && agg.rampCount == 1:
+			detail = "Opens " + opens + ", but the morning high tide could keep it closed past it"
+		default:
+			detail = "Opens " + opens + ", but the morning high tide could keep " + countWord(agg.openLate) + " of them closed past it"
+		}
 	}
 	return headline, detail
 }

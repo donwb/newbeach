@@ -50,6 +50,7 @@ type cityAgg struct {
 	notOpen       []notOpenRamp
 	atRisk        int        // open ramps the tide could still close today
 	earliestClose *time.Time // earliest close time any at-risk ramp's copy quotes
+	openLate      int        // ramps a high tide may hold shut past the morning open
 }
 
 // buildCityVerdicts groups the built outlook by city and writes each city's
@@ -68,6 +69,9 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 			aggs[city] = agg
 		}
 		agg.rampCount++
+		if outlooks[i].openLate != nil {
+			agg.openLate++
+		}
 
 		cat := models.StatusToCategory(ramps[i].AccessStatus)
 		if cat == "open" {
@@ -114,7 +118,7 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 		switch {
 		case overnight:
 			cv.State = CityStateOvernight
-			cv.Headline, cv.Detail = cityOvernightText(now, season, sched)
+			cv.Headline, cv.Detail = cityOvernightText(now, season, sched, agg)
 		case len(agg.notOpen) > 0:
 			cv.State = CityStateSomeClosed
 			cv.Headline, cv.Detail = citySomeClosedText(agg, sched, tide)
