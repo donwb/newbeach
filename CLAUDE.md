@@ -370,7 +370,7 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `usage` logged per request (`chat.done`). Apple: shared `ChatSession` (`BeachStatus/Chat`)
   + Keychain key store; iOS `ChatView` sheet (board row + ramp detail "Ask"); tvOS
   `TVSurface.chat` with suggested-question buttons + a TextField (dictation / iPhone
-  keyboard), opened from the header "Ask ›". The key is entered once per device.
+  keyboard), opened from the header "Ask ›". The key is entered once per device. **Keys, switch-on, smoke test: `docs/ASK-SETUP.md`.**
 
 ## TRMNL (E-Ink Display)
 
