@@ -50,6 +50,10 @@ struct ContentView: View {
             LiveCamFullscreenView(viewModel: viewModel)
                 .environment(\.ground, ground.state)
         }
+        .sheet(isPresented: $viewModel.chatPresented) {
+            ChatView(session: viewModel.chat)
+                .environment(\.ground, ground.state)
+        }
         .environment(\.ground, ground.state)
         .environment(\.skyPalette, ground.state.palette)
         .animation(reduceMotion ? nil : .easeInOut(duration: 2), value: ground.state.altitude)

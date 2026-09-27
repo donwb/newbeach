@@ -342,6 +342,35 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   casually.
 - `api/internal/solar` is the Go port of `web/js/solar.js` (itself ported from
   SolarCalculator.swift) — three ports exist; keep reference values in their tests aligned.
+- **Ask (2026-09-27): a chat over the engine, never beside it.** `POST /api/v2/chat`
+  (`api/internal/chat`) hands a model three deterministic tools — `resolve_ramp`
+  (friendly name → access_id, `chat/resolver.go`), `ramp_outlook_at` (one ramp at one
+  future instant), `weekend_outlook` — and the model **relays the engine's headline/detail
+  verbatim**; every closure sentence a user reads still originates in `text.go`. Scope v1:
+  "will X be open at T" (today → +7d) and weekend day verdicts; past/current-status
+  questions are declined in a sentence. `predict.Service.OutlookAt` (`predict/at.go`)
+  replays the pure `BuildOutlook` with the clock set to the target instant, ramp forced
+  OPEN (the backtest convention). **Two traps it handles, don't undo them:** (1) the surge
+  reader needs a fresh gauge sample near the clock it is given, so a future clock silently
+  drops the anomaly — `BuildRampOutlookAt` adjusts the water with the real clock first
+  (today's anomaly decayed per day, as the weekend planner does) and passes `levels=nil`;
+  (2) `buildSchedule` rolls to the next day past the close, so an after-close instant is
+  replayed from the last minute of *that* driving day and reported `after_close`. Future
+  days are tide-only (wave sample too old) and memoryless (no prior). `chat/guard.go` is
+  the backstop behind the prompt: "will/definitely … close", "likely" without a `likely`
+  source, or a minute-precise time the engine never said gets one corrective round, then
+  the engine's own words. `sources` in the response are built server-side from the tool
+  results, never from the model, so clients render the fact card from them. Auth: the
+  route is locked behind `CHAT_API_KEY` (`X-Chat-Key`), a **separate** key from the admin
+  one so the admin secret never lives in an app Keychain; Don is the only user. The route
+  exists only when `CHAT_ENABLED != false` AND `ANTHROPIC_API_KEY` is set — clients treat
+  404 as feature-off, 401/503 as "enter the key". Model `claude-opus-5` by default
+  (`CHAT_MODEL`), thinking left at the model default so the model stays swappable; the
+  stable system prompt is a cache breakpoint; ~2–3 calls and a few cents per question,
+  `usage` logged per request (`chat.done`). Apple: shared `ChatSession` (`BeachStatus/Chat`)
+  + Keychain key store; iOS `ChatView` sheet (board row + ramp detail "Ask"); tvOS
+  `TVSurface.chat` with suggested-question buttons + a TextField (dictation / iPhone
+  keyboard), opened from the header "Ask ›". The key is entered once per device.
 
 ## TRMNL (E-Ink Display)
 
@@ -436,6 +465,10 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `CAM_HOOK_KEY` | API | Shared secret for relay hooks (`/api/v2/hooks/*`); matches the key in the droplet's `/opt/mediamtx/health-hook.sh` |
 | `WEB_DIR` | API | Path to web static files (auto-detected in dev, `/web` in Docker) |
 | `ADMIN_API_KEY` | API | Secret key for admin endpoints (`/api/v2/admin/*`) |
+| `CHAT_ENABLED` | API | Set `false` to remove `POST /api/v2/chat` entirely (default on; the route also needs `ANTHROPIC_API_KEY`) |
+| `ANTHROPIC_API_KEY` | Chat | Anthropic API key the chat runner reads; unset = chat disabled (logged at boot) |
+| `CHAT_API_KEY` | API | Shared secret the iOS/tvOS apps present as `X-Chat-Key`; separate from `ADMIN_API_KEY` on purpose |
+| `CHAT_MODEL` | Chat | Model id for the chat runner (default `claude-opus-5`) |
 
 ## Agent Team Notes
 

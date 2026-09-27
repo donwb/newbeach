@@ -58,8 +58,8 @@ struct ContentView: View {
 
     #if DEBUG
     /// QA hooks (screenshot verification, DEBUG only): --surface-outlook /
-    /// --surface-ramp-detail[=ACCESS_ID] open a pull surface once data has
-    /// loaded; --sky-minutes N renders at that wall-clock minute;
+    /// --surface-ramp-detail[=ACCESS_ID] / --surface-chat[=ACCESS_ID] open a
+    /// pull surface once data has loaded; --chat-key <k> seeds the chat key; --sky-minutes N renders at that wall-clock minute;
     /// --simulate-stale backdates the last refresh.
     private static let launchArgs = ProcessInfo.processInfo.arguments
     private static let skyMinutesOverride: Int? = launchArgs
@@ -73,6 +73,17 @@ struct ContentView: View {
             let parts = arg.split(separator: "=", maxSplits: 1)
             return parts.count == 2 ? String(parts[1]) : nil
         }
+    /// --surface-chat[=ACCESS_ID]: open the Ask surface, about that ramp.
+    private static let surfaceChatArg: String?? = launchArgs
+        .first { $0.hasPrefix("--surface-chat") }
+        .map { arg in
+            let parts = arg.split(separator: "=", maxSplits: 1)
+            return parts.count == 2 ? String(parts[1]) : nil
+        }
+    /// --chat-key <key>: seed the chat key for QA without typing it.
+    private static let chatKeyArg: String? = launchArgs
+        .firstIndex(of: "--chat-key")
+        .flatMap { idx in launchArgs.indices.contains(idx + 1) ? launchArgs[idx + 1] : nil }
     /// --stream-url <url>: force the picture band's stream (player-path QA).
     private static let streamOverride: URL? = launchArgs
         .firstIndex(of: "--stream-url")
@@ -148,7 +159,8 @@ struct ContentView: View {
                 staleMinutes: staleMinutes,
                 surfaceOpen: activeSurface != nil,
                 focus: $focus,
-                onOpenOutlook: { openSurface(.outlook) }
+                onOpenOutlook: { openSurface(.outlook) },
+                onOpenAsk: { openSurface(.chat(focusedRamp)) }
             )
             .background(TVSky.headerVeil)
 
@@ -187,6 +199,10 @@ struct ContentView: View {
                     tideChart: viewModel.tideChart,
                     now: Date()
                 )
+            }
+        case .chat:
+            SurfaceScaffold(identifier: "surface.chat", focus: $focus, onClose: closeSurface) {
+                ChatSurface(session: viewModel.chat, focus: $focus)
             }
         case nil:
             VStack(spacing: 0) {
@@ -229,10 +245,28 @@ struct ContentView: View {
         withAnimation(.easeOut(duration: TVMetrics.surfaceTransition)) {
             activeSurface = surface
         }
-        DispatchQueue.main.async { focus = .surface }
-        if case .rampDetail(let ramp) = surface {
+        switch surface {
+        case .chat(let ramp):
+            // The chat surface is interactive, so focus lands on something a
+            // person can use — the key field when the server wants a key,
+            // the first suggested question otherwise — never the hidden
+            // anchor the read-only surfaces park on.
+            viewModel.chat.contextRamp = ramp
+            let target: RootFocus = viewModel.chat.needsKey ? .chatKeyField : .chatSuggestion(0)
+            DispatchQueue.main.async { focus = target }
+        case .rampDetail(let ramp):
+            DispatchQueue.main.async { focus = .surface }
             Task { await viewModel.loadIntervals(for: ramp) }
+        case .outlook:
+            DispatchQueue.main.async { focus = .surface }
         }
+    }
+
+    /// The ramp under focus, if a ramp row has it — the Ask surface opens
+    /// about that ramp.
+    private var focusedRamp: Ramp? {
+        guard case .ramp(let id) = focus else { return nil }
+        return viewModel.sortedLedgerRamps.first { $0.accessID == id }
     }
 
     private func closeSurface() {
@@ -557,8 +591,14 @@ struct ContentView: View {
     /// Launch-arg surfaces, applied once data is loaded (the ramp object has
     /// to exist). Tolerates a failed fetch — no data, no surface.
     private func applyLaunchSurface() {
+        if let key = Self.chatKeyArg { viewModel.chat.saveKey(key) }
         if Self.surfaceOutlookArg {
             openSurface(.outlook)
+            return
+        }
+        if let idArg = Self.surfaceChatArg {
+            let ramp = idArg.flatMap { id in viewModel.ramps.first { $0.accessID == id } }
+            openSurface(.chat(ramp))
             return
         }
         if let idArg = Self.surfaceRampArg {

@@ -265,5 +265,40 @@ enum PreviewFixtures {
             TidePrediction(time: at(23, 5).addingTimeInterval(86_400), type: "L", height: 0.5),
         ]
     )
+
+    // MARK: - Ask (chat)
+
+    static let chatTurns: [ChatTurn] = [
+        ChatTurn(role: .user, text: "Will Flagler be open Friday at 2pm?"),
+        ChatTurn(role: .assistant, text: "Flagler Av could close around the 2:30pm high tide on Friday. Closure possible around 2:30pm, often back open by ~4:30pm."),
+    ]
+
+    static let chatSources: [ChatSource] = [
+        ChatSource(kind: "ramp_outlook", accessID: "NS-110", name: "Flagler Av", city: "New Smyrna Beach",
+                   atLabel: "Friday ~2pm", risk: "possible", reason: "high_tide",
+                   headline: "Could close around the 2:30pm high tide",
+                   detail: "Closure possible around 2:30pm · often back open by ~4:30pm",
+                   windowLabel: "11:30am–5pm", relation: "inside"),
+    ]
+
+    /// A transport for previews: the canned Flagler answer after a pause.
+    struct ChatTransport: BeachStatus.ChatTransport {
+        func send(_ request: ChatRequest, key: String) async throws -> ChatResponse {
+            try? await Task.sleep(for: .seconds(1))
+            return ChatResponse(reply: chatTurns[1].text, sources: chatSources)
+        }
+    }
+
+    @MainActor
+    static func chatSession(answered: Bool, key: String? = "k") -> ChatSession {
+        let session = ChatSession(
+            transport: ChatTransport(),
+            keyStore: InMemoryChatKeyStore(key),
+            seed: answered ? chatTurns : [],
+            sources: answered ? chatSources : []
+        )
+        session.contextRamp = openRamps.first
+        return session
+    }
 }
 #endif

@@ -78,7 +78,7 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 			agg.openCount++
 		} else {
 			agg.notOpen = append(agg.notOpen, notOpenRamp{
-				name:     rampDisplayName(ramps[i]),
+				name:     RampDisplayName(ramps[i]),
 				status:   ramps[i].AccessStatus,
 				category: cat,
 				since:    ramps[i].StatusSince,
@@ -132,16 +132,4 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 		verdicts = append(verdicts, cv)
 	}
 	return verdicts
-}
-
-// rampDisplayName prefers the curated short name, then the pretty GIS name,
-// then the access id.
-func rampDisplayName(r models.RampStatusWithSince) string {
-	if r.ShortName != nil && *r.ShortName != "" {
-		return *r.ShortName
-	}
-	if n := models.PrettyRampName(r.RampName); n != "" {
-		return n
-	}
-	return r.AccessID
 }

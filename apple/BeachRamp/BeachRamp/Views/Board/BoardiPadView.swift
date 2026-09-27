@@ -55,6 +55,24 @@ struct BoardiPadView: View {
                         .foregroundStyle(.white)
                 }
                 Spacer()
+                Button {
+                    viewModel.askAbout(nil)
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Ask")
+                            .font(.archivo(13, weight: .bold))
+                        Text("›")
+                            .font(.archivo(14, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 34)
+                    .overlay(Rectangle().strokeBorder(.white.opacity(0.7), lineWidth: 2))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PressTintButtonStyle())
+                .padding(.trailing, 18)
+                .accessibilityIdentifier("askButton")
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(ground.palette.phaseName.uppercased())
                         .font(.archivo(11, weight: .bold))

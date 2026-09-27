@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/donwb/beach/api/internal/chat"
 	"github.com/donwb/beach/api/internal/ingester"
 	"github.com/donwb/beach/api/internal/noaa"
 	"github.com/donwb/beach/api/internal/predict"
@@ -18,7 +19,7 @@ import (
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, weekendSvc *predict.WeekendService, ndbcStation string, levelStations []string) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, weekendSvc *predict.WeekendService, chatRunner *chat.Runner, ndbcStation string, levelStations []string) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -86,6 +87,16 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	v2.GET("/cameras/health", HandleV2CamerasHealth(pool))
 	v2.POST("/video/refresh", HandleV2VideoRefresh(videoRefresher))
 
+	// Ask: natural-language questions over the prediction engine. Optional —
+	// nil runner (CHAT_ENABLED=false or no ANTHROPIC_API_KEY) means the route
+	// does not exist. Locked behind its own key: the apps store it and the
+	// endpoint spends real money per call.
+	if chatRunner != nil {
+		chatGroup := v2.Group("/chat")
+		chatGroup.Use(chatKeyAuth())
+		chatGroup.POST("", HandleV2Chat(chatRunner))
+	}
+
 	// Relay hooks (hook key protected) — MediaMTX on the cam relay droplet
 	// reports stream up/down transitions here (see docs/CAM-RELAY.md).
 	hooks := v2.Group("/hooks")
@@ -118,6 +129,25 @@ func apiKeyAuth() echo.MiddlewareFunc {
 			key := c.Request().Header.Get("X-Api-Key")
 			if key != expected {
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid API key"})
+			}
+			return next(c)
+		}
+	}
+}
+
+// chatKeyAuth returns middleware that validates the X-Chat-Key header
+// against the CHAT_API_KEY environment variable. Same shape as apiKeyAuth:
+// an unset key never means open.
+func chatKeyAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			expected := os.Getenv("CHAT_API_KEY")
+			if expected == "" {
+				return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "chat not configured"})
+			}
+			key := c.Request().Header.Get("X-Chat-Key")
+			if key != expected {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid chat key"})
 			}
 			return next(c)
 		}

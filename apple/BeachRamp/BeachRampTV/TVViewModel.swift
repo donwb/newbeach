@@ -176,6 +176,9 @@ final class TVViewModel {
 
     private let api: APIClient
 
+    /// "Ask" — the chat surface's transcript, kept across open/close.
+    let chat = ChatSession()
+
     init(api: APIClient = .shared) {
         self.api = api
     }

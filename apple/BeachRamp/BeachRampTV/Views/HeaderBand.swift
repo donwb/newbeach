@@ -17,6 +17,7 @@ struct HeaderBand: View {
     let surfaceOpen: Bool
     let focus: FocusState<RootFocus?>.Binding
     let onOpenOutlook: () -> Void
+    var onOpenAsk: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 40) {
@@ -43,6 +44,10 @@ struct HeaderBand: View {
                 }
 
                 outlookButton
+
+                if onOpenAsk != nil {
+                    askButton
+                }
 
                 Text(time)
                     .tv(44, .semiBold, tracking: -0.025)
@@ -75,21 +80,11 @@ struct HeaderBand: View {
     }
 
     private var isFocused: Bool { focus.wrappedValue == .outlookButton }
+    private var isAskFocused: Bool { focus.wrappedValue == .askButton }
 
     private var outlookButton: some View {
         Button(action: onOpenOutlook) {
-            HStack(spacing: 16) {
-                Text("Beach outlook")
-                    .tv(28, .bold)
-                    .foregroundStyle(isFocused ? TVInk.onSand : TVInk.type)
-                Text("›")
-                    .tv(28, .bold)
-                    .foregroundStyle(isFocused ? TVInk.onSand : TVInk.sand)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 9)
-            .background(Rectangle().fill(isFocused ? TVInk.sand : .clear))
-            .overlay(Rectangle().strokeBorder(TVInk.sand, lineWidth: 2))
+            borderedLabel("Beach outlook", focused: isFocused)
         }
         .buttonStyle(BareButtonStyle())
         // Disabled (not .focusable(false)) while a surface is open — a
@@ -97,6 +92,33 @@ struct HeaderBand: View {
         .disabled(surfaceOpen)
         .focused(focus, equals: .outlookButton)
         .accessibilityIdentifier("outlookButton")
+    }
+
+    /// "Ask ›": the chat surface. Same bordered sand treatment as the
+    /// outlook button so the two read as the header's pair of controls.
+    private var askButton: some View {
+        Button(action: { onOpenAsk?() }) {
+            borderedLabel("Ask", focused: isAskFocused)
+        }
+        .buttonStyle(BareButtonStyle())
+        .disabled(surfaceOpen)
+        .focused(focus, equals: .askButton)
+        .accessibilityIdentifier("askButton")
+    }
+
+    private func borderedLabel(_ title: String, focused: Bool) -> some View {
+        HStack(spacing: 16) {
+            Text(title)
+                .tv(28, .bold)
+                .foregroundStyle(focused ? TVInk.onSand : TVInk.type)
+            Text("›")
+                .tv(28, .bold)
+                .foregroundStyle(focused ? TVInk.onSand : TVInk.sand)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 9)
+        .background(Rectangle().fill(focused ? TVInk.sand : .clear))
+        .overlay(Rectangle().strokeBorder(TVInk.sand, lineWidth: 2))
     }
 }
 
@@ -115,7 +137,8 @@ struct HeaderBand: View {
         staleMinutes: nil,
         surfaceOpen: false,
         focus: $focus,
-        onOpenOutlook: {}
+        onOpenOutlook: {},
+        onOpenAsk: {}
     )
     .background(TVSky.previewNoon)
 }

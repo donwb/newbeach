@@ -18,6 +18,7 @@ import (
 
 	beachapi "github.com/donwb/beach/api"
 	"github.com/donwb/beach/api/internal/camhealth"
+	"github.com/donwb/beach/api/internal/chat"
 	"github.com/donwb/beach/api/internal/conditions"
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/handlers"
@@ -215,7 +216,22 @@ func main() {
 		}
 		weekendSvc.EnableWaterLevel(waterLevelStations)
 	}
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, ndbcStation, waterLevelStations)
+
+	// Ask (chat over the engine) — nil when disabled or when no model key is
+	// set, which leaves the route unregistered. The runner reads
+	// ANTHROPIC_API_KEY itself; CHAT_API_KEY guards the route (see routes.go).
+	var chatRunner *chat.Runner
+	if os.Getenv("CHAT_ENABLED") != "false" && os.Getenv("ANTHROPIC_API_KEY") != "" {
+		chatModel := os.Getenv("CHAT_MODEL")
+		if chatModel == "" {
+			chatModel = chat.DefaultModel
+		}
+		chatRunner = chat.New(chat.NewPredictEngine(outlookSvc, weekendSvc), chatModel)
+		slog.Info("chat enabled", "model", chatModel, "key_configured", os.Getenv("CHAT_API_KEY") != "")
+	} else {
+		slog.Info("chat disabled")
+	}
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, chatRunner, ndbcStation, waterLevelStations)
 
 	// Serve static website files from the filesystem, after API routes so the
 	// CORS and logging middleware registered there wrap static responses too.

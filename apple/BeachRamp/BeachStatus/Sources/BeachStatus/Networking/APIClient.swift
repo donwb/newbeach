@@ -153,6 +153,15 @@ public actor APIClient {
         return url
     }
 
+    /// Ask one natural-language question over the prediction engine. The
+    /// route is locked behind a chat key (X-Chat-Key): a 401 means the key
+    /// is wrong, a 503 means the server has none configured, a 404 means the
+    /// feature is off. A question is two or three model calls end to end,
+    /// so this waits longer than the board's fetches.
+    public func sendChat(_ request: ChatRequest, key: String) async throws -> ChatResponse {
+        try await post("/api/v2/chat", body: request, headers: ["X-Chat-Key": key], timeout: 60)
+    }
+
     // MARK: - Private
 
     private func get<T: Decodable>(_ path: String, query: [URLQueryItem]? = nil) async throws -> T {
@@ -163,7 +172,16 @@ public actor APIClient {
         try await send(path: path, method: "POST")
     }
 
-    private func send<T: Decodable>(path: String, method: String, query: [URLQueryItem]? = nil) async throws -> T {
+    private func post<T: Decodable>(_ path: String, body: some Encodable,
+                                    headers: [String: String] = [:],
+                                    timeout: TimeInterval = 30) async throws -> T {
+        let data = try JSONEncoder().encode(body)
+        return try await send(path: path, method: "POST", body: data, headers: headers, timeout: timeout)
+    }
+
+    private func send<T: Decodable>(path: String, method: String, query: [URLQueryItem]? = nil,
+                                    body: Data? = nil, headers: [String: String] = [:],
+                                    timeout: TimeInterval = 30) async throws -> T {
         var url = baseURL.appendingPathComponent(path)
         if let query, !query.isEmpty,
            var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
@@ -173,7 +191,14 @@ public actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 30
+        request.timeoutInterval = timeout
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        for (name, value) in headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
 
         let (data, response) = try await session.data(for: request)
 

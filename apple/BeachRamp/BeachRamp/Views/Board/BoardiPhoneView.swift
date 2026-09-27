@@ -39,6 +39,12 @@ struct BoardiPhoneView: View {
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
 
+            AskRowView(title: "Ask about the beach") {
+                viewModel.askAbout(nil)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 16)
+
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 22)
 

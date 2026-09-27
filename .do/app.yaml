@@ -131,3 +131,22 @@ services:
       - key: CAM_HOOK_KEY
         scope: RUN_AND_BUILD_TIME
         value: "CHANGE_ME_IN_PLATFORM_UI"
+      # Ask: natural-language questions over the prediction engine
+      # (POST /api/v2/chat). The route exists only when CHAT_ENABLED is not
+      # "false" AND ANTHROPIC_API_KEY is set. Both keys are secrets — set the
+      # real values in the platform UI. CHAT_API_KEY is the shared secret the
+      # iOS/tvOS apps present as X-Chat-Key.
+      - key: CHAT_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
+      - key: CHAT_MODEL
+        scope: RUN_AND_BUILD_TIME
+        value: "claude-opus-5"
+      - key: ANTHROPIC_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: "CHANGE_ME_IN_PLATFORM_UI"
+      - key: CHAT_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: "CHANGE_ME_IN_PLATFORM_UI"

@@ -155,6 +155,39 @@ final class BeachRampTVUITests: XCTestCase {
                       "focus should return to the outlook button")
     }
 
+    /// Up from the cam strip reaches the header; Right from the outlook
+    /// button is the Ask button. Select opens the chat surface with focus on
+    /// something usable (a suggested question, or the key field on a bare
+    /// simulator); Back closes it and returns focus to the button.
+    @MainActor
+    func testAskButtonOpensChatSurface() throws {
+        remote.press(.up)
+        for _ in 0..<3 where focusedID != "askButton" {
+            remote.press(.right)
+        }
+        XCTAssertEqual(focusedID, "askButton",
+                       "Right along the header should reach the Ask button (got \(focusedID))")
+        remote.press(.select)
+        XCTAssertTrue(surface("surface.chat").waitForExistence(timeout: 5),
+                      "Select should open the Ask surface")
+
+        let usable = app.descendants(matching: .any).matching(
+            NSPredicate(format: "hasFocus == true AND (identifier == %@ OR identifier == %@)",
+                        "chat.suggestion.0", "chat.key.field")
+        ).firstMatch
+        XCTAssertTrue(usable.waitForExistence(timeout: 3),
+                      "focus should land on a suggestion or the key field, never the hidden anchor")
+
+        remote.press(.menu)
+        XCTAssertTrue(waitForDisappearance(of: surface("surface.chat"), timeout: 5),
+                      "Back should close the surface")
+        let restored = app.buttons.matching(
+            NSPredicate(format: "hasFocus == true AND identifier == %@", "askButton")
+        ).firstMatch
+        XCTAssertTrue(restored.waitForExistence(timeout: 3),
+                      "focus should return to the Ask button")
+    }
+
     // MARK: - Helpers
 
     /// A pull surface by identifier, whatever element type SwiftUI exposes

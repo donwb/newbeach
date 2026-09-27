@@ -49,6 +49,11 @@ type Service struct {
 	cached   *Outlook
 	cachedAt time.Time
 	group    singleflight.Group
+
+	// ramps is the roster read by the "at" path (see at.go), cached for
+	// rampsTTL under the same mutex.
+	ramps   []models.RampStatusWithSince
+	rampsAt time.Time
 }
 
 // NewService creates an outlook Service. ndbcStation names the buoy whose

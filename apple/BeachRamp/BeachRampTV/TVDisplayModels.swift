@@ -13,6 +13,11 @@ enum RootFocus: Hashable {
     case rampsHeader     // "RAMPS ‹ City ›"
     case ramp(String)    // ramp accessID
     case surface         // the open pull surface's hidden focus owner
+    case askButton       // header "Ask ›"
+    case chatSuggestion(Int)
+    case chatInput
+    case chatKeyField
+    case chatKeySave
 }
 
 /// Which pull surface is replacing the ledger. The header and the picture
@@ -20,11 +25,14 @@ enum RootFocus: Hashable {
 enum TVSurface: Equatable {
     case outlook
     case rampDetail(Ramp)
+    /// "Ask": the chat surface, about a ramp when one was focused.
+    case chat(Ramp?)
 
     static func == (lhs: TVSurface, rhs: TVSurface) -> Bool {
         switch (lhs, rhs) {
         case (.outlook, .outlook): true
         case let (.rampDetail(a), .rampDetail(b)): a.accessID == b.accessID
+        case let (.chat(a), .chat(b)): a?.accessID == b?.accessID
         default: false
         }
     }

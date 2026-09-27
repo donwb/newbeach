@@ -233,6 +233,7 @@ CRAWFORD RD is : CLOSED
 | `/api/v2/weather` | GET | Current conditions (incl. wind speed/gust) + forecast from NWS API (api.weather.gov) |
 | `/api/v2/health` | GET | Health check endpoint for monitoring |
 | `/api/v2/config` | GET | Client configuration (webcam URL, feature flags) |
+| `/api/v2/chat` | POST | "Ask" (2026-09-27): a natural-language question over the prediction engine. Body `{messages:[{role,text}], context?:{access_id}}` (stateless — the client sends the whole transcript); reply `{reply, sources[], model, usage}`. A model picks from deterministic engine tools and relays the engine's copy verbatim; `sources` are server-built facts for the client's card. Locked behind `X-Chat-Key` = `CHAT_API_KEY`; route absent when `CHAT_ENABLED=false` or no `ANTHROPIC_API_KEY`. v1 answers future "open at T" (≤7 days) and weekend day verdicts; past and current-status questions are declined. |
 
 ### 5.3 Response Models
 
@@ -388,6 +389,7 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Live Activities** — show ramp status on Dynamic Island / Lock Screen (when at the beach)
 - **Haptic feedback** on status changes
 - **Settings screen** — default city, notification preferences, units (°F/°C)
+- **Ask** ✅ 2026-09-27 — a chat sheet ("Ask about the beach" on the board, "Ask" on ramp detail) over `POST /api/v2/chat`: suggested questions for the ramp on screen, free text, the server's answer verbatim with a fact card built from `sources`. Locked behind the chat key, entered once and kept in the Keychain (`BeachStatus/Chat/ChatSession`).
 
 ### 8.4 App Architecture
 
@@ -462,6 +464,11 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
   line, and weekend headlines all come from `/api/v2/outlook` +
   `/api/v2/outlook/weekend` and render verbatim.
 - **Time-of-day ambient sky** — the background tracks the real sun (see §10.4)
+- **Ask** ✅ 2026-09-27 — header "Ask ›" opens a pull surface (`TVSurface.chat`)
+  over `POST /api/v2/chat`: three suggested questions for the focused ramp, a
+  text field (system keyboard → Siri Remote dictation / iPhone keyboard), the
+  answer verbatim with the engine fact under it. Chat key entered once per
+  Apple TV (no iCloud Keychain on tvOS). DEBUG: `--surface-chat[=ID]`, `--chat-key <k>`.
 - **Default to New Smyrna Beach** — matches phone/web behavior
 - **Auto-refresh** — data updates every 60 seconds; the sky/clock tick every 30 seconds
 - **No Top Shelf extension** — just the main dashboard app

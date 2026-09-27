@@ -4,8 +4,8 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-09-26
-summary: All platforms live; 1.4 (33) on TestFlight for iOS + tvOS, not yet submitted; NSB cam dark upstream since 9/19 (county-side)
+last_verified: 2026-09-27
+summary: All platforms live; 1.4 (33) on TestFlight for iOS + tvOS, not yet submitted; "Ask" chat built (API + iOS + tvOS, uncommitted → committed 9/27) awaiting prod env vars + a flight; NSB cam dark upstream since 9/19 (county-side)
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
@@ -22,6 +22,7 @@ dispatches:
 ---
 
 ## Top open items
+0. **Turn on Ask.** Set `ANTHROPIC_API_KEY`, `CHAT_API_KEY` (any secret), `CHAT_ENABLED=true`, `CHAT_MODEL` in the App Platform UI (the route stays absent until the model key exists — boot log says `chat enabled`/`chat disabled`). Smoke-test with the curl in `CLAUDE.md`/plan, then enter the key once in each app (iOS sheet, tvOS surface). Then flight: the Ask UI is app code (iOS + tvOS) and needs a build after 33. Not yet run end to end against a live model — no `ANTHROPIC_API_KEY` on the Studio.
 1. **Submit 1.4 (33) for review** when Don wants it public. It carries the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-33`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
@@ -37,6 +38,7 @@ dispatches:
 - **The bundle ID is permanently frozen at `com.donwb.BeachRampTV`** for every platform. This was accepted deliberately and users never see it.
 
 ## Recently shipped
+- 2026-09-27: **"Ask" — a chat over the prediction engine, on iOS and tvOS.** `POST /api/v2/chat` (`api/internal/chat`) gives a Claude model three deterministic tools (resolve a ramp name, one ramp at one future instant, the weekend outlook) and it relays the engine's copy verbatim; a copy guard backstops the hedging rules; `sources` are server-built facts for the client card. New `predict.Service.OutlookAt` replays the engine at a target instant, keeping the surge anomaly (a future clock silently dropped it) and the target day's schedule. Locked behind a dedicated `CHAT_API_KEY`; route absent without `ANTHROPIC_API_KEY`. Apple: shared `ChatSession` + Keychain store; iOS chat sheet from the board and ramp detail; tvOS `TVSurface.chat` with suggested questions + TextField from a header "Ask ›". Tests: Go (at, resolver, tools, runner via fake API, guard, handler auth), Swift package (decoding, suggestions, session), one tvOS UI test. Not live yet — see open item 0.
 - 2026-09-26: Prediction handles morning highs. Before the open, a high tide around it now reads "Opens around 8am, but the ~9am high tide could keep it closed until ~11am"; walk-forward catches 64% of held-at-open mornings (0% before). Closures posted at the open after the high quote peak + 4.5h (error 5.05h → 3.29h). Server-side only.
 - 2026-09-26: High-water days: reopen estimates floored at peak + 3.5h when water runs ≥ 0.9 ft over normal ("said open too early" on Sep 24–26: 50% → 25%), and the evening window stretches 30 min per foot. Server-side only.
 - 2026-09-26: Surf report is surf-only (f95b1c7). The ramp/tide clause that truncated the tvOS Surf Now row is gone. Server-side only.
