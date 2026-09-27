@@ -237,8 +237,19 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   7am–8pm window** (`tidePeaks`): evening labels read "stayed open" when the beach simply
   cleared first, and including them dragged thresholds to the top of the range (NS-106
   3.17 → 3.87). A taper past the reach was tried and over-hedged. Day-level walk-forward:
-  9am misses 157 → 38, 2pm 132 → 39. Still open: the same thing at the *morning* end —
-  highs just before 7am keep ramps closed at the 8am open (~150 unattributed closures).
+  9am misses 157 → 38, 2pm 132 → 39. High water stretches the reach 30 min per foot of
+  anomaly (`eveningSurgeReachPerFt`; 9/26: 4–5pm closures for a 9:23pm high at +1.0 ft).
+  Still open: the same thing at the *morning* end — highs just before 7am keep ramps closed
+  at the 8am open (~150 unattributed closures).
+- **High-water reopen floor (2026-09-26).** The reopen estimate (`reopenEstimate`) mirrors the
+  closure around the peak; on 1 ft-water mornings the county held closures posted at the 8am
+  open ~3–4.5h past the peak while the mirror said ~1h (9/24–26). `highWaterReopen`: anomaly
+  ≥ `surgeReopenFt` (0.9) → reopen no earlier than peak + 3.5h. Walk-forward over every
+  May–Sep closure: error 1.38 → 1.30h, "said open >30 min too early" 12% → 10% (Sep 24–26:
+  50% → 25%); ordinary days untouched. Which ramps stay shut all day is not predictable yet —
+  a "stayed closed yesterday" rule produced ~100 false all-day calls and was dropped. Inside a
+  tide episode "CLOSED - CLEARED FOR TURTLES" is not a reopen (`closureEvents` skips it: the
+  county flips to it and back, or passes through it on the way to OPEN).
 - **The end-of-day close is learned, not posted.** The county clears the beach before the
   posted time — turtle-season 7pm has been running ~6:30 — so the trainer learns the
   median offset from history into `day_close_offset_min` and `buildSchedule` applies it

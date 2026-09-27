@@ -29,7 +29,7 @@ type fixtureEvent struct {
 
 func main() {
 	ctx := context.Background()
-	end := time.Date(2026, 9, 25, 4, 0, 0, 0, time.UTC) // midnight ET, 9/25
+	end := time.Date(2026, 9, 27, 4, 0, 0, 0, time.UTC) // midnight ET, 9/27
 
 	var ramps []models.RampStatusWithSince
 	getJSON(apiBase+"/api/v2/ramps", &ramps)

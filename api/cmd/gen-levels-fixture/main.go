@@ -20,7 +20,7 @@ func main() {
 	client := noaa.NewClient("", nil)
 
 	start := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 9, 25, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 9, 27, 4, 0, 0, 0, time.UTC)
 
 	var all []models.WaterLevelSample
 	for _, station := range []string{"8721604", "8720218"} {

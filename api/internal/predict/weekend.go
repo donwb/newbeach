@@ -1,6 +1,7 @@
 package predict
 
 import (
+	"math"
 	"slices"
 	"sort"
 	"time"
@@ -192,7 +193,12 @@ func BuildWeekendOutlook(now time.Time, ramps []models.RampStatusWithSince, para
 		frame.OpensLabel = "around " + fmtClock(roundNearest30(opens))
 		frame.ClosesLabel = "around " + fmtClock(roundNearest30(closes))
 
-		facts := gatherDayFacts(now, i, frame, ramps, params, vp, preds, land, marine, prior)
+		// Today's anomaly, faded the same way withSurge carries it forward.
+		var surgeFt float64
+		if surge != nil {
+			surgeFt = surge.AnomalyFt * math.Pow(surgeDailyCarry, float64(i))
+		}
+		facts := gatherDayFacts(now, i, frame, ramps, params, vp, preds, land, marine, prior, surgeFt)
 		day := WeekendDay{
 			Date:            dayAnchor.Format("2006-01-02"),
 			Weekday:         dayAnchor.Weekday().String(),
@@ -251,7 +257,7 @@ func forecastDayShift(params Params, heightFt, periodS *float64, daysOut int) fl
 }
 
 // gatherDayFacts assembles one day's tide pressure and weather aggregates.
-func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast, prior map[string]PriorDay) dayFacts {
+func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.RampStatusWithSince, params Params, vp VerdictParams, preds []models.TidePrediction, land *nwsfc.LandForecast, marine *nwsfc.MarineForecast, prior map[string]PriorDay, surgeFt float64) dayFacts {
 	facts := dayFacts{daysOut: daysOut, frame: frame, pressure: PressureNone}
 	opens, closes := *frame.OpensAt, *frame.ClosesAt
 
@@ -268,7 +274,7 @@ func gatherDayFacts(now time.Time, daysOut int, frame Schedule, ramps []models.R
 		if p.Type != "H" || p.Height == nil || p.Time.Before(from.Add(-peakLookback)) {
 			continue
 		}
-		if servePeakInPlay(p, closes) {
+		if servePeakInPlay(p, closes, surgeFt) {
 			facts.tidePeaks = append(facts.tidePeaks, p)
 		}
 	}

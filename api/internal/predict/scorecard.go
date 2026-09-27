@@ -180,7 +180,7 @@ func BuildScorecard(date time.Time, historyByRamp map[string][]models.StatusEven
 		if p.Time.Before(dayStart) || !p.Time.Before(dayEnd) {
 			continue
 		}
-		if gradedPeak(p, sched) {
+		if gradedPeak(p, sched, *water[i].Height-*p.Height) {
 			dayPeaks = append(dayPeaks, p)
 			waterPeaks = append(waterPeaks, water[i])
 		}
@@ -334,12 +334,13 @@ func round3(v float64) float64 {
 
 // gradedPeak is the scorecard's peak filter: the training window's daytime
 // peaks plus any evening high the live outlook serves (servePeakInPlay).
-func gradedPeak(p models.TidePrediction, sched Schedule) bool {
+// surgeFt is the water-level anomaly at the peak.
+func gradedPeak(p models.TidePrediction, sched Schedule, surgeFt float64) bool {
 	if isDaytimePeak(p) {
 		return true
 	}
 	if p.Type != "H" || p.Height == nil || p.Time.In(eastern).Hour() < 7 || sched.ClosesAt == nil {
 		return false
 	}
-	return servePeakInPlay(p, *sched.ClosesAt)
+	return servePeakInPlay(p, *sched.ClosesAt, surgeFt)
 }

@@ -415,3 +415,37 @@ func TestBuildOutlookEveningPeak(t *testing.T) {
 	beyond := []models.TidePrediction{h(et(16, 19, 0).Add(eveningReach), 3.0)}
 	assert.Equal(t, RiskScheduled, BuildOutlook(et(16, 10, 0), ramps, testParams(), beyond, nil, nil, nil).Ramps[0].Risk)
 }
+
+// On a high-water morning the county holds a tide closure hours past the
+// peak; the reopen estimate is floored at peak + surgeReopenLag instead of
+// the falling-limb mirror (9/26/2026: said ~10am, reopened ~12:10).
+func TestHighWaterReopen(t *testing.T) {
+	water := []models.TidePrediction{
+		{Time: et(16, 2, 50), Type: "L", Height: ptrF(0.2)},
+		h(et(16, 9, 5), 3.8),
+		{Time: et(16, 15, 20), Type: "L", Height: ptrF(1.0)},
+	}
+	closedAt := et(16, 8, 0)
+	mirror := reopenEstimate(water, closedAt, et(16, 9, 45))
+	require.False(t, mirror.IsZero())
+	assert.True(t, mirror.Before(et(16, 10, 30)), "the mirror of an 8am posting around a 9:05 peak")
+
+	high := &SurgeContext{AnomalyFt: 1.0}
+	assert.Equal(t, et(16, 9, 5).Add(surgeReopenLag), highWaterReopen(mirror, water, closedAt, high))
+	assert.Equal(t, mirror, highWaterReopen(mirror, water, closedAt, &SurgeContext{AnomalyFt: 0.5}), "ordinary water keeps the mirror")
+	assert.Equal(t, mirror, highWaterReopen(mirror, water, closedAt, nil))
+
+	// A later estimate than the floor is kept.
+	late := et(16, 14, 0)
+	assert.Equal(t, late, highWaterReopen(late, water, closedAt, high))
+}
+
+// High water stretches the evening reach: the county clears earlier ahead
+// of a later high.
+func TestServePeakInPlaySurge(t *testing.T) {
+	closes := et(16, 18, 30)
+	peak := h(closes.Add(2*time.Hour+53*time.Minute), 2.8) // 9/26: 9:23pm vs a 6:30 close
+	assert.False(t, servePeakInPlay(peak, closes, 0))
+	assert.True(t, servePeakInPlay(peak, closes, 1.0), "+1 ft buys another half hour")
+	assert.False(t, servePeakInPlay(peak, closes, -1.0), "low water never shrinks the reach")
+}

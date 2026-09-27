@@ -27,7 +27,7 @@ func main() {
 	client := conditions.NewNDBCClient("41113")
 
 	start := time.Date(2026, 3, 9, 0, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 9, 25, 4, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 9, 27, 4, 0, 0, 0, time.UTC)
 
 	var existing []models.WaveSample
 	if raw, err := os.ReadFile("internal/predict/testdata/waves.json"); err == nil {

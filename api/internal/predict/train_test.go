@@ -143,3 +143,23 @@ func TestNextRunTime(t *testing.T) {
 	afterRun := time.Date(2026, 8, 16, 4, 0, 0, 0, eastern)
 	assert.Equal(t, time.Date(2026, 8, 17, 3, 30, 0, 0, eastern), nextRunTime(afterRun))
 }
+
+// A turtle status inside a tide closure is not a reopening — the county
+// flips to it and back (clerical), or passes through it on the way to OPEN.
+func TestClosureEventsSkipsTurtleFlip(t *testing.T) {
+	events := []models.StatusEvent{
+		{AccessStatus: "CLOSED FOR HIGH TIDE", RecordedAt: et(1, 8, 0)},
+		{AccessStatus: turtleClearedStatus, RecordedAt: et(1, 10, 44)},
+		{AccessStatus: "CLOSED FOR HIGH TIDE", RecordedAt: et(1, 11, 54)},
+		{AccessStatus: "OPEN", RecordedAt: et(1, 12, 7)},
+		{AccessStatus: turtleClearedStatus, RecordedAt: et(2, 7, 0)}, // overnight status, no episode open
+		{AccessStatus: "CLOSED FOR HIGH TIDE", RecordedAt: et(2, 8, 0)},
+		{AccessStatus: turtleClearedStatus, RecordedAt: et(2, 9, 30)},
+		{AccessStatus: "OPEN", RecordedAt: et(2, 10, 0)},
+	}
+	closures := closureEvents(events)
+	require.Len(t, closures, 2)
+	assert.Equal(t, et(1, 8, 0), closures[0].closedAt)
+	assert.Equal(t, et(1, 12, 7), closures[0].reopenedAt, "the 10:44 flip is not a reopen")
+	assert.Equal(t, et(2, 10, 0), closures[1].reopenedAt, "closed until the ramp actually opens")
+}

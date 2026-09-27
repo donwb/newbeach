@@ -169,10 +169,23 @@ type Outlook struct {
 // thresholds grade evening peaks better than evening-contaminated ones.
 const eveningReach = 150 * time.Minute
 
+// eveningSurgeReachPerFt stretches eveningReach on high-water days: the
+// water reaches a ramp's closing level earlier, so the county clears ahead
+// of a later high (9/26/2026, +1.0 ft: most ramps closed 4–5pm for a 9:23pm
+// high, 2.9h past the close). Day-level walk-forward, May–Sep: 2pm-outlook
+// misses 58 → 37 (September 24 → 3), grade score 0.906 → 0.909; 9am flat.
+// Larger values only added hedges on evenings that stayed open.
+const eveningSurgeReachPerFt = 30 * time.Minute
+
 // servePeakInPlay reports whether a high tide peaking at p can still close
 // ramps during the driving day that ends at closes (offset-corrected).
-func servePeakInPlay(p models.TidePrediction, closes time.Time) bool {
-	return p.Time.Before(closes.Add(eveningReach))
+// surgeFt is the water-level anomaly the day is running at.
+func servePeakInPlay(p models.TidePrediction, closes time.Time, surgeFt float64) bool {
+	reach := eveningReach
+	if surgeFt > 0 {
+		reach += time.Duration(surgeFt * float64(eveningSurgeReachPerFt))
+	}
+	return p.Time.Before(closes.Add(reach))
 }
 
 // eveningRisk caps a peak landing after the day's close at "possible":
@@ -459,6 +472,50 @@ func reopenEstimate(preds []models.TidePrediction, closedAt, now time.Time) time
 	return time.Time{}
 }
 
+// High-water reopen floor. On mornings with the water well above normal the
+// county holds tide closures far longer than the falling-limb mirror
+// predicts: 9/24–9/26/2026 (+0.7 to +1.2 ft) closures posted at the 8am open
+// reopened ~3–4.5h after the peak while the estimate said ~1h, and a few
+// ramps stayed shut all day. Walk-forward over every May–Sep closure, served
+// 20 min after posting and 30 min after the peak: flooring the estimate at
+// peak + surgeReopenLag when the anomaly is ≥ surgeReopenFt cut mean error
+// 1.38 → 1.30h and "said open >30 min too early" 12% → 10%; on Sep 24–26,
+// 2.54 → 1.67h and 50% → 25%. The 0.9 ft bar leaves ordinary days alone. A
+// "stayed closed yesterday → may stay closed today" rule was tried and
+// dropped: ~100 false all-day calls.
+const (
+	surgeReopenFt  = 0.9
+	surgeReopenLag = 210 * time.Minute
+)
+
+// highWaterReopen floors a reopen estimate on high-water days (see
+// surgeReopenFt): no earlier than surgeReopenLag after the high tide that
+// caused the closure (the high nearest closedAt, within peakMatchWindow).
+// Past the day's close the copy already says "may stay closed for the day".
+func highWaterReopen(est time.Time, water []models.TidePrediction, closedAt time.Time, surge *SurgeContext) time.Time {
+	if surge == nil || surge.AnomalyFt < surgeReopenFt {
+		return est
+	}
+	var peak *models.TidePrediction
+	for i := range water {
+		p := &water[i]
+		if p.Type != "H" || p.Height == nil {
+			continue
+		}
+		d := p.Time.Sub(closedAt).Abs()
+		if d <= peakMatchWindow && (peak == nil || d < peak.Time.Sub(closedAt).Abs()) {
+			peak = p
+		}
+	}
+	if peak == nil {
+		return est
+	}
+	if floor := peak.Time.Add(surgeReopenLag); est.IsZero() || floor.After(est) {
+		return floor
+	}
+	return est
+}
+
 // BuildOutlook computes the full outlook. preds are hilo predictions
 // covering at least [now-1d, now+2d]; ramps come from
 // GetRampsWithStatusSince. wave is the latest buoy observation, nil when
@@ -473,6 +530,10 @@ func reopenEstimate(preds []models.TidePrediction, closedAt, now time.Time) time
 func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample, levels []models.WaterLevelSample, prior map[string]PriorDay) Outlook {
 	season, sched := buildSchedule(now, params)
 	water, surge := params.withSurge(preds, levels, now)
+	var surgeNow float64
+	if surge != nil {
+		surgeNow = surge.AnomalyFt
+	}
 
 	out := Outlook{
 		GeneratedAt: now.UTC(),
@@ -519,7 +580,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 		if p.Type != "H" || p.Height == nil || p.Time.Before(now.Add(-peakLookback)) {
 			continue
 		}
-		if sched.ClosesAt != nil && !servePeakInPlay(p, *sched.ClosesAt) {
+		if sched.ClosesAt != nil && !servePeakInPlay(p, *sched.ClosesAt, surgeNow) {
 			continue
 		}
 		dayPeaks = append(dayPeaks, p)
@@ -560,7 +621,7 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			if ramp.StatusSince != nil {
 				closedAt = *ramp.StatusSince
 			}
-			reopen := reopenEstimate(water, closedAt, now)
+			reopen := highWaterReopen(reopenEstimate(water, closedAt, now), water, closedAt, surge)
 			ro.Headline, ro.Detail, ro.Reopen = closedNowText(reopen, sched)
 			out.Ramps = append(out.Ramps, ro)
 			continue

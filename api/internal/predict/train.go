@@ -63,11 +63,17 @@ type closureEvent struct {
 }
 
 // closureEvents extracts tide-closure episodes from a ramp's ascending
-// status-event history.
+// status-event history. The overnight turtle status inside an episode is
+// not a reopening: of 86 tide → "CLEARED FOR TURTLES" flips through
+// 2026-09-26, 36 went straight back to CLOSED FOR HIGH TIDE (clerical) and
+// the rest were a step on the way to OPEN — the ramp stayed shut either way.
 func closureEvents(events []models.StatusEvent) []closureEvent {
 	var out []closureEvent
 	openIdx := -1
 	for _, e := range events {
+		if openIdx >= 0 && e.AccessStatus == turtleClearedStatus {
+			continue
+		}
 		isTide := e.AccessStatus == tideClosedStatus
 		if isTide && openIdx < 0 {
 			// Transitions into tide-closed. The very first event of history
