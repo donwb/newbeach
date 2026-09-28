@@ -1,13 +1,14 @@
 import SwiftUI
 import BeachStatus
 
-/// The Ask pull surface: a question box over the prediction engine. Left,
-/// the conversation — the last few turns and, under the newest answer, the
-/// engine fact it rested on. Right, the controls: three suggested questions
-/// for the focused ramp (so most asks need no typing), then the text field
-/// (the system keyboard brings Siri Remote dictation and the iPhone keyboard
-/// prompt), or the key field when the server wants a chat key. Every answer
-/// is server copy rendered verbatim; the one red thing is a live closure.
+/// The Ask pull surface: a question box over the prediction engine, in the
+/// board's voice. Left, the latest answer — kicker · headline · detail and
+/// only the rows that carry news — under the question that produced it.
+/// Right, the controls: three suggested questions for the board's city (so
+/// most asks need no typing), then the text field (the system keyboard
+/// brings Siri Remote dictation and the iPhone keyboard prompt), or the key
+/// field when the server wants a chat key. Not a chat: follow-ups keep
+/// their context server-side, but only the newest answer is shown.
 struct ChatSurface: View {
     @Bindable var session: ChatSession
     let focus: FocusState<RootFocus?>.Binding
@@ -24,9 +25,7 @@ struct ChatSurface: View {
                     Text("Ask")
                         .tv(52, .extraBold, tracking: -0.03)
                         .foregroundStyle(TVInk.type)
-                    Text(session.contextRamp.map { "About \($0.rampDisplayName)" }
-                         ?? session.contextCity.map { "About \($0)" }
-                         ?? "Any city · this week")
+                    Text(session.contextCity.map { "\($0) · the outlook, in its own words" } ?? "The outlook, in its own words")
                         .tvLabel()
                 }
                 Spacer(minLength: 0)
@@ -34,7 +33,7 @@ struct ChatSurface: View {
             }
 
             HStack(alignment: .top, spacing: gap) {
-                conversation
+                answerColumn
                     .frame(width: leftWidth, alignment: .topLeading)
                     .focusSection()
                 controls
@@ -52,99 +51,108 @@ struct ChatSurface: View {
                             bottom: 36, trailing: TVMetrics.sidePad))
     }
 
-    // MARK: - Conversation
+    // MARK: - Answer
 
-    private var conversation: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if session.turns.isEmpty {
-                Text("Ask whether a ramp will be open at a time this week, or which day looks best. Answers are the board's own outlook, in its own words.")
+    @ViewBuilder private var answerColumn: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if session.isPending {
+                Text("Checking the outlook…")
+                    .tv(28, .semiBold)
+                    .foregroundStyle(TVInk.inactive)
+                    .padding(.top, 14)
+            } else if let error = session.errorText, !session.needsKey {
+                Text(error)
+                    .tv(28, .semiBold)
+                    .foregroundStyle(TVInk.typeDim)
+                    .lineLimit(2)
+                    .padding(.top, 14)
+            } else if let reply = session.latestReply {
+                if let question = session.latestQuestion {
+                    Text(question)
+                        .tv(24)
+                        .foregroundStyle(TVInk.typeDim)
+                        .lineLimit(1)
+                        .padding(.top, 14)
+                }
+                answerBlock(reply: reply, sources: session.sources)
+            } else {
+                Text("Ask whether you can get on the beach in a city, whether the ramps will be open at a time this week, or which day looks best. Answers are the board's own outlook, in its own words.")
                     .tv(28)
                     .foregroundStyle(TVInk.typeDim)
                     .lineLimit(3)
                     .padding(.top, 14)
             }
-            ForEach(session.turns.suffix(4)) { turn in
-                turnRow(turn)
-            }
-            if let last = session.turns.last, last.role == .assistant, !session.sources.isEmpty {
-                sourceCard
-            }
-            if session.isPending {
-                Text("Checking the outlook…")
-                    .tv(26, .semiBold)
-                    .foregroundStyle(TVInk.inactive)
-            }
-            if let error = session.errorText, !session.needsKey {
-                Text(error)
-                    .tv(26, .semiBold)
-                    .foregroundStyle(TVInk.typeDim)
-                    .lineLimit(2)
-            }
         }
-        .padding(.top, 10)
         .accessibilityIdentifier("chat.transcript")
     }
 
-    private func turnRow(_ turn: ChatTurn) -> some View {
-        HStack(alignment: .top, spacing: 18) {
-            Text(turn.role == .user ? "You" : "Outlook")
-                .tvLabel(22)
-                .frame(width: 120, alignment: .leading)
-                .padding(.top, 6)
-            Text(turn.text)
-                .tv(turn.role == .user ? 28 : 30, turn.role == .user ? .regular : .semiBold)
-                .foregroundStyle(turn.role == .user ? TVInk.typeDim : TVInk.type)
-                .lineLimit(3)
-                .minimumScaleFactor(0.85)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    /// The engine fact under the newest answer: a ramp read, or the days.
-    private var sourceCard: some View {
-        let ramps = session.sources.filter { $0.kind == "ramp_outlook" }
-        let days = session.sources.filter { $0.kind == "weekend_day" }
+    private func answerBlock(reply: String, sources: [ChatSource]) -> some View {
+        let (lead, rest) = AskPresentation.splitLead(reply)
+        let rows = AskPresentation.newsRows(sources)
+        let days = AskPresentation.days(sources)
         return VStack(alignment: .leading, spacing: 8) {
-            ForEach(ramps.prefix(2)) { s in
-                HStack(alignment: .top, spacing: 16) {
-                    Rectangle()
-                        .fill(s.isClosedNow ? TVInk.closed : TVInk.sand)
-                        .frame(width: 6)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text([s.name, s.atLabel].compactMap { $0 }.joined(separator: " · "))
-                            .tvLabel(22)
-                        if let headline = s.headline {
-                            Text(headline)
-                                .tv(28, .semiBold)
+            if let kicker = AskPresentation.kicker(for: sources) {
+                Text(kicker).tvLabel()
+            }
+            Text(lead)
+                .tv(40, .extraBold, tracking: -0.02)
+                .foregroundStyle(TVInk.type)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
+            if !rest.isEmpty {
+                Text(rest)
+                    .tv(26)
+                    .foregroundStyle(TVInk.typeMuted)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !rows.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(rows.prefix(4)) { row in
+                        HStack(alignment: .firstTextBaseline, spacing: 20) {
+                            Text(row.name)
+                                .tv(26, .semiBold)
                                 .foregroundStyle(TVInk.type)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        if let detail = s.detail, !detail.isEmpty {
-                            Text(detail)
+                                .frame(width: 260, alignment: .leading)
+                            Text(row.state)
+                                .tv(26, row.isClosed ? .bold : .regular)
+                                .foregroundStyle(row.isClosed ? TVInk.closed : TVInk.typeDim)
+                                .frame(width: 260, alignment: .leading)
+                            Text(row.note)
                                 .tv(24)
                                 .foregroundStyle(TVInk.typeDim)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 7)
+                        .overlay(alignment: .top) { Rectangle().fill(TVInk.ruleHair).frame(height: 1) }
                     }
                 }
+                .padding(.top, 6)
             }
             if !days.isEmpty {
-                HStack(spacing: 24) {
+                HStack(alignment: .top, spacing: 24) {
                     ForEach(days.prefix(4)) { d in
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(d.weekday ?? d.date ?? "").tvLabel(22)
+                            Text(String((d.weekday ?? d.date ?? "").prefix(3))).tvLabel(22)
+                            Text((d.verdict ?? "").replacingOccurrences(of: "_", with: " "))
+                                .tv(22, .semiBold)
+                                .foregroundStyle(TVInk.typeDim)
                             Text(d.headline ?? "")
                                 .tv(24, .semiBold)
                                 .foregroundStyle(TVInk.type)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+                .padding(.top, 6)
             }
         }
-        .padding(.leading, 138)
         .accessibilityIdentifier("chat.sourceCard")
     }
 
@@ -159,15 +167,15 @@ struct ChatSurface: View {
                 .foregroundStyle(TVInk.typeDim)
                 .padding(.top, 14)
         } else {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Try one").tvLabel()
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Try").tvLabel()
                     .padding(.top, 14)
                 ForEach(Array(session.suggestions.enumerated()), id: \.offset) { index, question in
-                    suggestionButton(index: index, question: question)
+                    suggestionRow(index: index, question: question)
                 }
                 Text("Or ask").tvLabel()
                     .padding(.top, 10)
-                TextField("Ask about a ramp…", text: $session.draft)
+                TextField("Ask about a city, a ramp, or a time this week…", text: $session.draft)
                     .font(.archivo(26))
                     .foregroundStyle(TVInk.type)
                     .textFieldStyle(.plain)
@@ -186,27 +194,28 @@ struct ChatSurface: View {
         }
     }
 
-    private func suggestionButton(index: Int, question: String) -> some View {
+    /// A suggested question as a focusable line: a sand bar and sand type
+    /// on focus, no box.
+    private func suggestionRow(index: Int, question: String) -> some View {
         let focused = focus.wrappedValue == .chatSuggestion(index)
         return Button {
+            session.draft = question
             Task { await session.send(question) }
         } label: {
-            HStack(spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                Rectangle()
+                    .fill(focused ? TVInk.sand : TVInk.rule)
+                    .frame(width: 4)
                 Text(question)
-                    .tv(26, .semiBold)
-                    .foregroundStyle(focused ? TVInk.onSand : TVInk.type)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .tv(26, focused ? .semiBold : .regular)
+                    .foregroundStyle(focused ? TVInk.sand : TVInk.type)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
-                Text("›")
-                    .tv(26, .bold)
-                    .foregroundStyle(focused ? TVInk.onSand : TVInk.sand)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
-            .background(Rectangle().fill(focused ? TVInk.sand : .clear))
-            .overlay(Rectangle().strokeBorder(focused ? TVInk.sand : TVInk.rule, lineWidth: 2))
         }
         .buttonStyle(BareButtonStyle())
         .disabled(session.isPending)

@@ -50,10 +50,6 @@ struct ContentView: View {
             LiveCamFullscreenView(viewModel: viewModel)
                 .environment(\.ground, ground.state)
         }
-        .sheet(isPresented: $viewModel.chatPresented) {
-            ChatView(session: viewModel.chat)
-                .environment(\.ground, ground.state)
-        }
         .environment(\.ground, ground.state)
         .environment(\.skyPalette, ground.state.palette)
         .animation(reduceMotion ? nil : .easeInOut(duration: 2), value: ground.state.altitude)
@@ -70,6 +66,17 @@ struct ContentView: View {
                 }
             }
             await viewModel.loadAll()
+            #if DEBUG
+            // QA hook: --ask-preview seeds the Ask section with a canned
+            // answer (no model call) so the layout can be screenshot.
+            if ProcessInfo.processInfo.arguments.contains("--ask-preview") {
+                if !viewModel.chat.hasKey { viewModel.chat.saveKey("preview") }
+                viewModel.chat.load(turns: [
+                    ChatTurn(role: .user, text: "what time will NSB close today?"),
+                    ChatTurn(role: .assistant, text: PreviewAsk.reply),
+                ], sources: PreviewAsk.sources)
+            }
+            #endif
             // Foreground poll on the ingester's own cadence. Without it the
             // stale state would trip simply from leaving the board open.
             while !Task.isCancelled {

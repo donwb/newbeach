@@ -68,6 +68,29 @@ public struct ChatRequest: Codable, Hashable, Sendable {
     }
 }
 
+/// One ramp row inside a city fact.
+public struct ChatSourceRamp: Codable, Hashable, Sendable, Identifiable {
+    public var id: String { accessID }
+    public let accessID: String
+    public let name: String
+    public let status: String?
+    public let risk: String?
+    public let headline: String?
+
+    public init(accessID: String, name: String, status: String? = nil, risk: String? = nil, headline: String? = nil) {
+        self.accessID = accessID
+        self.name = name
+        self.status = status
+        self.risk = risk
+        self.headline = headline
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case accessID = "access_id"
+        case name, status, risk, headline
+    }
+}
+
 /// One engine fact the reply rested on. `kind` is `ramp_outlook` or
 /// `weekend_day`; the rest is populated per kind. Render the strings
 /// verbatim — they are the board's own copy.
@@ -75,6 +98,7 @@ public struct ChatSource: Codable, Hashable, Sendable, Identifiable {
     public var id: String {
         switch kind {
         case "weekend_day": return "day-" + (date ?? weekday ?? "")
+        case "city_now", "city_outlook": return kind + "-" + (city ?? "") + "-" + (atLabel ?? "")
         default: return "ramp-" + (accessID ?? "") + "-" + (atLabel ?? "")
         }
     }
@@ -95,6 +119,11 @@ public struct ChatSource: Codable, Hashable, Sendable, Identifiable {
     public let reopenLabel: String?
     public let relation: String?
 
+    // city_now / city_outlook
+    public let openCount: Int?
+    public let rampCount: Int?
+    public let ramps: [ChatSourceRamp]?
+
     // weekend_day
     public let date: String?
     public let weekday: String?
@@ -105,7 +134,9 @@ public struct ChatSource: Codable, Hashable, Sendable, Identifiable {
     public init(kind: String, accessID: String? = nil, name: String? = nil, city: String? = nil,
                 at: Date? = nil, atLabel: String? = nil, risk: String? = nil, reason: String? = nil,
                 headline: String? = nil, detail: String? = nil, windowLabel: String? = nil,
-                reopenLabel: String? = nil, relation: String? = nil, date: String? = nil,
+                reopenLabel: String? = nil, relation: String? = nil,
+                openCount: Int? = nil, rampCount: Int? = nil, ramps: [ChatSourceRamp]? = nil,
+                date: String? = nil,
                 weekday: String? = nil, verdict: String? = nil, closureRiskLabel: String? = nil,
                 bestWindowLabel: String? = nil) {
         self.kind = kind
@@ -121,6 +152,9 @@ public struct ChatSource: Codable, Hashable, Sendable, Identifiable {
         self.windowLabel = windowLabel
         self.reopenLabel = reopenLabel
         self.relation = relation
+        self.openCount = openCount
+        self.rampCount = rampCount
+        self.ramps = ramps
         self.date = date
         self.weekday = weekday
         self.verdict = verdict
@@ -137,6 +171,9 @@ public struct ChatSource: Codable, Hashable, Sendable, Identifiable {
         case windowLabel = "window_label"
         case reopenLabel = "reopen_label"
         case relation = "target_vs_hours"
+        case openCount = "open_count"
+        case rampCount = "ramp_count"
+        case ramps
         case date, weekday, verdict
         case closureRiskLabel = "closure_risk_label"
         case bestWindowLabel = "best_window_label"

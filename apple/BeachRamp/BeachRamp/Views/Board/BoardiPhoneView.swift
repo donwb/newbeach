@@ -9,14 +9,25 @@ struct BoardiPhoneView: View {
     @Environment(\.ground) private var ground
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                SkyHeroView(viewModel: viewModel)
-                sheet
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    SkyHeroView(viewModel: viewModel)
+                    sheet
+                }
             }
-        }
-        .background {
-            ground.skyGradient.ignoresSafeArea()
+            .background {
+                ground.skyGradient.ignoresSafeArea()
+            }
+            #if DEBUG
+            .task {
+                // QA hook: --ask-preview scrolls the seeded Ask section into
+                // view once the board has data.
+                guard ProcessInfo.processInfo.arguments.contains("--ask-preview") else { return }
+                try? await Task.sleep(for: .seconds(2.5))
+                withAnimation { proxy.scrollTo("askSection", anchor: .top) }
+            }
+            #endif
         }
     }
 
@@ -38,12 +49,6 @@ struct BoardiPhoneView: View {
             rampList
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
-
-            AskRowView(title: "Ask about the beach") {
-                viewModel.askAbout()
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 16)
 
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 22)
@@ -78,6 +83,14 @@ struct BoardiPhoneView: View {
                 Rectangle().fill(t.rule).frame(height: 2)
                     .padding(.top, 14)
             }
+
+            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity)
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .id("askSection")
+
+            Rectangle().fill(t.rule).frame(height: 2)
+                .padding(.top, 14)
 
             if let camera = viewModel.selectedCamera {
                 CamRowView(cameraName: camera.name) {

@@ -24,6 +24,14 @@ struct ChatDecodingTests {
           "target_vs_hours": "inside"
         },
         {
+          "kind": "city_now", "city": "New Smyrna Beach", "open_count": 4, "ramp_count": 5,
+          "headline": "Four of five open", "detail": "Crawford Rd closed for the tide since 7:46am",
+          "ramps": [
+            {"access_id": "NS-108", "name": "Crawford Rd", "status": "CLOSED FOR HIGH TIDE", "risk": "closed_now", "headline": "Closed for high tide"},
+            {"access_id": "NS-110", "name": "Flagler Av", "status": "OPEN", "risk": "scheduled", "headline": "Beach driving closes for the day around 6:30pm"}
+          ]
+        },
+        {
           "kind": "weekend_day",
           "date": "2026-06-13", "weekday": "Saturday", "verdict": "great",
           "headline": "Clear all day", "closure_risk_label": "Clear all day",
@@ -39,7 +47,7 @@ struct ChatDecodingTests {
     @Test func decodesResponseWithBothSourceKinds() throws {
         let r = try decoder().decode(ChatResponse.self, from: Data(payload.utf8))
         #expect(r.reply.hasPrefix("Flagler Ave could close"))
-        #expect(r.sources.count == 2)
+        #expect(r.sources.count == 3)
 
         let ramp = r.sources[0]
         #expect(ramp.kind == "ramp_outlook")
@@ -51,7 +59,15 @@ struct ChatDecodingTests {
         #expect(ramp.at != nil)
         #expect(!ramp.isClosedNow)
 
-        let day = r.sources[1]
+        let city = r.sources[1]
+        #expect(city.kind == "city_now")
+        #expect(city.openCount == 4)
+        #expect(city.rampCount == 5)
+        #expect(city.ramps?.count == 2)
+        #expect(city.ramps?[0].status == "CLOSED FOR HIGH TIDE")
+        #expect(city.id == "city_now-New Smyrna Beach-")
+
+        let day = r.sources[2]
         #expect(day.kind == "weekend_day")
         #expect(day.weekday == "Saturday")
         #expect(day.verdict == "great")

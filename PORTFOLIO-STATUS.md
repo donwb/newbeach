@@ -5,7 +5,7 @@ repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
 last_verified: 2026-09-28
-summary: All platforms live; 1.4 (33) on TestFlight for iOS + tvOS, not yet submitted; "Ask" chat live on the API and the website since 9/28 (city questions first-class; smoke-tested against claude-opus-5); native UI in source only — key per device + a flight after 33 remain; NSB cam dark upstream since 9/19 (county-side)
+summary: All platforms live; 1.4 (33) on TestFlight for iOS + tvOS, not yet submitted; "Ask" chat live on the API and the website since 9/28 (city questions first-class; smoke-tested against claude-opus-5); native UI redesigned to match (source only) — key per device + a flight after 33 remain; NSB cam dark upstream since 9/19 (county-side)
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
@@ -22,7 +22,7 @@ dispatches:
 ---
 
 ## Top open items
-0. **Try Ask on the website and nail the use cases** (Don, headless this week). beach.donwb.com now has an Ask section (weekend outlook → Ask → cam); first use asks for the chat key and keeps it in localStorage. City questions are the design center now: `city_now` / `city_outlook_at` answer "can I get on the beach in NSB right now?" and "are the Daytona ramps open Saturday at 2?" in one tool call each (verified live 9/28). Next: collect the question shapes that miss, then revisit native placement (currently: iPhone board row + iPad sky-band button + tvOS header "Ask ›"; ramp-detail entry dropped), enter the key on devices, flight after 33. Watch prod logs for `chat.guard_tripped`.
+0. **Flight Ask when the screenshots look right** (`~/Downloads/ask-iphone.png`, `ask-tvos.png`, 9/28). Web, iPhone/iPad and tvOS now share one design: an ask bar, "Try" links for the selected city, and the answer in the board's voice with only the rows that carry news. Server answers city questions first-class. Remaining: `make flight ARGS="--yes"` (first build after 33 with Ask), then enter the chat key once on each device. Watch prod logs for `chat.guard_tripped`; send back question shapes that miss.
 1. **Submit 1.4 (33) for review** when Don wants it public. It carries the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-33`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.

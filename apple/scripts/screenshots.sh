@@ -234,6 +234,8 @@ shoot_tv() {
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/01-board.png"
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/02-outlook.png" --surface-outlook
   launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/03-ramp-detail.png" --surface-ramp-detail
+  # Ask with a canned answer (no model call) — the surface, not the API.
+  launch_and_shoot "$udid" "$TV_BUNDLE_ID" "$out/04-ask.png" --ask-preview --chat-key preview
 }
 
 paired_phone_for() { # watch udid -> phone udid

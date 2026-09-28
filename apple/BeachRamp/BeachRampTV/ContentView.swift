@@ -59,7 +59,8 @@ struct ContentView: View {
     #if DEBUG
     /// QA hooks (screenshot verification, DEBUG only): --surface-outlook /
     /// --surface-ramp-detail[=ACCESS_ID] / --surface-chat[=ACCESS_ID] open a
-    /// pull surface once data has loaded; --chat-key <k> seeds the chat key; --sky-minutes N renders at that wall-clock minute;
+    /// pull surface once data has loaded; --ask-preview opens Ask with a
+    /// canned answer (no model call); --chat-key <k> seeds the chat key; --sky-minutes N renders at that wall-clock minute;
     /// --simulate-stale backdates the last refresh.
     private static let launchArgs = ProcessInfo.processInfo.arguments
     private static let skyMinutesOverride: Int? = launchArgs
@@ -595,6 +596,11 @@ struct ContentView: View {
         if let key = Self.chatKeyArg { viewModel.chat.saveKey(key) }
         if Self.surfaceOutlookArg {
             openSurface(.outlook)
+            return
+        }
+        if Self.launchArgs.contains("--ask-preview") {
+            viewModel.chat.load(turns: PreviewFixtures.chatTurns, sources: PreviewFixtures.chatSources)
+            openSurface(.chat(nil))
             return
         }
         if let idArg = Self.surfaceChatArg {

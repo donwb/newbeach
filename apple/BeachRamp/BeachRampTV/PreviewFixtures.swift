@@ -269,16 +269,20 @@ enum PreviewFixtures {
     // MARK: - Ask (chat)
 
     static let chatTurns: [ChatTurn] = [
-        ChatTurn(role: .user, text: "Will Flagler be open Friday at 2pm?"),
-        ChatTurn(role: .assistant, text: "Flagler Av could close around the 2:30pm high tide on Friday. Closure possible around 2:30pm, often back open by ~4:30pm."),
+        ChatTurn(role: .user, text: "Can I get on the beach in New Smyrna Beach right now?"),
+        ChatTurn(role: .assistant, text: "Yes — four of five ramps are open in New Smyrna Beach right now. Crawford Rd has been closed for the tide since 7:46am, and the rest look clear until 6:30pm. Beach driving closes for the day around 6:30pm, and they often start clearing a bit early."),
     ]
 
     static let chatSources: [ChatSource] = [
-        ChatSource(kind: "ramp_outlook", accessID: "NS-110", name: "Flagler Av", city: "New Smyrna Beach",
-                   atLabel: "Friday ~2pm", risk: "possible", reason: "high_tide",
-                   headline: "Could close around the 2:30pm high tide",
-                   detail: "Closure possible around 2:30pm · often back open by ~4:30pm",
-                   windowLabel: "11:30am–5pm", relation: "inside"),
+        ChatSource(kind: "city_now", city: "New Smyrna Beach",
+                   headline: "Four of five open",
+                   detail: "Crawford Rd closed for the tide since 7:46am · the rest look clear until 6:30pm",
+                   openCount: 4, rampCount: 5,
+                   ramps: [
+                    ChatSourceRamp(accessID: "NS-141", name: "27th Av", status: "OPEN", risk: "scheduled", headline: "Beach driving closes for the day around 6:30pm"),
+                    ChatSourceRamp(accessID: "NS-108", name: "Crawford Rd", status: "CLOSED FOR HIGH TIDE", risk: "closed_now", headline: "Closed for high tide"),
+                    ChatSourceRamp(accessID: "NS-110", name: "Flagler Av", status: "OPEN", risk: "possible", headline: "Could close around the 3pm high tide"),
+                   ]),
     ]
 
     /// A transport for previews: the canned Flagler answer after a pause.

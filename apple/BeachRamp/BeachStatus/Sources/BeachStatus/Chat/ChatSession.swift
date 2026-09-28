@@ -89,6 +89,18 @@ public final class ChatSession {
 
     public var hasKey: Bool { key != nil }
 
+    /// The newest answer, when the last turn is the assistant's.
+    public var latestReply: String? {
+        guard let last = turns.last, last.role == .assistant else { return nil }
+        return last.text
+    }
+
+    /// The question that produced the newest answer.
+    public var latestQuestion: String? {
+        guard turns.count >= 2, turns[turns.count - 1].role == .assistant else { return nil }
+        return turns[turns.count - 2].text
+    }
+
     /// Suggested questions for the current context, ready to send verbatim.
     public var suggestions: [String] {
         ChatSuggestions.questions(city: contextCity, ramp: contextRamp, now: Date())
@@ -170,6 +182,15 @@ public final class ChatSession {
                 errorText = "Couldn't reach the outlook. Try again in a moment."
             }
         }
+    }
+
+    /// Replace the transcript and facts wholesale — previews and QA launch
+    /// arguments seed a canned answer this way, no network involved.
+    public func load(turns: [ChatTurn], sources: [ChatSource]) {
+        self.turns = turns
+        self.sources = sources
+        errorText = nil
+        if let q = latestQuestion { draft = q }
     }
 
     /// Clear the transcript; the key and context stay.

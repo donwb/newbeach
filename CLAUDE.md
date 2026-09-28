@@ -368,9 +368,13 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   (`CHAT_MODEL`), thinking left at the model default so the model stays swappable; the
   stable system prompt is a cache breakpoint; ~2–3 calls and a few cents per question,
   `usage` logged per request (`chat.done`). Apple: shared `ChatSession` (`BeachStatus/Chat`)
-  + Keychain key store; iOS `ChatView` sheet (board row + ramp detail "Ask"); tvOS
-  `TVSurface.chat` with suggested-question buttons + a TextField (dictation / iPhone
-  keyboard), opened from the header "Ask ›". The key is entered once per device.
+  + Keychain key store + `AskPresentation` (the board-voice layout: first sentence as
+  headline, rest as detail, only the rows with news); iOS `AskSectionView` inline on the
+  board after the weekend section (no sheet, no ramp-detail entry); tvOS `TVSurface.chat`
+  with the answer left and suggestions + TextField right, opened from the header "Ask ›".
+  **It is deliberately not a chat** (Don, 2026-09-28 web redesign): one ask bar, the
+  latest answer only, follow-ups keep context server-side. The key is entered once per
+  device. QA: `--ask-preview` seeds a canned answer on both apps (screenshots).
   **City questions are the common case (Don, 2026-09-28)** — "can I get on the beach in
   NSB?", "are the Daytona ramps open Saturday?" — so `city_now` (fresh county statuses +
   the live city verdict) and `city_outlook_at` (the replay for every ramp in a city,

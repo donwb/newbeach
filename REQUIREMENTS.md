@@ -389,7 +389,7 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Live Activities** — show ramp status on Dynamic Island / Lock Screen (when at the beach)
 - **Haptic feedback** on status changes
 - **Settings screen** — default city, notification preferences, units (°F/°C)
-- **Ask** ✅ 2026-09-27 — a chat sheet ("Ask about the beach" on the board, "Ask" on ramp detail) over `POST /api/v2/chat`: suggested questions for the ramp on screen, free text, the server's answer verbatim with a fact card built from `sources`. Locked behind the chat key, entered once and kept in the Keychain (`BeachStatus/Chat/ChatSession`).
+- **Ask** ✅ 2026-09-28 — an ask bar inline on the board (after the weekend outlook, `Views/Board/AskSectionView.swift`) over `POST /api/v2/chat`: three suggested questions for the selected city as text links, free text, and the answer in the board's voice (kicker · headline · detail, `AskPresentation`) with only the rows that carry news. Not a chat — only the latest answer shows; follow-ups keep context server-side. Locked behind the chat key, entered once and kept in the Keychain (`BeachStatus/Chat/ChatSession`). DEBUG: `--ask-preview` seeds a canned answer.
 
 ### 8.4 App Architecture
 
@@ -464,11 +464,13 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
   line, and weekend headlines all come from `/api/v2/outlook` +
   `/api/v2/outlook/weekend` and render verbatim.
 - **Time-of-day ambient sky** — the background tracks the real sun (see §10.4)
-- **Ask** ✅ 2026-09-27 — header "Ask ›" opens a pull surface (`TVSurface.chat`)
-  over `POST /api/v2/chat`: three suggested questions for the focused ramp, a
-  text field (system keyboard → Siri Remote dictation / iPhone keyboard), the
-  answer verbatim with the engine fact under it. Chat key entered once per
-  Apple TV (no iCloud Keychain on tvOS). DEBUG: `--surface-chat[=ID]`, `--chat-key <k>`.
+- **Ask** ✅ 2026-09-28 — header "Ask ›" opens a pull surface (`TVSurface.chat`)
+  over `POST /api/v2/chat`: left, the latest answer in the board's voice
+  (kicker · headline · detail + only the rows that carry news); right, three
+  suggested questions for the board's city and a text field (system keyboard →
+  Siri Remote dictation / iPhone keyboard). Chat key entered once per Apple TV
+  (no iCloud Keychain on tvOS). DEBUG: `--surface-chat[=ID]`, `--ask-preview`,
+  `--chat-key <k>`.
 - **Default to New Smyrna Beach** — matches phone/web behavior
 - **Auto-refresh** — data updates every 60 seconds; the sky/clock tick every 30 seconds
 - **No Top Shelf extension** — just the main dashboard app

@@ -42,19 +42,9 @@ final class BeachViewModel {
     /// Whether the landscape live-cam view is presented (iPhone).
     var camPresented = false
 
-    /// "Ask" — the chat sheet over the prediction engine. Owned here so the
-    /// transcript survives the sheet being dismissed and reopened.
+    /// "Ask" — the question box over the prediction engine, inline on the
+    /// board. Owned here so the answer survives navigation.
     let chat = ChatSession()
-    var chatPresented = false
-
-    /// Open the chat sheet about the board's city (questions that name no
-    /// place are about it), and about `ramp` when one is given.
-    @MainActor
-    func askAbout(_ ramp: Ramp? = nil) {
-        chat.contextCity = ramp?.city ?? selectedCity
-        chat.contextRamp = ramp
-        chatPresented = true
-    }
 
     /// When ramps last loaded successfully. Feeds the stale state alongside
     /// the server's own feed timestamp.
