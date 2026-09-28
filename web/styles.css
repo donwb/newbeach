@@ -798,118 +798,166 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   margin-top: 8px;
 }
 
-/* ---------- Ask (chat over the outlook) ---------- */
+/* ---------- Ask (a question box over the outlook) ---------- */
 
 .ask {
   padding: 0 0 24px;
   border-top: 2px solid var(--rule);
 }
 
+/* One reading column, whatever the page width. */
 .ask-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 40px;
-  align-items: start;
-  padding-top: 6px;
+  max-width: 760px;
+  padding-top: 14px;
 }
 
-.ask-transcript {
-  min-height: 72px;
-  max-height: 420px;
-  overflow-y: auto;
+.ask-row {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+}
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: transparent;
+  border: 2px solid var(--rule);
+  padding: 10px 12px;
+  border-radius: 0;
+}
+.ask-input::placeholder {
+  color: var(--ink2);
+}
+.ask-input:disabled {
+  opacity: 0.6;
+}
+.ask-send {
+  min-width: 72px;
+  padding: 0 16px;
+  border: 2px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+html[data-ground='night'] .ask-send {
+  color: #0a1420;
+}
+.ask-send:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
-.ask-empty,
-.ask-pending {
-  margin: 4px 0 0;
+/* "Try …" — text, not buttons. */
+.ask-try {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink2);
+}
+.ask-try-label {
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-size: 11px;
+  margin-right: 4px;
+}
+.ask-try button {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule2);
+  text-underline-offset: 3px;
+}
+.ask-try button:hover:not(:disabled) {
+  text-decoration-color: var(--accent);
+}
+.ask-try button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ask-sep {
+  color: var(--ink2);
+}
+
+.ask-key {
+  margin-top: 14px;
+}
+.ask-key-text {
+  margin: 0 0 8px;
   font-size: 14px;
   color: var(--ink2);
 }
-.ask-pending {
-  font-weight: 700;
+
+.ask-answer {
+  margin-top: 18px;
 }
+.ask-pending,
 .ask-error {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  color: var(--ink2);
+}
+.ask-error {
   color: var(--accent);
 }
 
-.ask-turn p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.5;
+/* The answer in the board's voice. */
+.ask-block {
+  border-top: 2px solid var(--rule);
+  padding-top: 12px;
 }
-.ask-turn--user {
-  align-self: flex-end;
-  max-width: 78%;
-}
-.ask-turn--user p {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink2);
-  text-align: right;
-}
-.ask-turn--assistant {
-  max-width: 88%;
-}
-
-.ask-card {
-  border: 1px solid var(--rule2);
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.ask-fact {
-  border-left: 4px solid var(--rule);
-  padding-left: 12px;
-}
-/* Red means closed and nothing else. */
-.ask-fact--closed {
-  border-left-color: var(--accent);
-}
-.ask-fact-k {
+.ask-kicker {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ink2);
 }
-.ask-fact-h {
-  margin: 3px 0 0;
-  font-size: 15px;
+.ask-lead {
+  margin: 6px 0 0;
+  font-size: 22px;
   font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
-.ask-fact-d {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--ink2);
+.ask-rest {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
 }
-.ask-ramps {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
+
+/* Only the rows that carry news. */
+.ask-rows {
+  margin-top: 12px;
 }
-.ask-ramp {
+.ask-r {
   display: grid;
-  grid-template-columns: 130px 130px minmax(0, 1fr);
-  gap: 12px;
-  padding: 5px 0;
+  grid-template-columns: 150px 150px minmax(0, 1fr);
+  gap: 14px;
+  padding: 7px 0;
   border-top: 1px solid var(--rule2);
   font-size: 13px;
   align-items: baseline;
 }
-.ask-ramp-n { font-weight: 700; }
-.ask-ramp-s {
-  text-transform: capitalize;
+.ask-r:last-child {
+  border-bottom: 1px solid var(--rule2);
+}
+.ask-r-n {
+  font-weight: 700;
+}
+.ask-r-s {
   color: var(--ink2);
 }
-.ask-ramp--closed .ask-ramp-s { color: var(--accent); font-weight: 700; }
-.ask-ramp-h {
+/* Red means closed and nothing else. */
+.ask-r--closed .ask-r-s {
+  color: var(--accent);
+  font-weight: 700;
+}
+.ask-r-h {
   color: var(--ink2);
   white-space: nowrap;
   overflow: hidden;
@@ -917,8 +965,9 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
 }
 
 .ask-days {
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 10px;
 }
 .ask-day {
@@ -950,89 +999,20 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
 }
 
 .ask-links {
-  display: flex;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
+  margin-top: 12px;
+  font-size: 13px;
   color: var(--ink2);
 }
 .ask-links button {
   color: var(--ink2);
   text-decoration: underline;
+  text-decoration-color: var(--rule2);
+  text-underline-offset: 3px;
 }
-
-.ask-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.ask-sugg {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.ask-chip {
-  text-align: left;
-  border: 1px solid var(--rule2);
-  padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
-}
-.ask-chip:hover:not(:disabled) {
-  border-color: var(--rule);
-}
-.ask-chip:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.ask-row {
-  display: flex;
-  gap: 8px;
-}
-.ask-input {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  font-size: 15px;
-  color: var(--ink);
-  background: transparent;
-  border: 2px solid var(--rule);
-  padding: 9px 12px;
-  border-radius: 0;
-}
-.ask-input::placeholder {
-  color: var(--ink2);
-}
-.ask-input:disabled {
-  opacity: 0.6;
-}
-.ask-send {
-  min-width: 64px;
-  padding: 0 14px;
-  border: 2px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-  font-size: 12px;
+.ask-links #ask-followup {
+  color: var(--accent);
   font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-html[data-ground='night'] .ask-send {
-  color: #0a1420;
-}
-.ask-send:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.ask-key {
-  grid-column: 1 / -1;
-}
-.ask-key-text {
-  margin: 0 0 10px;
-  font-size: 14px;
-  color: var(--ink2);
+  text-decoration: none;
 }
 
 /* ---------- Weekend outlook + surf ---------- */
@@ -1564,16 +1544,15 @@ html[data-ground='night'] .ask-send {
   }
 
   /* Surf stacks above the day rail on phones. */
-  .ask-body {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .ask-r {
+    grid-template-columns: 1fr auto;
   }
-  .ask-ramp {
-    grid-template-columns: 110px 1fr;
-  }
-  .ask-ramp-h {
+  .ask-r-h {
     grid-column: 1 / -1;
     white-space: normal;
+  }
+  .ask-lead {
+    font-size: 19px;
   }
 
   .weekend-cols {

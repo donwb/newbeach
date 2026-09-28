@@ -3,11 +3,16 @@
  *
  * The server does the thinking — a model picks from deterministic engine
  * tools and relays the engine's own copy — and hands back `reply` plus the
- * `sources` it rested on. This module renders the transcript, a fact card
- * from those sources, three suggested questions for the board's city, and
- * the key gate: the route is locked behind a chat key, kept in localStorage
- * after a first-run prompt. 404 means the feature is off (the section
- * hides); 401/503 means the key is wrong or missing (the key form shows).
+ * `sources` it rested on. This module is deliberately not a chat: one
+ * input line, three suggested questions as text links, and the answer
+ * rendered in the board's own voice (kicker · headline · detail) with a
+ * short list of only the rows that carry news (a closure, a tide risk).
+ * The conversation still carries context server-side for follow-ups, but
+ * only the latest answer is shown.
+ *
+ * The route is locked behind a chat key, kept in localStorage after a
+ * first-run prompt. 404 means the feature is off (the section hides);
+ * 401/503 means the key is wrong or missing (the key form shows).
  */
 
 import { escapeHTML, titleCase, easternParts } from './format.js';
@@ -37,16 +42,24 @@ export function suggestions(city, now = new Date()) {
   ];
 }
 
+/** First sentence and the rest, for the headline/detail split. */
+export function splitLead(text) {
+  const t = (text || '').trim();
+  const m = t.match(/^(.+?[.!?])(\s+|$)([\s\S]*)$/);
+  if (!m || m[1].length > 140) return { lead: t, rest: '' };
+  return { lead: m[1], rest: m[3].trim() };
+}
+
 export function createAsk(store) {
   let root = null;
   let key = readKey();
-  let turns = [];
-  let sources = [];
+  let memoryKey = ''; // fallback when localStorage is unavailable
+  let turns = [];     // the conversation, for server-side context
+  let answer = null;  // { question, reply, sources }
   let pending = false;
   let featureOff = false;
   let error = '';
   let unsub = null;
-  let memoryKey = ''; // fallback when localStorage is unavailable
 
   const $ = (sel) => root.querySelector(sel);
   const currentKey = () => key || memoryKey;
@@ -56,29 +69,27 @@ export function createAsk(store) {
     root.innerHTML = `
       <div class="section-head">
         <span class="kicker">Ask</span>
-        <span class="section-note" id="ask-note">Answers are the outlook's own words</span>
+        <span class="section-note">The outlook, in its own words</span>
       </div>
       <div class="ask-body">
-        <div class="ask-transcript" id="ask-transcript" aria-live="polite"></div>
+        <form class="ask-row" id="ask-form">
+          <input class="ask-input" id="ask-input" type="text" autocomplete="off" enterkeyhint="send"
+                 placeholder="Can I get on the beach in New Smyrna this afternoon?" aria-label="Your question" maxlength="1000">
+          <button class="ask-send" id="ask-send" type="submit">Ask</button>
+        </form>
+        <p class="ask-try" id="ask-try"></p>
         <form class="ask-key" id="ask-key" hidden>
-          <p class="ask-key-text" id="ask-key-text">Ask is locked. Enter the chat key once; it stays in this browser.</p>
+          <p class="ask-key-text" id="ask-key-text"></p>
           <div class="ask-row">
             <input class="ask-input" id="ask-key-input" type="password" autocomplete="off" placeholder="Chat key" aria-label="Chat key">
             <button class="ask-send" type="submit">Save</button>
           </div>
         </form>
-        <div class="ask-controls" id="ask-controls">
-          <div class="ask-sugg" id="ask-sugg"></div>
-          <form class="ask-row" id="ask-form">
-            <input class="ask-input" id="ask-input" type="text" autocomplete="off" enterkeyhint="send"
-                   placeholder="Ask about a ramp, a city, or a time this week…" aria-label="Your question" maxlength="1000">
-            <button class="ask-send" id="ask-send" type="submit" aria-label="Send">Ask</button>
-          </form>
-        </div>
+        <div class="ask-answer" id="ask-answer" aria-live="polite"></div>
       </div>
     `;
     bind();
-    unsub = store.subscribe(['selectedCity'], renderSuggestions);
+    unsub = store.subscribe(['selectedCity'], () => renderTry(store.state));
     render();
   }
 
@@ -91,33 +102,40 @@ export function createAsk(store) {
   function bind() {
     $('#ask-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const input = $('#ask-input');
-      send(input.value);
+      send($('#ask-input').value);
     });
-    $('#ask-sugg').addEventListener('click', (e) => {
+    $('#ask-try').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-q]');
-      if (btn) send(btn.dataset.q);
+      if (btn) {
+        $('#ask-input').value = btn.dataset.q;
+        send(btn.dataset.q);
+      }
     });
     $('#ask-key').addEventListener('submit', (e) => {
       e.preventDefault();
       const value = $('#ask-key-input').value.trim();
       if (!value) return;
       key = value;
-      writeKey(value);
       memoryKey = value;
+      writeKey(value);
       $('#ask-key-input').value = '';
       error = '';
       render();
-      // A question that was waiting on the key goes straight out.
       const draft = $('#ask-input').value.trim();
       if (draft) send(draft);
       else $('#ask-input').focus();
     });
-    $('#ask-transcript').addEventListener('click', (e) => {
+    $('#ask-answer').addEventListener('click', (e) => {
+      if (e.target.closest('#ask-followup')) {
+        const input = $('#ask-input');
+        input.value = '';
+        input.focus();
+      }
       if (e.target.closest('#ask-clear')) {
         turns = [];
-        sources = [];
+        answer = null;
         error = '';
+        $('#ask-input').value = '';
         render();
       }
       if (e.target.closest('#ask-forget')) {
@@ -142,7 +160,6 @@ export function createAsk(store) {
     turns.push({ role: 'user', text: q });
     while (turns.length > MAX_TURNS || (turns.length && turns[0].role === 'assistant')) turns.shift();
     pending = true;
-    $('#ask-input').value = '';
     render();
 
     const city = store.state.selectedCity;
@@ -154,7 +171,6 @@ export function createAsk(store) {
       });
       if (res.status === 401 || res.status === 503) {
         turns.pop();
-        $('#ask-input').value = q;
         key = '';
         memoryKey = '';
         clearKey();
@@ -168,7 +184,6 @@ export function createAsk(store) {
       }
       if (!res.ok) {
         turns.pop();
-        $('#ask-input').value = q;
         error = res.status === 504
           ? 'The outlook took too long to answer. Try again.'
           : "Couldn't reach the outlook. Try again in a moment.";
@@ -176,10 +191,9 @@ export function createAsk(store) {
       }
       const data = await res.json();
       turns.push({ role: 'assistant', text: data.reply || '' });
-      sources = Array.isArray(data.sources) ? data.sources : [];
+      answer = { question: q, reply: data.reply || '', sources: Array.isArray(data.sources) ? data.sources : [] };
     } catch {
       turns.pop();
-      $('#ask-input').value = q;
       error = "Couldn't reach the outlook. Try again in a moment.";
     } finally {
       pending = false;
@@ -195,89 +209,121 @@ export function createAsk(store) {
     if (featureOff) return;
     const needsKey = !currentKey();
     $('#ask-key').hidden = !needsKey;
-    $('#ask-controls').hidden = needsKey;
     if (needsKey) {
       $('#ask-key-text').textContent = error || 'Ask is locked. Enter the chat key once; it stays in this browser.';
     }
     $('#ask-send').disabled = pending;
     $('#ask-input').disabled = pending;
-    renderTranscript();
-    renderSuggestions(store.state);
+    renderTry(store.state);
+    renderAnswer();
   }
 
-  function renderSuggestions(s) {
+  function renderTry(s) {
     if (!root) return;
-    $('#ask-sugg').innerHTML = suggestions(s.selectedCity, s.now || new Date())
-      .map((q) => `<button type="button" class="ask-chip" data-q="${escapeHTML(q)}" ${pending ? 'disabled' : ''}>${escapeHTML(q)}</button>`)
-      .join('');
+    const items = suggestions(s.selectedCity, s.now || new Date())
+      .map((q) => `<button type="button" data-q="${escapeHTML(q)}" ${pending ? 'disabled' : ''}>${escapeHTML(q)}</button>`)
+      .join('<span class="ask-sep"> · </span>');
+    $('#ask-try').innerHTML = `<span class="ask-try-label">Try</span> ${items}`;
   }
 
-  function renderTranscript() {
-    const el = $('#ask-transcript');
+  function renderAnswer() {
+    const el = $('#ask-answer');
     const parts = [];
-    if (!turns.length && !error) {
-      parts.push(`<p class="ask-empty">Ask whether you can get on the beach in a city, whether the ramps will be open at a time this week, or which day looks best. Answers are the board's own outlook, in its own words.</p>`);
+    if (pending) {
+      parts.push(`<p class="ask-pending">Checking the outlook…</p>`);
+    } else if (error && currentKey()) {
+      parts.push(`<p class="ask-error">${escapeHTML(error)}</p>`);
+    } else if (answer) {
+      parts.push(renderBlock(answer));
     }
-    for (const t of turns) {
-      parts.push(`<div class="ask-turn ask-turn--${t.role}"><p>${escapeHTML(t.text)}</p></div>`);
-    }
-    const last = turns[turns.length - 1];
-    if (last?.role === 'assistant' && sources.length) parts.push(renderCard(sources));
-    if (pending) parts.push(`<p class="ask-pending">Checking the outlook…</p>`);
-    if (error && currentKey()) parts.push(`<p class="ask-error">${escapeHTML(error)}</p>`);
-    if (turns.length || currentKey()) {
-      const links = [];
-      if (turns.length) links.push(`<button type="button" id="ask-clear">Clear</button>`);
-      if (currentKey()) links.push(`<button type="button" id="ask-forget">Forget key</button>`);
-      parts.push(`<div class="ask-links">${links.join(' · ')}</div>`);
-    }
+    const links = [];
+    if (answer && !pending) links.push(`<button type="button" id="ask-followup">Ask a follow-up ›</button>`);
+    if (answer && !pending) links.push(`<button type="button" id="ask-clear">Clear</button>`);
+    if (currentKey()) links.push(`<button type="button" id="ask-forget">Forget key</button>`);
+    if (links.length) parts.push(`<div class="ask-links">${links.join('<span class="ask-sep"> · </span>')}</div>`);
     el.innerHTML = parts.join('');
-    el.scrollTop = el.scrollHeight;
   }
 
-  /** The engine facts behind the last reply — the board's own card. */
-  function renderCard(list) {
-    const blocks = [];
-    for (const s of list) {
+  /** The answer in the board's voice: kicker from the facts, the reply's
+   *  first sentence as the headline, the rest as detail, then only the
+   *  rows that carry news. */
+  function renderBlock({ reply, sources }) {
+    const { lead, rest } = splitLead(reply);
+    const kicker = kickerFor(sources);
+    const rows = newsRows(sources);
+    const days = sources.filter((s) => s.kind === 'weekend_day');
+    return `
+      <div class="ask-block">
+        ${kicker ? `<div class="ask-kicker">${escapeHTML(kicker)}</div>` : ''}
+        <p class="ask-lead">${escapeHTML(lead)}</p>
+        ${rest ? `<p class="ask-rest">${escapeHTML(rest)}</p>` : ''}
+        ${rows.length ? `<div class="ask-rows">${rows.join('')}</div>` : ''}
+        ${days.length ? renderDays(days) : ''}
+      </div>`;
+  }
+
+  function kickerFor(sources) {
+    const s = sources.find((x) => x.kind === 'city_now' || x.kind === 'city_outlook' || x.kind === 'ramp_outlook');
+    if (!s) return sources.some((x) => x.kind === 'weekend_day') ? 'The week ahead' : '';
+    const parts = [];
+    if (s.kind === 'ramp_outlook') parts.push(s.name, s.at_label);
+    else parts.push(s.city, s.kind === 'city_now' ? 'right now' : s.at_label);
+    if (s.kind === 'city_now' && s.open_count != null && s.ramp_count != null) {
+      parts.push(`${s.open_count} of ${s.ramp_count} open`);
+    }
+    return parts.filter(Boolean).join(' · ');
+  }
+
+  /** Rows worth a line: a closed ramp, or one the tide could close. An
+   *  open ramp with nothing but the day's close is the default and is
+   *  not repeated. */
+  function newsRows(sources) {
+    const rows = [];
+    for (const s of sources) {
       if (s.kind === 'ramp_outlook') {
-        blocks.push(`
-          <div class="ask-fact${s.risk === 'closed_now' ? ' ask-fact--closed' : ''}">
-            <div class="ask-fact-k">${escapeHTML([s.name, s.at_label].filter(Boolean).join(' · '))}</div>
-            ${s.headline ? `<p class="ask-fact-h">${escapeHTML(s.headline)}</p>` : ''}
-            ${s.detail ? `<p class="ask-fact-d">${escapeHTML(s.detail)}</p>` : ''}
-          </div>`);
-      } else if (s.kind === 'city_now' || s.kind === 'city_outlook') {
-        const count = s.kind === 'city_now' && s.open_count != null && s.ramp_count != null
-          ? ` · ${s.open_count} of ${s.ramp_count} open` : '';
-        const rows = (s.ramps || []).map((r) => {
-          const state = s.kind === 'city_now'
-            ? (r.status || '').toLowerCase().replace(/^closed - /, '').replace(/^closed for /, 'closed · ')
-            : (r.risk || '').replace('_', ' ');
+        const closed = s.risk === 'closed_now';
+        rows.push(row(s.name, closed, s.headline, s.detail));
+      }
+      if (s.kind === 'city_now' || s.kind === 'city_outlook') {
+        for (const r of s.ramps || []) {
           const closed = r.risk === 'closed_now' || /^closed/i.test(r.status || '');
-          return `<div class="ask-ramp${closed ? ' ask-ramp--closed' : ''}"><span class="ask-ramp-n">${escapeHTML(r.name)}</span><span class="ask-ramp-s">${escapeHTML(state)}</span><span class="ask-ramp-h">${escapeHTML(r.headline || '')}</span></div>`;
-        }).join('');
-        blocks.push(`
-          <div class="ask-fact">
-            <div class="ask-fact-k">${escapeHTML([s.city, s.at_label || (s.kind === 'city_now' ? 'right now' : '')].filter(Boolean).join(' · '))}${escapeHTML(count)}</div>
-            ${s.headline ? `<p class="ask-fact-h">${escapeHTML(s.headline)}</p>` : ''}
-            ${s.detail ? `<p class="ask-fact-d">${escapeHTML(s.detail)}</p>` : ''}
-            ${rows ? `<div class="ask-ramps">${rows}</div>` : ''}
-          </div>`);
+          const risky = r.risk === 'possible' || r.risk === 'likely';
+          if (!closed && !risky) continue;
+          const state = s.kind === 'city_now' && r.status
+            ? statusWords(r.status)
+            : (r.risk === 'likely' ? 'Tide · likely' : 'Tide · possible');
+          rows.push(row(r.name, closed, state, r.headline));
+        }
       }
     }
-    const days = list.filter((s) => s.kind === 'weekend_day');
-    if (days.length) {
-      blocks.push(`
-        <div class="ask-fact">
-          <div class="ask-days">${days.map((d) => `
-            <div class="ask-day" data-verdict="${escapeHTML(d.verdict || '')}">
-              <span class="ask-day-n">${escapeHTML((d.weekday || d.date || '').slice(0, 3))}</span>
-              <span class="ask-day-v">${escapeHTML((d.verdict || '').replace('_', ' '))}</span>
-              <span class="ask-day-h">${escapeHTML(d.headline || '')}</span>
-            </div>`).join('')}</div>
-        </div>`);
-    }
-    return blocks.length ? `<div class="ask-card" id="ask-card">${blocks.join('')}</div>` : '';
+    return rows;
+  }
+
+  function row(name, closed, state, note) {
+    return `
+      <div class="ask-r${closed ? ' ask-r--closed' : ''}">
+        <span class="ask-r-n">${escapeHTML(name || '')}</span>
+        <span class="ask-r-s">${escapeHTML(state || '')}</span>
+        <span class="ask-r-h">${escapeHTML(note || '')}</span>
+      </div>`;
+  }
+
+  function statusWords(raw) {
+    const s = (raw || '').toUpperCase().trim();
+    if (s === 'OPEN') return 'Open';
+    if (s === 'CLOSED FOR HIGH TIDE') return 'Closed · high tide';
+    if (s === 'CLOSED - CLEARED FOR TURTLES') return 'Closed · turtles';
+    if (s === 'CLOSED') return 'Closed';
+    return titleCase(raw);
+  }
+
+  function renderDays(days) {
+    return `<div class="ask-days">${days.map((d) => `
+      <div class="ask-day" data-verdict="${escapeHTML(d.verdict || '')}">
+        <span class="ask-day-n">${escapeHTML((d.weekday || d.date || '').slice(0, 3))}</span>
+        <span class="ask-day-v">${escapeHTML((d.verdict || '').replace('_', ' '))}</span>
+        <span class="ask-day-h">${escapeHTML(d.headline || '')}</span>
+      </div>`).join('')}</div>`;
   }
 
   return { mount, unmount };
