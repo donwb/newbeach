@@ -25,6 +25,8 @@ type Engine interface {
 	Now() time.Time
 	Ramps(ctx context.Context) ([]models.RampStatusWithSince, error)
 	OutlookAt(ctx context.Context, accessID string, at time.Time) (*predict.RampOutlookAt, error)
+	CityNow(ctx context.Context, city string) (*predict.CityNow, error)
+	CityOutlookAt(ctx context.Context, city string, at time.Time) (*predict.CityOutlookAt, error)
 	Weekend(ctx context.Context) (*predict.WeekendOutlook, error)
 }
 
@@ -46,6 +48,14 @@ func (e *predictEngine) Ramps(ctx context.Context) ([]models.RampStatusWithSince
 
 func (e *predictEngine) OutlookAt(ctx context.Context, accessID string, at time.Time) (*predict.RampOutlookAt, error) {
 	return e.outlook.OutlookAt(ctx, accessID, at)
+}
+
+func (e *predictEngine) CityNow(ctx context.Context, city string) (*predict.CityNow, error) {
+	return e.outlook.CityNow(ctx, city)
+}
+
+func (e *predictEngine) CityOutlookAt(ctx context.Context, city string, at time.Time) (*predict.CityOutlookAt, error) {
+	return e.outlook.CityOutlookAt(ctx, city, at)
 }
 
 func (e *predictEngine) Weekend(ctx context.Context) (*predict.WeekendOutlook, error) {

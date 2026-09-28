@@ -370,7 +370,14 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `usage` logged per request (`chat.done`). Apple: shared `ChatSession` (`BeachStatus/Chat`)
   + Keychain key store; iOS `ChatView` sheet (board row + ramp detail "Ask"); tvOS
   `TVSurface.chat` with suggested-question buttons + a TextField (dictation / iPhone
-  keyboard), opened from the header "Ask ›". The key is entered once per device. **Keys, switch-on, smoke test: `docs/ASK-SETUP.md`.**
+  keyboard), opened from the header "Ask ›". The key is entered once per device.
+  **City questions are the common case (Don, 2026-09-28)** — "can I get on the beach in
+  NSB?", "are the Daytona ramps open Saturday?" — so `city_now` (fresh county statuses +
+  the live city verdict) and `city_outlook_at` (the replay for every ramp in a city,
+  `BuildCityOutlookAt`) exist alongside the per-ramp tool; the client sends the board's
+  selected city as `context.city` and suggestions are written for it. Web: `web/js/ask.js`
+  (key in `localStorage`, first-run prompt) — the place to try new question shapes before
+  touching native placement. **Keys, switch-on, smoke test: `docs/ASK-SETUP.md`.**
 
 ## TRMNL (E-Ink Display)
 

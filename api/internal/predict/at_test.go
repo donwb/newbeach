@@ -128,3 +128,52 @@ func TestRampDisplayName(t *testing.T) {
 	assert.Equal(t, "Flagler", RampDisplayName(r))
 	assert.Equal(t, "NS-999", RampDisplayName(ramp(1, "NS-999", "OPEN")))
 }
+
+func TestBuildCityOutlookAt(t *testing.T) {
+	now := et(10, 9, 0)
+	at := et(12, 14, 0)
+	ramps := []models.RampStatusWithSince{
+		ramp(1, "NS-141", "OPEN"),
+		ramp(2, "NS-106", "CLOSED FOR HIGH TIDE"),
+		ramp(3, "NS-110", "OPEN"),
+	}
+	for i := range ramps {
+		ramps[i].City = "NEW SMYRNA BEACH"
+	}
+	// 2.3 ft: inside NS-141's band (possible), below NS-106's (none), and
+	// NS-110 is unlearned → county default.
+	preds := []models.TidePrediction{h(et(11, 14, 0), 1.0), h(et(12, 14, 30), 2.3), h(et(13, 15, 0), 1.0)}
+
+	res := BuildCityOutlookAt(now, at, ramps, testParams(), preds, nil, nil, nil)
+
+	assert.Equal(t, "NEW SMYRNA BEACH", res.City)
+	assert.Equal(t, "New Smyrna Beach", res.DisplayName)
+	assert.Equal(t, "Friday ~2pm", res.AtLabel)
+	assert.Equal(t, RelationOpenHours, res.Relation)
+	assert.Equal(t, 3, res.RampCount)
+	require.Len(t, res.Ramps, 3)
+	assert.Equal(t, RiskPossible, res.Ramps[0].Risk, "NS-141 in its band")
+	assert.Equal(t, RelationInside, res.Ramps[0].Relation)
+	assert.NotEqual(t, RiskClosedNow, res.Ramps[1].Risk, "closed today says nothing about Friday")
+	assert.Equal(t, 3, res.Counts[RiskPossible]+res.Counts[RiskNone]+res.Counts[RiskScheduled]+res.Counts[RiskLikely])
+	require.NotNil(t, res.Verdict)
+	assert.Equal(t, "NEW SMYRNA BEACH", res.Verdict.City)
+	assert.NotEmpty(t, res.Verdict.Headline)
+	assert.Contains(t, res.Caveats[len(res.Caveats)-1], "assumed open")
+
+	before := BuildCityOutlookAt(now, et(12, 6, 0), ramps, testParams(), preds, nil, nil, nil)
+	assert.Equal(t, RelationBeforeOpen, before.Relation)
+	assert.Equal(t, 3, before.Counts[RiskClosedNow])
+
+	after := BuildCityOutlookAt(now, et(12, 21, 0), ramps, testParams(), preds, nil, nil, nil)
+	assert.Equal(t, RelationAfterClose, after.Relation)
+}
+
+func TestCityRamps(t *testing.T) {
+	a := ramp(1, "NS-141", "OPEN")
+	a.City = "NEW SMYRNA BEACH"
+	b := ramp(2, "DB-041", "OPEN")
+	b.City = "DAYTONA BEACH"
+	assert.Len(t, cityRamps([]models.RampStatusWithSince{a, b}, "NEW SMYRNA BEACH"), 1)
+	assert.Empty(t, cityRamps([]models.RampStatusWithSince{a, b}, "PONCE INLET"))
+}

@@ -102,7 +102,7 @@ func TestRunnerToolLoop(t *testing.T) {
 			{Role: RoleAssistant, Text: "Hello! Ask me about a ramp."},
 			{Role: RoleUser, Text: "Will Flagler be open Friday at 2pm?"},
 		},
-		Context: &Context{AccessID: "ns-110"},
+		Context: &Context{AccessID: "ns-110", City: "nsb"},
 	})
 	require.NoError(t, err)
 
@@ -121,8 +121,9 @@ func TestRunnerToolLoop(t *testing.T) {
 	sys := first["system"].([]any)
 	require.Len(t, sys, 2)
 	assert.Contains(t, sys[1].(map[string]any)["text"], "ramp_context: the user is looking at ramp access_id NS-110")
+	assert.Contains(t, sys[1].(map[string]any)["text"], "board_context: the board is showing New Smyrna Beach")
 	assert.NotNil(t, sys[0].(map[string]any)["cache_control"], "the stable prompt is a cache breakpoint")
-	assert.Len(t, first["tools"].([]any), 3)
+	assert.Len(t, first["tools"].([]any), 5)
 	_, hasThinking := first["thinking"]
 	assert.False(t, hasThinking, "thinking left at the model default")
 

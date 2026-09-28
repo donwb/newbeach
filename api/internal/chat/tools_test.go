@@ -21,6 +21,8 @@ type fakeEngine struct {
 	outlook func(accessID string, at time.Time) (*predict.RampOutlookAt, error)
 	weekend *predict.WeekendOutlook
 	wkErr   error
+	cityNow func(city string) (*predict.CityNow, error)
+	cityAt  func(city string, at time.Time) (*predict.CityOutlookAt, error)
 }
 
 func (f *fakeEngine) Now() time.Time { return f.now }
@@ -32,6 +34,18 @@ func (f *fakeEngine) OutlookAt(_ context.Context, id string, at time.Time) (*pre
 }
 func (f *fakeEngine) Weekend(context.Context) (*predict.WeekendOutlook, error) {
 	return f.weekend, f.wkErr
+}
+func (f *fakeEngine) CityNow(_ context.Context, city string) (*predict.CityNow, error) {
+	if f.cityNow == nil {
+		return nil, predict.ErrUnknownCity
+	}
+	return f.cityNow(city)
+}
+func (f *fakeEngine) CityOutlookAt(_ context.Context, city string, at time.Time) (*predict.CityOutlookAt, error) {
+	if f.cityAt == nil {
+		return nil, predict.ErrUnknownCity
+	}
+	return f.cityAt(city, at)
 }
 
 func fixedNow() time.Time { return time.Date(2026, 6, 10, 9, 0, 0, 0, eastern) }
@@ -64,6 +78,37 @@ func defaultFake() *fakeEngine {
 				return nil, predict.ErrBeyondHorizon
 			}
 			return sampleOutlook(id, at), nil
+		},
+		cityNow: func(city string) (*predict.CityNow, error) {
+			if city != "NEW SMYRNA BEACH" {
+				return nil, predict.ErrUnknownCity
+			}
+			return &predict.CityNow{
+				City: city, DisplayName: "New Smyrna Beach", Now: fixedNow(), OpenCount: 4, RampCount: 5,
+				Verdict: &predict.CityVerdict{City: city, DisplayName: "New Smyrna Beach", State: "some_closed",
+					Headline: "Four of five ramps open", Detail: "Flagler Ave closed for high tide since 8:40am · often back open by ~11am"},
+				Ramps: []predict.CityRampAt{
+					{AccessID: "NS-110", Name: "Flagler Ave", Status: "CLOSED FOR HIGH TIDE", Risk: predict.RiskClosedNow, Headline: "Closed for high tide"},
+					{AccessID: "NS-141", Name: "27th Ave", Status: "OPEN", Risk: predict.RiskPossible, Headline: "Could close around the 10am high tide"},
+				},
+			}, nil
+		},
+		cityAt: func(city string, at time.Time) (*predict.CityOutlookAt, error) {
+			if city != "NEW SMYRNA BEACH" {
+				return nil, predict.ErrUnknownCity
+			}
+			if at.After(fixedNow().AddDate(0, 0, 7)) {
+				return nil, predict.ErrBeyondHorizon
+			}
+			return &predict.CityOutlookAt{
+				City: city, DisplayName: "New Smyrna Beach", At: at, AtLabel: "Saturday ~2pm", DaysOut: 3,
+				Relation: predict.RelationOpenHours, RampCount: 5,
+				Counts:  map[string]int{predict.RiskPossible: 2, predict.RiskScheduled: 3},
+				Verdict: &predict.CityVerdict{Headline: "Every ramp open", Detail: "Two could shut on the ~2:30pm high"},
+				Ramps: []predict.CityRampAt{
+					{AccessID: "NS-110", Name: "Flagler Ave", Risk: predict.RiskPossible, Headline: "Could close around the 2:30pm high tide"},
+				},
+			}, nil
 		},
 		weekend: &predict.WeekendOutlook{
 			Headline: "Saturday looks best",
@@ -144,11 +189,58 @@ func TestExecToolWeekend(t *testing.T) {
 }
 
 func TestNowBlockNamesTheWeek(t *testing.T) {
-	b := nowBlock(fixedNow(), "NS-110")
+	b := nowBlock(fixedNow(), "NS-110", "")
 	assert.Contains(t, b, "Wednesday 2026-06-10 9:00am Eastern")
 	assert.Contains(t, b, "Offset for timestamps: -04:00")
 	assert.Contains(t, b, "tomorrow=Thu 2026-06-11")
 	assert.Contains(t, b, "Saturday=Sat 2026-06-13")
 	assert.Contains(t, b, "ramp_context: the user is looking at ramp access_id NS-110")
-	assert.NotContains(t, nowBlock(fixedNow(), ""), "ramp_context")
+	assert.NotContains(t, nowBlock(fixedNow(), "", ""), "ramp_context")
+}
+
+func TestExecToolCityNow(t *testing.T) {
+	eng := defaultFake()
+	for _, q := range []string{"NSB", "New Smyrna Beach", "new smyrna", "the beach in nsb"} {
+		out := execTool(context.Background(), eng, toolCityNow, json.RawMessage(`{"city":"`+q+`"}`))
+		require.False(t, out.isError, q+": "+out.content)
+		require.Len(t, out.sources, 1)
+		src := out.sources[0]
+		assert.Equal(t, "city_now", src.Kind)
+		assert.Equal(t, "New Smyrna Beach", src.City)
+		assert.Equal(t, "Four of five ramps open", src.Headline)
+		require.NotNil(t, src.OpenCount)
+		assert.Equal(t, 4, *src.OpenCount)
+		assert.Len(t, src.Ramps, 2)
+		assert.Equal(t, "CLOSED FOR HIGH TIDE", src.Ramps[0].Status)
+	}
+
+	out := execTool(context.Background(), eng, toolCityNow, json.RawMessage(`{"city":"Cocoa Beach"}`))
+	assert.True(t, out.isError)
+	assert.Contains(t, out.content, "Ormond Beach")
+
+	out = execTool(context.Background(), eng, toolCityNow, json.RawMessage(`{"city":"Ormond"}`))
+	assert.True(t, out.isError, "the fake only knows NSB")
+}
+
+func TestExecToolCityAt(t *testing.T) {
+	eng := defaultFake()
+	out := execTool(context.Background(), eng, toolCityAt, json.RawMessage(`{"city":"nsb","time_iso":"2026-06-13T14:00:00-04:00"}`))
+	require.False(t, out.isError, out.content)
+	require.Len(t, out.sources, 1)
+	src := out.sources[0]
+	assert.Equal(t, "city_outlook", src.Kind)
+	assert.Equal(t, "Saturday ~2pm", src.AtLabel)
+	assert.Equal(t, predict.RelationOpenHours, src.Relation)
+	assert.Equal(t, "Every ramp open", src.Headline)
+	assert.Contains(t, out.content, `"counts":{"possible":2,"scheduled":3}`)
+
+	out = execTool(context.Background(), eng, toolCityAt, json.RawMessage(`{"city":"nsb","time_iso":"2026-06-30T14:00:00-04:00"}`))
+	assert.True(t, out.isError)
+	assert.Equal(t, predict.ErrBeyondHorizon.Error(), out.content)
+}
+
+func TestNowBlockCarriesBoardCity(t *testing.T) {
+	b := nowBlock(fixedNow(), "", "Daytona Beach")
+	assert.Contains(t, b, "board_context: the board is showing Daytona Beach")
+	assert.NotContains(t, b, "ramp_context")
 }

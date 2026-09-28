@@ -56,9 +56,12 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 	start := time.Now()
 	now := r.engine.Now()
 
-	contextID := ""
+	contextID, contextCity := "", ""
 	if req.Context != nil {
 		contextID = strings.ToUpper(strings.TrimSpace(req.Context.AccessID))
+		if _, display, ok := ResolveCity(req.Context.City); ok {
+			contextCity = display
+		}
 	}
 
 	messages := make([]anthropic.MessageParam, 0, len(req.Messages))
@@ -78,14 +81,14 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 		MaxTokens: maxTokens,
 		System: []anthropic.TextBlockParam{
 			{Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
-			{Text: nowBlock(now, contextID)},
+			{Text: nowBlock(now, contextID, contextCity)},
 		},
 		Tools:    toolDefs(),
 		Messages: messages,
 	}
 
 	resp := &Response{Model: r.model, Sources: []Source{}, GeneratedAt: now.UTC()}
-	slog.Info("chat.request", "turns", len(req.Messages), "context", contextID)
+	slog.Info("chat.request", "turns", len(req.Messages), "context", contextID, "city", contextCity)
 
 	var lastText string
 	stalled := true

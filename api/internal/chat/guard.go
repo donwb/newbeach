@@ -39,6 +39,13 @@ func checkCopy(reply string, sources []Source) []string {
 		corpus.WriteString(" ")
 		corpus.WriteString(strings.ToLower(s.AtLabel))
 		corpus.WriteString(" ")
+		for _, r := range s.Ramps {
+			if r.Risk == "likely" {
+				anyLikely = true
+			}
+			corpus.WriteString(strings.ToLower(r.Headline))
+			corpus.WriteString(" ")
+		}
 	}
 	known := corpus.String()
 
@@ -72,6 +79,25 @@ func templatedReply(sources []Source) string {
 				b.WriteString(", " + s.AtLabel)
 			}
 			b.WriteString(": " + s.Headline)
+			if s.Detail != "" {
+				b.WriteString(". " + s.Detail)
+			}
+			if !strings.HasSuffix(b.String(), ".") {
+				b.WriteString(".")
+			}
+			return b.String()
+		}
+	}
+	for _, s := range sources {
+		if s.Kind == "city_now" || s.Kind == "city_outlook" {
+			var b strings.Builder
+			b.WriteString(s.City)
+			if s.AtLabel != "" {
+				b.WriteString(", " + s.AtLabel)
+			}
+			if s.Headline != "" {
+				b.WriteString(": " + s.Headline)
+			}
 			if s.Detail != "" {
 				b.WriteString(". " + s.Detail)
 			}

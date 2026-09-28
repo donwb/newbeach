@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,8 @@ const (
 	toolResolveRamp   = "resolve_ramp"
 	toolRampOutlookAt = "ramp_outlook_at"
 	toolWeekend       = "weekend_outlook"
+	toolCityNow       = "city_now"
+	toolCityAt        = "city_outlook_at"
 )
 
 // toolDefs are the three tools the model may call. Descriptions carry the
@@ -50,7 +53,28 @@ func toolDefs() []anthropic.ToolUnionParam {
 			Properties: map[string]any{},
 		},
 	}
-	return []anthropic.ToolUnionParam{{OfTool: &resolve}, {OfTool: &outlookAt}, {OfTool: &weekend}}
+	cityNow := anthropic.ToolParam{
+		Name:        toolCityNow,
+		Description: anthropic.String("A city's beach driving right now: the board's live verdict (headline + detail), how many ramps are open, and each ramp's posted county status with its outlook line. Use for \"can I get on the beach in NSB?\", \"are the Daytona ramps open?\", or \"is Flagler open right now?\" (find the ramp in the rows). Cities: Ponce Inlet, New Smyrna Beach, Daytona Beach Shores, Daytona Beach, Ormond Beach — aliases like NSB, Daytona, the Shores, Ormond work."),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Properties: map[string]any{
+				"city": map[string]any{"type": "string", "description": "The city as the user said it (\"NSB\", \"Daytona\", \"Ormond\") or the board context's city."},
+			},
+			Required: []string{"city"},
+		},
+	}
+	cityAt := anthropic.ToolParam{
+		Name:        toolCityAt,
+		Description: anthropic.String("A city's ramps at one future instant, today through about seven days ahead: the replayed verdict, counts of ramps by risk (none|possible|likely|scheduled|closed_now), and each ramp's headline/detail to quote. Use for \"can I get on the beach in NSB Saturday afternoon?\" or \"will Daytona ramps be open tomorrow at 10?\". target_vs_hours says before_open / open_hours / after_close. Returns an error sentence for a past instant or one too far ahead."),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Properties: map[string]any{
+				"city":     map[string]any{"type": "string", "description": "The city as the user said it, or the board context's city."},
+				"time_iso": map[string]any{"type": "string", "description": "The instant asked about as ISO 8601 with the Eastern offset, e.g. 2026-09-27T14:00:00-04:00."},
+			},
+			Required: []string{"city", "time_iso"},
+		},
+	}
+	return []anthropic.ToolUnionParam{{OfTool: &cityNow}, {OfTool: &cityAt}, {OfTool: &resolve}, {OfTool: &outlookAt}, {OfTool: &weekend}}
 }
 
 // toolOutcome is what one tool execution produced: the text handed back to
@@ -101,6 +125,53 @@ func execTool(ctx context.Context, eng Engine, name string, input json.RawMessag
 			}
 		}
 		return jsonOutcome(res, []Source{sourceFromOutlook(res)})
+
+	case toolCityNow:
+		var in struct {
+			City string `json:"city"`
+		}
+		if err := json.Unmarshal(input, &in); err != nil {
+			return toolOutcome{content: "malformed input: " + err.Error(), isError: true}
+		}
+		key, _, ok := ResolveCity(in.City)
+		if !ok {
+			return toolOutcome{content: "no city matched " + strconv.Quote(in.City) + "; the cities are Ponce Inlet, New Smyrna Beach, Daytona Beach Shores, Daytona Beach and Ormond Beach", isError: true}
+		}
+		res, err := eng.CityNow(ctx, key)
+		if err != nil {
+			if errors.Is(err, predict.ErrUnknownCity) {
+				return toolOutcome{content: err.Error(), isError: true}
+			}
+			return toolOutcome{content: "the live board is not available right now", isError: true}
+		}
+		return jsonOutcome(res, []Source{sourceFromCityNow(res)})
+
+	case toolCityAt:
+		var in struct {
+			City    string `json:"city"`
+			TimeISO string `json:"time_iso"`
+		}
+		if err := json.Unmarshal(input, &in); err != nil {
+			return toolOutcome{content: "malformed input: " + err.Error(), isError: true}
+		}
+		key, _, ok := ResolveCity(in.City)
+		if !ok {
+			return toolOutcome{content: "no city matched " + strconv.Quote(in.City) + "; the cities are Ponce Inlet, New Smyrna Beach, Daytona Beach Shores, Daytona Beach and Ormond Beach", isError: true}
+		}
+		at, err := parseInstant(in.TimeISO)
+		if err != nil {
+			return toolOutcome{content: "time_iso could not be read: " + err.Error(), isError: true}
+		}
+		res, err := eng.CityOutlookAt(ctx, key, at)
+		if err != nil {
+			switch {
+			case errors.Is(err, predict.ErrPastTime), errors.Is(err, predict.ErrBeyondHorizon), errors.Is(err, predict.ErrUnknownCity):
+				return toolOutcome{content: err.Error(), isError: true}
+			default:
+				return toolOutcome{content: "the outlook is not available right now", isError: true}
+			}
+		}
+		return jsonOutcome(res, []Source{sourceFromCityAt(res)})
 
 	case toolWeekend:
 		wk, err := eng.Weekend(ctx)
@@ -160,6 +231,45 @@ func sourceFromOutlook(r *predict.RampOutlookAt) Source {
 	}
 	if r.Outlook.Reopen != nil {
 		s.ReopenLabel = r.Outlook.Reopen.Label
+	}
+	return s
+}
+
+func sourceFromCityNow(c *predict.CityNow) Source {
+	open, total := c.OpenCount, c.RampCount
+	s := Source{
+		Kind:      "city_now",
+		City:      c.DisplayName,
+		OpenCount: &open,
+		RampCount: &total,
+	}
+	if c.Verdict != nil {
+		s.Headline = c.Verdict.Headline
+		s.Detail = c.Verdict.Detail
+	}
+	for _, r := range c.Ramps {
+		s.Ramps = append(s.Ramps, SourceRamp{AccessID: r.AccessID, Name: r.Name, Status: r.Status, Risk: r.Risk, Headline: r.Headline})
+	}
+	return s
+}
+
+func sourceFromCityAt(c *predict.CityOutlookAt) Source {
+	at := c.At
+	total := c.RampCount
+	s := Source{
+		Kind:      "city_outlook",
+		City:      c.DisplayName,
+		At:        &at,
+		AtLabel:   c.AtLabel,
+		Relation:  c.Relation,
+		RampCount: &total,
+	}
+	if c.Verdict != nil {
+		s.Headline = c.Verdict.Headline
+		s.Detail = c.Verdict.Detail
+	}
+	for _, r := range c.Ramps {
+		s.Ramps = append(s.Ramps, SourceRamp{AccessID: r.AccessID, Name: r.Name, Risk: r.Risk, Headline: r.Headline})
 	}
 	return s
 }

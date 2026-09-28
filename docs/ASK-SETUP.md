@@ -47,7 +47,10 @@ curl -s -X POST https://beach.donwb.com/api/v2/chat \
 
 Expect `reply` quoting the engine's headline ("Could close around the …
 high tide" / "No tide trouble expected" / "Closed until morning"), one
-`ramp_outlook` entry in `sources`, and `usage.calls` of 2–3. Then try:
+`ramp_outlook` entry in `sources`, and `usage.calls` of 2–3. City questions
+("Can I get on the beach in NSB right now?", "Are the Daytona ramps open
+Saturday at 2?") answer from `city_now` / `city_outlook` sources with the
+per-ramp rows. Then try:
 
 - a follow-up turn (send both prior turns plus the new question),
 - "What happened at Flagler yesterday?" → a one-sentence decline (past is out of scope),
@@ -58,6 +61,17 @@ Watch the logs for `chat.guard_tripped` — a model reply that promised a
 closure or invented a clock time and was corrected or replaced by the
 engine's own words. A steady stream of those means the prompt needs work;
 an occasional one is the guard doing its job.
+
+## The website (test here first)
+
+`beach.donwb.com` carries an **Ask** section between the weekend outlook and
+the live cam (`web/js/ask.js`). On first use it asks for the chat key once
+and keeps it in `localStorage` (`beach.chatKey`); "Forget key" under the
+transcript clears it, and a 401 clears it too. The three suggested questions
+follow the board's selected city ("Can I get on the beach in Daytona Beach
+right now?"). A 404 hides the section (feature off). Hard-refresh once after
+a deploy — the service worker cache is versioned (`sw.js` CACHE_NAME) but the
+old worker serves the old shell until it updates.
 
 ## Putting the key into the apps
 

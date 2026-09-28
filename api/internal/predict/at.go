@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -344,6 +345,285 @@ func (s *Service) OutlookAt(ctx context.Context, accessID string, at time.Time) 
 		} else {
 			slog.Warn("outlook-at: live outlook unavailable", "err", err)
 		}
+	}
+	return &res, nil
+}
+
+// ---- City-level reads -----------------------------------------------------
+//
+// Most questions are not about one ramp: "can I get on the beach in NSB?",
+// "are the Daytona ramps open Saturday morning?". These two reads answer
+// them the way the board does — the city verdict plus the ramp rows behind
+// it — once for right now (live statuses) and once for a future instant
+// (the same replay BuildRampOutlookAt does, for every ramp in the city).
+
+// CityRampAt is one ramp's row inside a city read: the engine's copy plus,
+// for the live read, the county's posted status.
+type CityRampAt struct {
+	AccessID    string     `json:"access_id"`
+	Name        string     `json:"name"`
+	Status      string     `json:"status,omitempty"` // live read only: raw county status
+	StatusSince *time.Time `json:"status_since,omitempty"`
+	Risk        string     `json:"risk"`
+	Reason      string     `json:"reason,omitempty"`
+	Headline    string     `json:"headline"`
+	Detail      string     `json:"detail,omitempty"`
+	Short       string     `json:"short,omitempty"`
+	WindowLabel string     `json:"window_label,omitempty"`
+	ReopenLabel string     `json:"reopen_label,omitempty"`
+	Relation    string     `json:"target_vs_hours,omitempty"`
+}
+
+// CityNow is a city right now: the live verdict the board shows, how many
+// ramps are open, and each ramp's posted status with its outlook line.
+type CityNow struct {
+	City        string       `json:"city"`
+	DisplayName string       `json:"display_name"`
+	Now         time.Time    `json:"now"`
+	Season      string       `json:"season"`
+	Schedule    Schedule     `json:"schedule"`
+	Verdict     *CityVerdict `json:"verdict,omitempty"`
+	OpenCount   int          `json:"open_count"`
+	RampCount   int          `json:"ramp_count"`
+	Ramps       []CityRampAt `json:"ramps"`
+	Tide        TideContext  `json:"tide"`
+}
+
+// CityOutlookAt is a city at a future instant: the replayed verdict and
+// ramp rows, plus counts by risk so a narrator can say "two of five could
+// close" without counting.
+type CityOutlookAt struct {
+	City        string         `json:"city"`
+	DisplayName string         `json:"display_name"`
+	At          time.Time      `json:"at"`
+	AtLabel     string         `json:"at_label"`
+	DaysOut     int            `json:"days_out"`
+	Season      string         `json:"season"`
+	Schedule    Schedule       `json:"schedule"`
+	Relation    string         `json:"target_vs_hours"` // before_open / after_close / open_hours
+	Verdict     *CityVerdict   `json:"verdict,omitempty"`
+	Counts      map[string]int `json:"counts"` // risk → ramps
+	RampCount   int            `json:"ramp_count"`
+	Ramps       []CityRampAt   `json:"ramps"`
+	Tide        TideContext    `json:"tide"`
+	Surge       *SurgeContext  `json:"surge,omitempty"`
+	Caveats     []string       `json:"caveats,omitempty"`
+}
+
+// RelationOpenHours is the city-level relation when the instant falls
+// inside driving hours (per-ramp windows differ, so no single inside/before).
+const RelationOpenHours = "open_hours"
+
+// ErrUnknownCity is returned for a city key the roster does not have.
+var ErrUnknownCity = errors.New("unknown city")
+
+func cityRampRow(r models.RampStatusWithSince, ro RampOutlook) CityRampAt {
+	row := CityRampAt{
+		AccessID: r.AccessID,
+		Name:     RampDisplayName(r),
+		Risk:     ro.Risk,
+		Reason:   ro.Reason,
+		Headline: ro.Headline,
+		Detail:   ro.Detail,
+		Short:    ro.Short,
+	}
+	if ro.Window != nil {
+		row.WindowLabel = ro.Window.Label
+	}
+	if ro.Reopen != nil {
+		row.ReopenLabel = ro.Reopen.Label
+	}
+	return row
+}
+
+// BuildCityOutlookAt replays the engine for every ramp in a city at instant
+// at. ramps must all belong to one city. Same conventions as
+// BuildRampOutlookAt: water adjusted at the real clock, ramps replayed OPEN,
+// an after-close instant replayed from the last minute of that driving day.
+// Pure.
+func BuildCityOutlookAt(now, at time.Time, ramps []models.RampStatusWithSince, params Params, preds []models.TidePrediction, wave *models.WaveSample, levels []models.WaterLevelSample, prior map[string]PriorDay) CityOutlookAt {
+	water, surge := params.withSurge(preds, levels, now)
+
+	replay := make([]models.RampStatusWithSince, len(ramps))
+	for i, r := range ramps {
+		r.AccessStatus = "OPEN"
+		r.StatusSince = nil
+		replay[i] = r
+	}
+
+	atET := at.In(eastern)
+	anchor := time.Date(atET.Year(), atET.Month(), atET.Day(), 7, 0, 0, 0, eastern)
+	season, sched := buildSchedule(anchor, params)
+
+	res := CityOutlookAt{
+		At:        at,
+		DaysOut:   daysBetweenET(now, at),
+		Season:    season,
+		Schedule:  sched,
+		Counts:    map[string]int{},
+		RampCount: len(ramps),
+		Surge:     surge,
+	}
+	if len(ramps) > 0 {
+		res.City = ramps[0].City
+		res.DisplayName = models.PrettyCityName(ramps[0].City)
+	}
+	res.AtLabel = atLabel(res.DaysOut, at)
+
+	clock := at
+	switch {
+	case sched.ClosesAt != nil && !at.Before(*sched.ClosesAt):
+		clock = sched.ClosesAt.Add(-time.Minute)
+		res.Relation = RelationAfterClose
+		res.Caveats = append(res.Caveats, "the instant asked about is after that day's driving ends; the rows show how that driving day ends")
+	case sched.OpensAt != nil && at.Before(*sched.OpensAt):
+		res.Relation = RelationBeforeOpen
+	default:
+		res.Relation = RelationOpenHours
+	}
+
+	out := BuildOutlook(clock, replay, params, water, wave, nil, prior)
+	for i := range out.Ramps {
+		row := cityRampRow(replay[i], out.Ramps[i])
+		row.Relation = relationTo(at, sched, out.Ramps[i].Window)
+		res.Ramps = append(res.Ramps, row)
+		res.Counts[out.Ramps[i].Risk]++
+	}
+	if len(out.Cities) > 0 {
+		cv := out.Cities[0]
+		res.Verdict = &cv
+	}
+
+	for i := range preds {
+		if preds[i].Type == "H" && preds[i].Time.After(at) && preds[i].Height != nil {
+			res.Tide.NextPeakFt = preds[i].Height
+			t := preds[i].Time
+			res.Tide.NextPeakAt = &t
+			break
+		}
+	}
+
+	if res.DaysOut > 0 {
+		res.Caveats = append(res.Caveats, "future day: graded on the tide alone, no live sea state")
+		if res.DaysOut > 1 || prior == nil {
+			res.Caveats = append(res.Caveats, "no read on the county's recent form this far out")
+		}
+		res.Caveats = append(res.Caveats, "the verdict line is written as if standing at that instant; the ramps are assumed open going in")
+	}
+	if surge == nil && len(levels) > 0 {
+		res.Caveats = append(res.Caveats, "water-level gauges stale; assuming normal water")
+	}
+	return res
+}
+
+// cityRamps filters the roster to one GIS city key.
+func cityRamps(ramps []models.RampStatusWithSince, city string) []models.RampStatusWithSince {
+	var out []models.RampStatusWithSince
+	for i := range ramps {
+		if ramps[i].City == city {
+			out = append(out, ramps[i])
+		}
+	}
+	return out
+}
+
+// CityOutlookAt answers "what does the engine say about this city at that
+// instant?" — the city-wide counterpart of OutlookAt.
+func (s *Service) CityOutlookAt(ctx context.Context, city string, at time.Time) (*CityOutlookAt, error) {
+	now := time.Now()
+	if err := validateHorizon(now, at); err != nil {
+		return nil, err
+	}
+	ramps, err := s.Ramps(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mine := cityRamps(ramps, city)
+	if len(mine) == 0 {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownCity, city)
+	}
+
+	params := loadParams(ctx, s.pool, "city-at")
+	preds, err := s.noaa.FetchTidePredictionsRange(ctx, at.AddDate(0, 0, -1), at.AddDate(0, 0, 1))
+	if err != nil {
+		return nil, fmt.Errorf("fetching tide predictions: %w", err)
+	}
+	var wave *models.WaveSample
+	if s.station != "" {
+		if wave, err = database.GetLatestWaveObservation(ctx, s.pool, s.station); err != nil {
+			slog.Warn("city-at: reading latest wave observation", "err", err)
+			wave = nil
+		}
+	}
+	levels := loadRecentLevels(ctx, s.noaa, s.levelStations, "city-at")
+
+	var prior map[string]PriorDay
+	if daysBetweenET(now, at) == 0 && !s.noPersistence {
+		water, _ := params.withSurge(preds, levels, now)
+		prior = loadPriorDay(ctx, s.pool, now, water, params, "city-at")
+	}
+
+	res := BuildCityOutlookAt(now, at, mine, params, preds, wave, levels, prior)
+	return &res, nil
+}
+
+// CityNow is a city right now: fresh county statuses (not the 10-minute
+// roster cache — "is it open right now" deserves the minute's truth) joined
+// to the live outlook's verdict and ramp lines.
+func (s *Service) CityNow(ctx context.Context, city string) (*CityNow, error) {
+	now := time.Now()
+	ramps, err := database.GetRampsWithStatusSince(ctx, s.pool, city, "")
+	if err != nil {
+		return nil, fmt.Errorf("loading ramps: %w", err)
+	}
+	if len(ramps) == 0 {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownCity, city)
+	}
+
+	res := CityNow{
+		City:        city,
+		DisplayName: models.PrettyCityName(city),
+		Now:         now,
+		RampCount:   len(ramps),
+	}
+
+	live, err := s.Get(ctx)
+	if err != nil {
+		slog.Warn("city-now: live outlook unavailable, statuses only", "err", err)
+		live = nil
+	}
+	byID := map[string]RampOutlook{}
+	if live != nil {
+		res.Season = live.Season
+		res.Schedule = live.Schedule
+		res.Tide = live.Tide
+		for _, ro := range live.Ramps {
+			byID[ro.AccessID] = ro
+		}
+		for i := range live.Cities {
+			if live.Cities[i].City == city {
+				cv := live.Cities[i]
+				res.Verdict = &cv
+				break
+			}
+		}
+	}
+
+	for _, r := range ramps {
+		row := cityRampRow(r, byID[r.AccessID])
+		row.Status = r.AccessStatus
+		row.StatusSince = r.StatusSince
+		if strings.EqualFold(strings.TrimSpace(r.AccessStatus), "OPEN") {
+			res.OpenCount++
+		}
+		res.Ramps = append(res.Ramps, row)
+	}
+	// The verdict's counts come from the cached build; the fresh statuses win.
+	if res.Verdict != nil {
+		cv := *res.Verdict
+		cv.OpenCount = res.OpenCount
+		cv.RampCount = res.RampCount
+		res.Verdict = &cv
 	}
 	return &res, nil
 }

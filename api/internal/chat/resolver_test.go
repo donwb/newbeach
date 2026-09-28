@@ -96,3 +96,34 @@ func TestMeaningfulTokens(t *testing.T) {
 	assert.Equal(t, []string{"international", "speedway"}, meaningfulTokens("ISB"))
 	assert.Equal(t, []string{"3rd"}, meaningfulTokens("third avenue"))
 }
+
+func TestResolveCity(t *testing.T) {
+	tests := []struct {
+		query string
+		want  string
+		ok    bool
+	}{
+		{"NSB", "NEW SMYRNA BEACH", true},
+		{"new smyrna", "NEW SMYRNA BEACH", true},
+		{"New Smyrna Beach", "NEW SMYRNA BEACH", true},
+		{"the beach in nsb", "NEW SMYRNA BEACH", true},
+		{"Daytona", "DAYTONA BEACH", true},
+		{"daytona beach shores", "DAYTONA BEACH SHORES", true},
+		{"the Shores", "DAYTONA BEACH SHORES", true},
+		{"Ormond", "ORMOND BEACH", true},
+		{"ponce", "PONCE INLET", true},
+		{"DAYTONA BEACH", "DAYTONA BEACH", true},
+		{"Cocoa Beach", "", false},
+		{"", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			key, display, ok := ResolveCity(tt.query)
+			assert.Equal(t, tt.ok, ok)
+			assert.Equal(t, tt.want, key)
+			if ok {
+				assert.NotEmpty(t, display)
+			}
+		})
+	}
+}

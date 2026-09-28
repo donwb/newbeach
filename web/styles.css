@@ -798,6 +798,243 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   margin-top: 8px;
 }
 
+/* ---------- Ask (chat over the outlook) ---------- */
+
+.ask {
+  padding: 0 0 24px;
+  border-top: 2px solid var(--rule);
+}
+
+.ask-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 40px;
+  align-items: start;
+  padding-top: 6px;
+}
+
+.ask-transcript {
+  min-height: 72px;
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ask-empty,
+.ask-pending {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink2);
+}
+.ask-pending {
+  font-weight: 700;
+}
+.ask-error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ask-turn p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.ask-turn--user {
+  align-self: flex-end;
+  max-width: 78%;
+}
+.ask-turn--user p {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink2);
+  text-align: right;
+}
+.ask-turn--assistant {
+  max-width: 88%;
+}
+
+.ask-card {
+  border: 1px solid var(--rule2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ask-fact {
+  border-left: 4px solid var(--rule);
+  padding-left: 12px;
+}
+/* Red means closed and nothing else. */
+.ask-fact--closed {
+  border-left-color: var(--accent);
+}
+.ask-fact-k {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.ask-fact-h {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.ask-fact-d {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink2);
+}
+.ask-ramps {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.ask-ramp {
+  display: grid;
+  grid-template-columns: 130px 130px minmax(0, 1fr);
+  gap: 12px;
+  padding: 5px 0;
+  border-top: 1px solid var(--rule2);
+  font-size: 13px;
+  align-items: baseline;
+}
+.ask-ramp-n { font-weight: 700; }
+.ask-ramp-s {
+  text-transform: capitalize;
+  color: var(--ink2);
+}
+.ask-ramp--closed .ask-ramp-s { color: var(--accent); font-weight: 700; }
+.ask-ramp-h {
+  color: var(--ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ask-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.ask-day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 2px solid var(--rule2);
+  padding-top: 6px;
+  min-width: 0;
+}
+.ask-day-n {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.ask-day-v {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink2);
+}
+.ask-day-h {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-links {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+.ask-links button {
+  color: var(--ink2);
+  text-decoration: underline;
+}
+
+.ask-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ask-sugg {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ask-chip {
+  text-align: left;
+  border: 1px solid var(--rule2);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.ask-chip:hover:not(:disabled) {
+  border-color: var(--rule);
+}
+.ask-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ask-row {
+  display: flex;
+  gap: 8px;
+}
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: transparent;
+  border: 2px solid var(--rule);
+  padding: 9px 12px;
+  border-radius: 0;
+}
+.ask-input::placeholder {
+  color: var(--ink2);
+}
+.ask-input:disabled {
+  opacity: 0.6;
+}
+.ask-send {
+  min-width: 64px;
+  padding: 0 14px;
+  border: 2px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+html[data-ground='night'] .ask-send {
+  color: #0a1420;
+}
+.ask-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ask-key {
+  grid-column: 1 / -1;
+}
+.ask-key-text {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
 /* ---------- Weekend outlook + surf ---------- */
 
 .weekend {
@@ -1327,6 +1564,18 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   }
 
   /* Surf stacks above the day rail on phones. */
+  .ask-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .ask-ramp {
+    grid-template-columns: 110px 1fr;
+  }
+  .ask-ramp-h {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
   .weekend-cols {
     grid-template-columns: 1fr;
     gap: 24px;

@@ -74,6 +74,31 @@ var cityAliases = map[string]string{
 	"inlet":                "PONCE INLET",
 }
 
+// Cities in south-to-north order, GIS key → display name. The chat's
+// "which cities?" answer and the fallback when a query names none.
+var cityOrder = []string{"PONCE INLET", "NEW SMYRNA BEACH", "DAYTONA BEACH SHORES", "DAYTONA BEACH", "ORMOND BEACH"}
+
+// ResolveCity maps the words people use for a city ("NSB", "Daytona", "the
+// Shores", "New Smyrna Beach") to the GIS key. ok is false when nothing in
+// the query names a city; "Daytona" alone means Daytona Beach, not the
+// Shores — the alias table carries that call.
+func ResolveCity(query string) (key, display string, ok bool) {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q == "" {
+		return "", "", false
+	}
+	for _, k := range cityOrder {
+		if strings.EqualFold(k, q) {
+			return k, models.PrettyCityName(k), true
+		}
+	}
+	key, _ = stripCity(q)
+	if key == "" {
+		return "", "", false
+	}
+	return key, models.PrettyCityName(key), true
+}
+
 // Resolve matches a friendly ramp name to the roster. An access id (any
 // case) is exact; so is a query whose meaningful words are exactly a ramp's
 // meaningful words and no other ramp's. Otherwise the best partial matches

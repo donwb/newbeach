@@ -13,6 +13,7 @@ import { easternMidnight } from '../format.js';
 import { events as solarEvents } from '../solar.js';
 import { mountCam, updateCamUrl, unmountCam, pickCamera } from '../cam.js';
 import { loadCameras } from '../api.js';
+import { createAsk } from '../ask.js';
 
 const capFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -23,6 +24,7 @@ function statusWord(accessStatus) {
 export function createBoardView(store) {
   let root = null;
   const unsubs = [];
+  const ask = createAsk(store);
   const cardEls = new Map(); // access_id -> element
   const prints = {};         // section fingerprints, so idle polls touch nothing
 
@@ -119,6 +121,8 @@ export function createBoardView(store) {
         </div>
       </section>
 
+      <section class="ask" id="ask-section"></section>
+
       <section class="cam" id="cam-section" hidden>
         <div class="section-head">
           <span class="kicker" id="cam-kicker">Live cam</span>
@@ -168,6 +172,7 @@ export function createBoardView(store) {
     `;
 
     bindEvents();
+    ask.mount($('#ask-section'));
 
     const sub = (keys, fn) => unsubs.push(store.subscribe(keys, fn));
     sub(['now', 'phase'], updateClock);
@@ -191,6 +196,7 @@ export function createBoardView(store) {
 
   function unmount() {
     while (unsubs.length) unsubs.pop()();
+    ask.unmount();
     unmountCam();
     cardEls.clear();
     Object.keys(prints).forEach((k) => delete prints[k]);

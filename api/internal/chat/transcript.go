@@ -25,10 +25,12 @@ type Turn struct {
 	Text string `json:"text"`
 }
 
-// Context is optional hints from the client's screen — the ramp the user
-// was looking at when they asked.
+// Context is optional hints from the client's screen — the city the board
+// is showing and, when a ramp is open, that ramp. A question that names
+// neither is about these.
 type Context struct {
 	AccessID string `json:"access_id,omitempty"`
+	City     string `json:"city,omitempty"` // GIS key or any alias; resolved server-side
 }
 
 // Request is the chat request body.
@@ -65,11 +67,20 @@ func (r Request) Validate() error {
 	return nil
 }
 
+// SourceRamp is one ramp row inside a city source.
+type SourceRamp struct {
+	AccessID string `json:"access_id"`
+	Name     string `json:"name"`
+	Status   string `json:"status,omitempty"` // live read only
+	Risk     string `json:"risk,omitempty"`
+	Headline string `json:"headline,omitempty"`
+}
+
 // Source is one engine fact the reply rested on, taken from the tool
 // results themselves — never from the model's prose — so a client can show
 // the fact card the board would show, whatever the words around it say.
 type Source struct {
-	Kind string `json:"kind"` // ramp_outlook | weekend_day
+	Kind string `json:"kind"` // ramp_outlook | city_now | city_outlook | weekend_day
 
 	// ramp_outlook
 	AccessID    string     `json:"access_id,omitempty"`
@@ -84,6 +95,12 @@ type Source struct {
 	WindowLabel string     `json:"window_label,omitempty"`
 	ReopenLabel string     `json:"reopen_label,omitempty"`
 	Relation    string     `json:"target_vs_hours,omitempty"`
+
+	// city_now / city_outlook (City carries the display name; Headline /
+	// Detail the verdict; At/AtLabel/Relation for the future read)
+	OpenCount *int         `json:"open_count,omitempty"`
+	RampCount *int         `json:"ramp_count,omitempty"`
+	Ramps     []SourceRamp `json:"ramps,omitempty"`
 
 	// weekend_day
 	Date             string `json:"date,omitempty"`
