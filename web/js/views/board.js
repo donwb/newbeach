@@ -106,7 +106,7 @@ export function createBoardView(store) {
           <div class="weekend-main" id="weekend-main">
             <div class="section-head">
               <span class="kicker">When should I go?</span>
-              <span class="section-note">Next six days</span>
+              <span class="section-note" id="weekend-note">The week ahead</span>
             </div>
             <p class="weekend-headline" id="weekend-headline"></p>
             <div class="weekend-days" id="weekend-days"></div>
@@ -572,6 +572,8 @@ export function createBoardView(store) {
     prints.weekend = print;
 
     $('#weekend-headline').textContent = wk.headline || '';
+    $('#weekend-note').textContent = `Next ${wk.days.length} days`;
+    $('#weekend-days').style.setProperty('--wk-count', String(wk.days.length));
     $('#weekend-days').innerHTML = wk.days.map((d) => {
       const temp = d.high_temp_f != null
         ? `${Math.round(d.high_temp_f)}°${d.feels_like_f != null ? ` (feels ${Math.round(d.feels_like_f)}°)` : ''}`

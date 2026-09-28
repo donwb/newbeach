@@ -1024,8 +1024,8 @@ html[data-ground='night'] .ask-send {
 /* Outlook on the left, the surf read on the right. */
 .weekend-cols {
   display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 32px;
   align-items: start;
 }
 
@@ -1042,10 +1042,12 @@ html[data-ground='night'] .ask-send {
   font-weight: 700;
 }
 
+/* One column per day the server sent (--wk-count, set by board.js), so a
+   seven-day payload never wraps a day onto a second row at desktop width. */
 .weekend-days {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(var(--wk-count, 7), minmax(0, 1fr));
+  gap: 12px;
 }
 
 .wk-day {
@@ -1093,7 +1095,7 @@ html[data-ground='night'] .ask-send {
    section's payload, not a footnote. */
 .wk-line {
   margin: 6px 0 0;
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--ink);
 }
