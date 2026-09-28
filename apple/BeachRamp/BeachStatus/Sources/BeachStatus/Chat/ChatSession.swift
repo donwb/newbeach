@@ -55,8 +55,14 @@ public final class ChatSession {
     public private(set) var needsKey: Bool
     /// The server has no chat route (404): the feature is off.
     public private(set) var featureOff = false
-    /// The ramp on screen when the sheet opened; questions that name no
-    /// ramp are about it, and the suggestions are written for it.
+    /// The city the board was showing when Ask opened. Most questions are
+    /// about a city ("can I get on the beach in NSB?"), so questions that
+    /// name no place are about it and the suggestions are written for it.
+    /// Any spelling the server's city resolver knows ("NEW SMYRNA BEACH",
+    /// "New Smyrna Beach", "NSB") works.
+    public var contextCity: String?
+    /// The ramp on screen, when one was; questions that name no ramp are
+    /// about it.
     public var contextRamp: Ramp?
     /// Text for the input field: the unsent question after a key problem.
     public var draft = ""
@@ -85,7 +91,7 @@ public final class ChatSession {
 
     /// Suggested questions for the current context, ready to send verbatim.
     public var suggestions: [String] {
-        ChatSuggestions.questions(for: contextRamp, now: Date())
+        ChatSuggestions.questions(city: contextCity, ramp: contextRamp, now: Date())
     }
 
     /// Store the key and clear the key prompt. A Keychain failure keeps the
@@ -138,7 +144,8 @@ public final class ChatSession {
 
         let request = ChatRequest(
             messages: turns,
-            context: contextRamp.map { ChatContext(accessID: $0.accessID) }
+            context: (contextRamp != nil || contextCity != nil)
+                ? ChatContext(accessID: contextRamp?.accessID, city: contextCity) : nil
         )
         do {
             let response = try await transport.send(request, key: key)

@@ -297,7 +297,7 @@ enum PreviewFixtures {
             seed: answered ? chatTurns : [],
             sources: answered ? chatSources : []
         )
-        session.contextRamp = openRamps.first
+        session.contextCity = "New Smyrna Beach"
         return session
     }
 }

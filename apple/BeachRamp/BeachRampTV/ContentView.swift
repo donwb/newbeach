@@ -251,6 +251,7 @@ struct ContentView: View {
             // person can use — the key field when the server wants a key,
             // the first suggested question otherwise — never the hidden
             // anchor the read-only surfaces park on.
+            viewModel.chat.contextCity = viewModel.currentCity
             viewModel.chat.contextRamp = ramp
             let target: RootFocus = viewModel.chat.needsKey ? .chatKeyField : .chatSuggestion(0)
             DispatchQueue.main.async { focus = target }

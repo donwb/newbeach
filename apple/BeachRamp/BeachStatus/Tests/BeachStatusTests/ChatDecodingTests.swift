@@ -72,7 +72,7 @@ struct ChatDecodingTests {
     @Test func requestEncodesSnakeCaseAndNoTurnIDs() throws {
         let req = ChatRequest(
             messages: [ChatTurn(role: .user, text: "hi"), ChatTurn(role: .assistant, text: "hello"), ChatTurn(role: .user, text: "Flagler at 2?")],
-            context: ChatContext(accessID: "NS-110")
+            context: ChatContext(accessID: "NS-110", city: "NEW SMYRNA BEACH")
         )
         let data = try JSONEncoder().encode(req)
         let obj = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -82,6 +82,7 @@ struct ChatDecodingTests {
         #expect(messages[0]["id"] == nil, "client-side identity never goes on the wire")
         let ctx = try #require(obj["context"] as? [String: Any])
         #expect(ctx["access_id"] as? String == "NS-110")
+        #expect(ctx["city"] as? String == "NEW SMYRNA BEACH")
     }
 
     @Test func turnsDecodeWithFreshIDs() throws {

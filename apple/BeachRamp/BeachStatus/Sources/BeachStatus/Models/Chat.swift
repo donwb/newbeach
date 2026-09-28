@@ -40,14 +40,22 @@ public struct ChatTurn: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
-/// What the user was looking at when they asked — a question that names no
-/// ramp is about this one.
+/// What the board was showing when they asked — the selected city and, when
+/// a ramp was open, that ramp. A question that names no place is about the
+/// city; one that names no ramp is about the ramp, if any.
 public struct ChatContext: Codable, Hashable, Sendable {
-    public let accessID: String
+    public let accessID: String?
+    public let city: String?
 
-    public init(accessID: String) { self.accessID = accessID }
+    public init(accessID: String? = nil, city: String? = nil) {
+        self.accessID = accessID
+        self.city = city
+    }
 
-    enum CodingKeys: String, CodingKey { case accessID = "access_id" }
+    enum CodingKeys: String, CodingKey {
+        case accessID = "access_id"
+        case city
+    }
 }
 
 public struct ChatRequest: Codable, Hashable, Sendable {

@@ -47,10 +47,11 @@ final class BeachViewModel {
     let chat = ChatSession()
     var chatPresented = false
 
-    /// Open the chat sheet, about `ramp` when given (questions that name no
-    /// ramp are then about it), about the beach at large otherwise.
+    /// Open the chat sheet about the board's city (questions that name no
+    /// place are about it), and about `ramp` when one is given.
     @MainActor
-    func askAbout(_ ramp: Ramp?) {
+    func askAbout(_ ramp: Ramp? = nil) {
+        chat.contextCity = ramp?.city ?? selectedCity
         chat.contextRamp = ramp
         chatPresented = true
     }

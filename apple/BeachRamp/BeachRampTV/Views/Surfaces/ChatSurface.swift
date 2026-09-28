@@ -24,7 +24,9 @@ struct ChatSurface: View {
                     Text("Ask")
                         .tv(52, .extraBold, tracking: -0.03)
                         .foregroundStyle(TVInk.type)
-                    Text(session.contextRamp.map { "About \($0.rampDisplayName)" } ?? "Any ramp · this week")
+                    Text(session.contextRamp.map { "About \($0.rampDisplayName)" }
+                         ?? session.contextCity.map { "About \($0)" }
+                         ?? "Any city · this week")
                         .tvLabel()
                 }
                 Spacer(minLength: 0)

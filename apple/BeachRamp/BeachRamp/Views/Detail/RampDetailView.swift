@@ -96,23 +96,6 @@ struct RampDetailView: View {
             }
             .buttonStyle(PressTintButtonStyle())
             Spacer()
-            Button {
-                viewModel.askAbout(ramp)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "bubble.left")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Ask")
-                        .font(.archivo(12, weight: .extraBold))
-                }
-                .foregroundStyle(t.ink2)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(PressTintButtonStyle())
-            .accessibilityLabel("Ask about \(ramp.shortDisplayName)")
-            .accessibilityIdentifier("askButton")
-            .padding(.trailing, 14)
             PinToWidgetButton(isPinned: viewModel.isPinned(ramp)) {
                 viewModel.togglePin(ramp)
             }

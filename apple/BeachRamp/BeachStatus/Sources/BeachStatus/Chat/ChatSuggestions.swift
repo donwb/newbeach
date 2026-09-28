@@ -13,34 +13,42 @@ public enum ChatSuggestions {
         return cal
     }
 
-    /// Three suggestions. With a ramp: a today/tomorrow open-at question, a
-    /// tomorrow tide question, and the weekend. Without: the weekend and
-    /// two day questions.
-    public static func questions(for ramp: Ramp?, now: Date, calendar: Calendar = easternCalendar) -> [String] {
+    /// Three suggestions, written for the board's city — the common
+    /// question is "can I get on the beach in NSB?", not one ramp. With a
+    /// ramp on screen, the first question is about that ramp instead.
+    public static func questions(city: String?, ramp: Ramp? = nil, now: Date, calendar: Calendar = easternCalendar) -> [String] {
         let hour = calendar.component(.hour, from: now)
         let weekday = calendar.component(.weekday, from: now) // 1 = Sunday
         let weekendDay = nextWeekendDayName(weekday: weekday)
-
-        guard let ramp else {
-            return [
-                "Which day this weekend is best?",
-                "What does tomorrow look like?",
-                "What does \(weekendDay) look like?",
-            ]
-        }
-
-        let name = ramp.shortDisplayName
-        let openAt: String
+        let later: String
         switch hour {
-        case ..<13: openAt = "Is \(name) open at 2pm today?"
-        case 13..<16: openAt = "Is \(name) open at 5pm today?"
-        default: openAt = "Is \(name) open tomorrow at 10am?"
+        case ..<12: later = "this afternoon"
+        case 12..<17: later = "later today"
+        default: later = "tomorrow morning"
         }
-        return [
-            openAt,
-            "Could \(name) close for the tide tomorrow?",
-            "Which day this weekend is best?",
-        ]
+
+        let cityName = prettyCity(city)
+        var out: [String] = []
+        if let ramp {
+            out.append("Is \(ramp.shortDisplayName) open right now?")
+        } else if let cityName {
+            out.append("Can I get on the beach in \(cityName) right now?")
+        } else {
+            out.append("Can I get on the beach right now?")
+        }
+        if let cityName {
+            out.append("Will the \(cityName) ramps be open \(later)?")
+        } else {
+            out.append("Will the ramps be open \(later)?")
+        }
+        out.append(weekday == 7 || weekday == 1 ? "What does \(weekendDay) look like?" : "Which day this weekend is best?")
+        return out
+    }
+
+    /// "NEW SMYRNA BEACH" → "New Smyrna Beach"; nil/empty stays nil.
+    public static func prettyCity(_ raw: String?) -> String? {
+        guard let raw, !raw.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        return raw.lowercased().split(separator: " ").map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
     }
 
     /// The nearest upcoming weekend day that is not today: Saturday most

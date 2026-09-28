@@ -16,32 +16,41 @@ struct ChatSuggestionsTests {
         lastUpdated: nil, statusSince: nil
     )
 
-    @Test func morningAsksAboutThisAfternoon() {
-        let q = ChatSuggestions.questions(for: flagler, now: et(10, 9), calendar: cal)
-        #expect(q.count == 3)
-        #expect(q[0] == "Is Flagler Av open at 2pm today?")
-        #expect(q[1] == "Could Flagler Av close for the tide tomorrow?")
-        #expect(q[2] == "Which day this weekend is best?")
+    @Test func cityQuestionsFollowTheHour() {
+        let morning = ChatSuggestions.questions(city: "NEW SMYRNA BEACH", now: et(10, 9), calendar: cal)
+        #expect(morning == [
+            "Can I get on the beach in New Smyrna Beach right now?",
+            "Will the New Smyrna Beach ramps be open this afternoon?",
+            "Which day this weekend is best?",
+        ])
+        let afternoon = ChatSuggestions.questions(city: "DAYTONA BEACH", now: et(10, 14), calendar: cal)
+        #expect(afternoon[1] == "Will the Daytona Beach ramps be open later today?")
+        let evening = ChatSuggestions.questions(city: "Ormond Beach", now: et(10, 18), calendar: cal)
+        #expect(evening[1] == "Will the Ormond Beach ramps be open tomorrow morning?")
     }
 
-    @Test func midAfternoonAsksAboutFive() {
-        let q = ChatSuggestions.questions(for: flagler, now: et(10, 14), calendar: cal)
-        #expect(q[0] == "Is Flagler Av open at 5pm today?")
+    @Test func rampOnScreenLeadsWithTheRamp() {
+        let q = ChatSuggestions.questions(city: "NEW SMYRNA BEACH", ramp: flagler, now: et(10, 9), calendar: cal)
+        #expect(q[0] == "Is Flagler Av open right now?")
+        #expect(q[1] == "Will the New Smyrna Beach ramps be open this afternoon?")
     }
 
-    @Test func eveningRollsToTomorrow() {
-        let q = ChatSuggestions.questions(for: flagler, now: et(10, 18), calendar: cal)
-        #expect(q[0] == "Is Flagler Av open tomorrow at 10am?")
+    @Test func noCityStillAsks() {
+        let q = ChatSuggestions.questions(city: nil, now: et(10, 9), calendar: cal)
+        #expect(q[0] == "Can I get on the beach right now?")
+        #expect(q[1] == "Will the ramps be open this afternoon?")
     }
 
-    @Test func withoutARampAsksAboutDays() {
-        let wed = ChatSuggestions.questions(for: nil, now: et(10, 9), calendar: cal)
-        #expect(wed == ["Which day this weekend is best?", "What does tomorrow look like?", "What does Saturday look like?"])
-
-        let sat = ChatSuggestions.questions(for: nil, now: et(13, 9), calendar: cal)
+    @Test func weekendDaysAskAboutTheOtherDay() {
+        let sat = ChatSuggestions.questions(city: "NEW SMYRNA BEACH", now: et(13, 9), calendar: cal)
         #expect(sat[2] == "What does Sunday look like?")
-
-        let sun = ChatSuggestions.questions(for: nil, now: et(14, 9), calendar: cal)
+        let sun = ChatSuggestions.questions(city: "NEW SMYRNA BEACH", now: et(14, 9), calendar: cal)
         #expect(sun[2] == "What does next Saturday look like?")
+    }
+
+    @Test func prettyCity() {
+        #expect(ChatSuggestions.prettyCity("DAYTONA BEACH SHORES") == "Daytona Beach Shores")
+        #expect(ChatSuggestions.prettyCity("") == nil)
+        #expect(ChatSuggestions.prettyCity(nil) == nil)
     }
 }

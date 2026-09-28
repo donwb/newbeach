@@ -48,6 +48,7 @@ struct ChatSessionTests {
         let transport = FakeChatTransport([.success(answer)])
         let store = InMemoryChatKeyStore()
         let session = ChatSession(transport: transport, keyStore: store)
+        session.contextCity = "NEW SMYRNA BEACH"
         session.contextRamp = flagler
 
         session.saveKey("  secret  ")
@@ -66,6 +67,7 @@ struct ChatSessionTests {
         let (request, key) = transport.requests[0]
         #expect(key == "secret")
         #expect(request.context?.accessID == "NS-110", "the on-screen ramp rides along")
+        #expect(request.context?.city == "NEW SMYRNA BEACH", "and so does the board's city")
         #expect(request.messages.count == 1)
     }
 

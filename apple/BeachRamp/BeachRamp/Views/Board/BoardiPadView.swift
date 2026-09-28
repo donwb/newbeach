@@ -56,7 +56,7 @@ struct BoardiPadView: View {
                 }
                 Spacer()
                 Button {
-                    viewModel.askAbout(nil)
+                    viewModel.askAbout()
                 } label: {
                     HStack(spacing: 8) {
                         Text("Ask")

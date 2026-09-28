@@ -64,7 +64,9 @@ struct ChatView: View {
                     .font(.archivo(10, weight: .bold))
                     .tracking(10 * ArchivoTracking.kicker)
                     .foregroundStyle(t.ink2)
-                Text(session.contextRamp.map { "About \($0.shortDisplayName)" } ?? "Any ramp, any time this week")
+                Text(session.contextRamp.map { "About \($0.shortDisplayName)" }
+                     ?? ChatSuggestions.prettyCity(session.contextCity).map { "About \($0)" }
+                     ?? "Any city, any time this week")
                     .font(.archivo(17, weight: .extraBold))
                     .foregroundStyle(t.ink)
             }
@@ -400,7 +402,7 @@ private let previewRamp = Ramp(
                                         risk: "possible", headline: "Could close around the 2:30pm high tide",
                                         detail: "Closure possible around 2:30pm · often back open by ~4:30pm")] : []
     )
-    session.contextRamp = previewRamp
+    session.contextCity = "NEW SMYRNA BEACH"
     return session
 }
 
