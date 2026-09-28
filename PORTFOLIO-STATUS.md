@@ -4,8 +4,8 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-09-27
-summary: All platforms live; 1.4 (33) on TestFlight for iOS + tvOS, not yet submitted; "Ask" chat built and pushed 9/27 (dd80e22), route off until Don sets the two keys (docs/ASK-SETUP.md), then a flight; NSB cam dark upstream since 9/19 (county-side)
+last_verified: 2026-09-28
+summary: All platforms live; 1.4 (33) on TestFlight for iOS + tvOS, not yet submitted; "Ask" chat LIVE on the API since 9/28 (keys set, smoke-tested against claude-opus-5); not in any app build yet — needs the key entered per device + a flight after 33; NSB cam dark upstream since 9/19 (county-side)
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
@@ -22,7 +22,7 @@ dispatches:
 ---
 
 ## Top open items
-0. **Turn on Ask** (Don, later today 9/27; runbook `docs/ASK-SETUP.md`). Set `ANTHROPIC_API_KEY`, `CHAT_API_KEY` (any secret), `CHAT_ENABLED=true`, `CHAT_MODEL` in the App Platform UI (the route stays absent until the model key exists — boot log says `chat enabled`/`chat disabled`). Smoke-test with the curl in `CLAUDE.md`/plan, then enter the key once in each app (iOS sheet, tvOS surface). Then flight: the Ask UI is app code (iOS + tvOS) and needs a build after 33. Not yet run end to end against a live model — no `ANTHROPIC_API_KEY` on the Studio.
+0. **Ask is live on the server, not yet in an app build.** Don set the four env vars 2026-09-28; the route answers 401 without the key and the smoke cases in `docs/ASK-SETUP.md` all passed (ramp-at-time, follow-up, past-question decline, weekend, ambiguous ramp → asks which, wrong key → 401; 2–3 calls, ~7k input tokens per question). Remaining: enter the chat key once in the iOS sheet and once on the Apple TV, then flight (the Ask UI is app code after build 33).
 1. **Submit 1.4 (33) for review** when Don wants it public. It carries the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-33`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.

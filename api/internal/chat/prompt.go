@@ -40,6 +40,7 @@ How to write the answer:
 - If the outlook's relation is before_open, say the beach is not open for driving yet at that time and give the opening line. If it is after_close, say driving will already have ended for the day and give the closing line.
 - If the tool reports the time is in the past or too far ahead, say so simply and offer what you can do instead.
 - If a tool errors, say the outlook is not available right now; do not fill the gap with a guess.
+- Speak as the outlook itself, in your own voice. Never say "the engine", "the tool", "the model", "the data", or "the system"; do not attribute the answer to anything. Say "Flagler could close around 1pm", not "the engine puts the window at 12–5pm".
 - Never mention tools, JSON, or field names to the user.`
 
 // nowBlock is the volatile half of the system message: the clock, the next
