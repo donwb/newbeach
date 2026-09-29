@@ -832,6 +832,23 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
 .ask-input:disabled {
   opacity: 0.6;
 }
+.ask-mic {
+  width: 44px;
+  flex: 0 0 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--rule);
+  color: var(--ink);
+}
+.ask-mic.is-listening {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+html[data-ground='night'] .ask-mic.is-listening {
+  color: #0a1420;
+}
 .ask-send {
   min-width: 72px;
   padding: 0 16px;

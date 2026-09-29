@@ -12,6 +12,7 @@ struct ChatDecodingTests {
     private let payload = """
     {
       "reply": "Flagler Ave could close around the 2:30pm high tide on Friday. Closure possible around 2:30pm, often back open by ~4:30pm.",
+      "spoken": "Flagler Ave could close around the 2:30pm high tide on Friday. Closure possible around 2:30pm, often back open by about 4:30pm.",
       "sources": [
         {
           "kind": "ramp_outlook",
@@ -76,11 +77,13 @@ struct ChatDecodingTests {
 
         #expect(r.usage?.calls == 3)
         #expect(r.model == "claude-opus-5")
+        #expect(r.speech.hasSuffix("about 4:30pm."))
     }
 
     @Test func minimalResponseDecodes() throws {
         let r = try decoder().decode(ChatResponse.self, from: Data(#"{"reply":"hi","sources":[]}"#.utf8))
         #expect(r.reply == "hi")
+        #expect(r.speech == "hi", "no spoken form falls back to the reply")
         #expect(r.sources.isEmpty)
         #expect(r.generatedAt == nil)
     }
@@ -99,6 +102,11 @@ struct ChatDecodingTests {
         let ctx = try #require(obj["context"] as? [String: Any])
         #expect(ctx["access_id"] as? String == "NS-110")
         #expect(ctx["city"] as? String == "NEW SMYRNA BEACH")
+        #expect(obj["voice"] == nil, "typed questions send no voice flag")
+
+        let spoken = try JSONEncoder().encode(ChatRequest(messages: [ChatTurn(role: .user, text: "hi")], voice: true))
+        let obj2 = try #require(JSONSerialization.jsonObject(with: spoken) as? [String: Any])
+        #expect(obj2["voice"] as? Bool == true)
     }
 
     @Test func turnsDecodeWithFreshIDs() throws {

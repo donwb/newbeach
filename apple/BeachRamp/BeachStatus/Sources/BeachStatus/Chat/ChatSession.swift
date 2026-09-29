@@ -48,6 +48,8 @@ public final class ChatSession {
     public private(set) var turns: [ChatTurn]
     /// Engine facts behind the most recent reply — the card under it.
     public private(set) var sources: [ChatSource]
+    /// The newest reply in its spoken form, for reading aloud.
+    public private(set) var latestSpoken: String?
     public private(set) var isPending = false
     /// A one-line problem to show under the transcript, cleared on the next send.
     public private(set) var errorText: String?
@@ -130,7 +132,7 @@ public final class ChatSession {
     /// Send one question. The transcript grows by the user turn and, on
     /// success, the assistant turn. Any failure removes the user turn and
     /// puts the text back in `draft`.
-    public func send(_ text: String) async {
+    public func send(_ text: String, voice: Bool = false) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isPending else { return }
         errorText = nil
@@ -157,12 +159,14 @@ public final class ChatSession {
         let request = ChatRequest(
             messages: turns,
             context: (contextRamp != nil || contextCity != nil)
-                ? ChatContext(accessID: contextRamp?.accessID, city: contextCity) : nil
+                ? ChatContext(accessID: contextRamp?.accessID, city: contextCity) : nil,
+            voice: voice
         )
         do {
             let response = try await transport.send(request, key: key)
             turns.append(ChatTurn(role: .assistant, text: response.reply))
             sources = response.sources
+            latestSpoken = response.speech
         } catch {
             turns.removeAll { $0.id == userTurn.id }
             draft = trimmed
@@ -197,6 +201,7 @@ public final class ChatSession {
     public func reset() {
         turns = []
         sources = []
+        latestSpoken = nil
         errorText = nil
         draft = ""
     }

@@ -61,10 +61,30 @@ public struct ChatContext: Codable, Hashable, Sendable {
 public struct ChatRequest: Codable, Hashable, Sendable {
     public let messages: [ChatTurn]
     public let context: ChatContext?
+    /// A spoken question (Siri, the mic): the server tries its quick path
+    /// first and runs free-form questions on a faster model.
+    public let voice: Bool
 
-    public init(messages: [ChatTurn], context: ChatContext? = nil) {
+    public init(messages: [ChatTurn], context: ChatContext? = nil, voice: Bool = false) {
         self.messages = messages
         self.context = context
+        self.voice = voice
+    }
+
+    enum CodingKeys: String, CodingKey { case messages, context, voice }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(messages, forKey: .messages)
+        try c.encodeIfPresent(context, forKey: .context)
+        if voice { try c.encode(true, forKey: .voice) }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        messages = try c.decode([ChatTurn].self, forKey: .messages)
+        context = try c.decodeIfPresent(ChatContext.self, forKey: .context)
+        voice = try c.decodeIfPresent(Bool.self, forKey: .voice) ?? false
     }
 }
 
@@ -203,14 +223,17 @@ public struct ChatUsage: Codable, Hashable, Sendable {
 
 public struct ChatResponse: Codable, Hashable, Sendable {
     public let reply: String
+    /// `reply` rewritten for text-to-speech (board glyphs to words).
+    public let spoken: String?
     public let sources: [ChatSource]
     public let model: String?
     public let usage: ChatUsage?
     public let generatedAt: Date?
 
-    public init(reply: String, sources: [ChatSource], model: String? = nil,
+    public init(reply: String, spoken: String? = nil, sources: [ChatSource], model: String? = nil,
                 usage: ChatUsage? = nil, generatedAt: Date? = nil) {
         self.reply = reply
+        self.spoken = spoken
         self.sources = sources
         self.model = model
         self.usage = usage
@@ -218,7 +241,10 @@ public struct ChatResponse: Codable, Hashable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case reply, sources, model, usage
+        case reply, spoken, sources, model, usage
         case generatedAt = "generated_at"
     }
+
+    /// What Siri reads aloud: the spoken form when the server sent one.
+    public var speech: String { spoken ?? reply }
 }

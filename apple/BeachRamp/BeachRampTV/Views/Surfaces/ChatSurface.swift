@@ -190,6 +190,10 @@ struct ChatSurface: View {
                     }
                     .disabled(session.isPending)
                     .accessibilityIdentifier("chat.input")
+                Text("Select the field, then hold the mic button on the remote to speak.")
+                    .tv(22)
+                    .foregroundStyle(TVInk.inactive)
+                    .lineLimit(2)
             }
         }
     }

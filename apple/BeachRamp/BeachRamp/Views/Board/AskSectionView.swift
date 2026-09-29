@@ -13,6 +13,7 @@ struct AskSectionView: View {
     @Environment(\.ground) private var ground
     @FocusState private var inputFocused: Bool
     @State private var keyDraft = ""
+    @State private var speech = SpeechRecognizer()
 
     var body: some View {
         let t = ground.tokens
@@ -35,13 +36,28 @@ struct AskSectionView: View {
             } else {
                 askRow
                 tryLine
+                if speech.state == .denied {
+                    Text("Microphone or speech recognition is off for Beach Info in Settings.")
+                        .font(.archivo(12))
+                        .foregroundStyle(t.ink2)
+                }
                 if session.needsKey { keyEntry }
                 answer
                 links
             }
         }
-        .onAppear { session.contextCity = city }
+        .onAppear {
+            session.contextCity = city
+            speech.onFinal = { text in
+                session.draft = text
+                Task { await session.send(text, voice: true) }
+            }
+        }
         .onChange(of: city) { _, new in session.contextCity = new }
+        .onChange(of: speech.transcript) { _, text in
+            if speech.isListening { session.draft = text }
+        }
+        .onDisappear { speech.stop(deliver: false) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("askSection")
     }
@@ -51,7 +67,8 @@ struct AskSectionView: View {
     private var askRow: some View {
         let t = ground.tokens
         return HStack(spacing: 8) {
-            TextField("Can I get on the beach this afternoon?", text: $session.draft)
+            micButton
+            TextField(speech.isListening ? "Listening…" : "Can I get on the beach this afternoon?", text: $session.draft)
                 .font(.archivo(15))
                 .foregroundStyle(t.ink)
                 .submitLabel(.send)
@@ -75,6 +92,29 @@ struct AskSectionView: View {
             .disabled(!canSend)
             .accessibilityIdentifier("ask.send")
         }
+    }
+
+    /// Tap to speak the question; the transcript fills the field and a
+    /// pause sends it. Accent while listening — a live indicator, not a
+    /// closure.
+    private var micButton: some View {
+        let t = ground.tokens
+        let listening = speech.isListening
+        return Button {
+            speech.toggle()
+        } label: {
+            Image(systemName: listening ? "waveform" : "mic.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .symbolEffect(.variableColor.iterative, isActive: listening)
+                .foregroundStyle(listening ? .white : t.ink)
+                .frame(width: 44, height: 44)
+                .background(Rectangle().fill(listening ? t.accent : .clear))
+                .overlay(Rectangle().strokeBorder(listening ? t.accent : t.rule, lineWidth: 2))
+        }
+        .buttonStyle(PressTintButtonStyle())
+        .disabled(session.isPending || speech.state == .unavailable)
+        .accessibilityLabel(listening ? "Stop listening" : "Speak a question")
+        .accessibilityIdentifier("ask.mic")
     }
 
     private var tryLine: some View {

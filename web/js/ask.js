@@ -73,6 +73,9 @@ export function createAsk(store) {
       </div>
       <div class="ask-body">
         <form class="ask-row" id="ask-form">
+          <button class="ask-mic" id="ask-mic" type="button" aria-label="Speak a question" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
           <input class="ask-input" id="ask-input" type="text" autocomplete="off" enterkeyhint="send"
                  placeholder="Can I get on the beach in New Smyrna this afternoon?" aria-label="Your question" maxlength="1000">
           <button class="ask-send" id="ask-send" type="submit">Ask</button>
@@ -99,7 +102,59 @@ export function createAsk(store) {
     root = null;
   }
 
+  // ---- speech (Web Speech API, where the browser has it) ----
+  let recognition = null;
+  let listening = false;
+
+  function speechSupported() {
+    return typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+  }
+
+  function toggleMic() {
+    if (listening) { stopMic(true); return; }
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new Ctor();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    let finalText = '';
+    recognition.onresult = (e) => {
+      let text = '';
+      for (const r of e.results) {
+        text += r[0].transcript;
+        if (r.isFinal) finalText = text;
+      }
+      $('#ask-input').value = text;
+    };
+    recognition.onerror = () => stopMic(false);
+    recognition.onend = () => {
+      const text = (finalText || $('#ask-input').value || '').trim();
+      listening = false;
+      recognition = null;
+      renderMic();
+      if (text) send(text, { voice: true });
+    };
+    listening = true;
+    renderMic();
+    try { recognition.start(); } catch { stopMic(false); }
+  }
+
+  function stopMic(deliver) {
+    if (!recognition) { listening = false; renderMic(); return; }
+    if (deliver) recognition.stop(); else recognition.abort();
+  }
+
+  function renderMic() {
+    if (!root) return;
+    const mic = $('#ask-mic');
+    mic.hidden = !speechSupported();
+    mic.classList.toggle('is-listening', listening);
+    mic.setAttribute('aria-pressed', listening ? 'true' : 'false');
+    $('#ask-input').placeholder = listening ? 'Listening…' : 'Can I get on the beach in New Smyrna this afternoon?';
+  }
+
   function bind() {
+    $('#ask-mic').addEventListener('click', toggleMic);
     $('#ask-form').addEventListener('submit', (e) => {
       e.preventDefault();
       send($('#ask-input').value);
@@ -147,7 +202,7 @@ export function createAsk(store) {
     });
   }
 
-  async function send(text) {
+  async function send(text, { voice = false } = {}) {
     const q = (text || '').trim();
     if (!q || pending) return;
     error = '';
@@ -167,7 +222,7 @@ export function createAsk(store) {
       const res = await fetch('/api/v2/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Chat-Key': currentKey() },
-        body: JSON.stringify({ messages: turns, context: city ? { city } : undefined }),
+        body: JSON.stringify({ messages: turns, context: city ? { city } : undefined, voice: voice || undefined }),
       });
       if (res.status === 401 || res.status === 503) {
         turns.pop();
@@ -214,6 +269,7 @@ export function createAsk(store) {
     }
     $('#ask-send').disabled = pending;
     $('#ask-input').disabled = pending;
+    renderMic();
     renderTry(store.state);
     renderAnswer();
   }
