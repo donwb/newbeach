@@ -17,6 +17,11 @@ const (
 	// DefaultModel is the model used when CHAT_MODEL is unset.
 	DefaultModel = "claude-opus-5"
 
+	// DefaultVoiceModel answers spoken free-form questions (CHAT_VOICE_MODEL
+	// unset): the current-generation faster tier, because a listener waits
+	// seconds, not tens of seconds.
+	DefaultVoiceModel = "claude-sonnet-5"
+
 	// maxIterations caps the tool loop: resolve, outlook, maybe a second
 	// ramp or the weekend, then the answer. Anything past six is a model
 	// going in circles.
@@ -34,9 +39,16 @@ const (
 
 // Runner owns the model client and drives the tool loop.
 type Runner struct {
-	client anthropic.Client
-	model  string
-	engine Engine
+	client     anthropic.Client
+	model      string
+	voiceModel string // used for Voice requests; empty = model
+	engine     Engine
+}
+
+// SetVoiceModel names the model for spoken (Voice) requests — a faster one,
+// since Siri and a person holding a phone to their ear both give up early.
+func (r *Runner) SetVoiceModel(model string) {
+	r.voiceModel = model
 }
 
 // New builds a Runner. The client reads ANTHROPIC_API_KEY from the
@@ -56,12 +68,28 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 	start := time.Now()
 	now := r.engine.Now()
 
-	contextID, contextCity := "", ""
+	contextID, contextCity, contextCityRaw := "", "", ""
 	if req.Context != nil {
 		contextID = strings.ToUpper(strings.TrimSpace(req.Context.AccessID))
+		contextCityRaw = req.Context.City
 		if _, display, ok := ResolveCity(req.Context.City); ok {
 			contextCity = display
 		}
+	}
+
+	// The quick path: a fresh question in one of the shapes the router
+	// knows is answered from the engine's own copy, no model. Only for the
+	// first turn — a follow-up needs the conversation.
+	if len(req.Messages) == 1 {
+		if resp, ok := TryQuick(ctx, r.engine, req.Messages[0].Text, contextCityRaw); ok {
+			slog.Info("chat.quick", "voice", req.Voice, "ms", time.Since(start).Milliseconds())
+			return resp, nil
+		}
+	}
+
+	model := r.model
+	if req.Voice && r.voiceModel != "" {
+		model = r.voiceModel
 	}
 
 	messages := make([]anthropic.MessageParam, 0, len(req.Messages))
@@ -77,7 +105,7 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 	// Sonnet 5 run adaptive thinking when the field is omitted, and omitting
 	// it keeps CHAT_MODEL swappable to a model that rejects the parameter.
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.Model(r.model),
+		Model:     anthropic.Model(model),
 		MaxTokens: maxTokens,
 		System: []anthropic.TextBlockParam{
 			{Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
@@ -87,8 +115,8 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 		Messages: messages,
 	}
 
-	resp := &Response{Model: r.model, Sources: []Source{}, GeneratedAt: now.UTC()}
-	slog.Info("chat.request", "turns", len(req.Messages), "context", contextID, "city", contextCity)
+	resp := &Response{Model: model, Sources: []Source{}, GeneratedAt: now.UTC()}
+	slog.Info("chat.request", "turns", len(req.Messages), "context", contextID, "city", contextCity, "voice", req.Voice, "model", model)
 
 	var lastText string
 	stalled := true
@@ -182,6 +210,7 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 }
 
 func (r *Runner) finish(resp *Response, start time.Time) *Response {
+	resp.Spoken = spokenForm(resp.Reply)
 	slog.Info("chat.done",
 		"calls", resp.Usage.Calls,
 		"input_tokens", resp.Usage.InputTokens,

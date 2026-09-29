@@ -227,7 +227,14 @@ func main() {
 			chatModel = chat.DefaultModel
 		}
 		chatRunner = chat.New(chat.NewPredictEngine(outlookSvc, weekendSvc), chatModel)
-		slog.Info("chat enabled", "model", chatModel, "key_configured", os.Getenv("CHAT_API_KEY") != "")
+		// Spoken questions (Siri, mic) run free-form on a faster model; the
+		// common shapes never reach a model at all (chat.TryQuick).
+		voiceModel := os.Getenv("CHAT_VOICE_MODEL")
+		if voiceModel == "" {
+			voiceModel = chat.DefaultVoiceModel
+		}
+		chatRunner.SetVoiceModel(voiceModel)
+		slog.Info("chat enabled", "model", chatModel, "voice_model", voiceModel, "key_configured", os.Getenv("CHAT_API_KEY") != "")
 	} else {
 		slog.Info("chat disabled")
 	}

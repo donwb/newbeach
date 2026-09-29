@@ -33,10 +33,13 @@ type Context struct {
 	City     string `json:"city,omitempty"` // GIS key or any alias; resolved server-side
 }
 
-// Request is the chat request body.
+// Request is the chat request body. Voice marks a spoken question (Siri,
+// a mic button): the quick path is tried first and free-form questions
+// run on the faster voice model, because a listener will not wait.
 type Request struct {
 	Messages []Turn   `json:"messages"`
 	Context  *Context `json:"context,omitempty"`
+	Voice    bool     `json:"voice,omitempty"`
 }
 
 // Validate rejects transcripts the loop should not attempt.
@@ -117,9 +120,11 @@ type Usage struct {
 	Calls        int   `json:"calls"`
 }
 
-// Response is the chat response body.
+// Response is the chat response body. Spoken is Reply rewritten for
+// text-to-speech (glyphs to words). Model is "quick" when no model ran.
 type Response struct {
 	Reply       string    `json:"reply"`
+	Spoken      string    `json:"spoken"`
 	Sources     []Source  `json:"sources"`
 	Model       string    `json:"model"`
 	Usage       Usage     `json:"usage"`

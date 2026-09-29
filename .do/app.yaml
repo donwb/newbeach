@@ -142,6 +142,9 @@ services:
       - key: CHAT_MODEL
         scope: RUN_AND_BUILD_TIME
         value: "claude-opus-5"
+      - key: CHAT_VOICE_MODEL
+        scope: RUN_AND_BUILD_TIME
+        value: "claude-sonnet-5"
       - key: ANTHROPIC_API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET

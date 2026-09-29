@@ -144,7 +144,7 @@ func TestRunnerParallelToolResultsShareOneTurn(t *testing.T) {
 		),
 		textResponse("Flagler Ave could close around the 2:30pm high tide; Saturday looks best with no tide trouble expected."),
 	)
-	resp, err := api.runner(defaultFake()).Run(context.Background(), Request{Messages: []Turn{{Role: RoleUser, Text: "Flagler Friday 2pm, and which day is best?"}}})
+	resp, err := api.runner(defaultFake()).Run(context.Background(), Request{Messages: []Turn{{Role: RoleUser, Text: "Flagler Friday 2pm, and the week ahead?"}}})
 	require.NoError(t, err)
 	assert.Len(t, resp.Sources, 2)
 
