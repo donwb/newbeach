@@ -5,13 +5,13 @@ repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
 last_verified: 2026-09-29
-summary: All platforms live; 1.4 (35) on TestFlight for iOS + tvOS (Ask, spoken: mic + Siri), not yet submitted; "Ask" live on the API and website since 9/28; NSB cam dark upstream since 9/19 (county-side)
+summary: All platforms live; 1.4 (36) on TestFlight for iOS + tvOS (Ask, spoken: mic + Siri, verified on device), not yet submitted; "Ask" live on the API and website since 9/28; NSB cam dark upstream since 9/19 (county-side)
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
   tvos: 1.3 (30) live since 2026-09-17
-  testflight: 1.4 (35) testflight since 2026-09-29
-  watchos: 1.4 (35) dev
+  testflight: 1.4 (36) testflight since 2026-09-29
+  watchos: 1.4 (36) dev
   web: live
 review: none
 next_dates: []
@@ -22,8 +22,8 @@ dispatches:
 ---
 
 ## Top open items
-0. **1.4 (35) is on TestFlight with spoken Ask** (iOS + tvOS, uploaded 2026-09-29, tag flight/build-35). Install, allow mic + speech on first tap, then try: the mic in the Ask bar; "Hey Siri, ask Beach Info"; "Hey Siri, is the beach open in New Smyrna Beach with Beach Info"; "Hey Siri, which beach day is best with Beach Info" (phrases register on first launch after install). Watch `chat.quick` vs `chat.done` in the logs. Submit for review when it reads and speaks right — supersedes 34.
-1. **Submit 1.4 (35) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-35`.
+0. **1.4 (36) is on TestFlight** (iOS + tvOS, uploaded 2026-09-29, tag flight/build-36). Siri verified by Don on 35: the two parameterless shortcuts answered and a spoken follow-up kept context. 36 adds the city shortcut ("Is the beach open in ⟨city⟩ with Beach Info" — needed the explicit registration call), phrases that avoid a leading "Ask" (newer iOS treats "Ask ⟨name⟩" as a chat hand-off and says "can't find the app"), and alternative spoken app names. Check the Shortcuts app shows three entries, then submit for review when ready — supersedes 35.
+1. **Submit 1.4 (36) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-36`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
 4. **County outreach is on hold.** It was sent 2026-08-17. One county-network reader opened it and nobody replied. Don pivoted (8/26) to a portfolio-level messaging campaign run from the hub. The beach-traffic-check skill still flags any new county visitor.
