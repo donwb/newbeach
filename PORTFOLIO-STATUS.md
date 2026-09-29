@@ -5,13 +5,13 @@ repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
 last_verified: 2026-09-29
-summary: All platforms live; 1.4 (38) on TestFlight for iOS + tvOS (Ask, spoken: mic + four Siri shortcuts incl. ramp-by-name), not yet submitted; "Ask" live on the API and website since 9/28; NSB cam dark upstream since 9/19 (county-side)
+summary: All platforms live; 1.4 (39) on TestFlight for iOS + tvOS (Ask, spoken: mic + four Siri shortcuts; clarifying exchanges stay inside the shortcut), not yet submitted; "Ask" live on the API and website since 9/28; NSB cam dark upstream since 9/19 (county-side)
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
   tvos: 1.3 (30) live since 2026-09-17
-  testflight: 1.4 (38) testflight since 2026-09-29
-  watchos: 1.4 (38) dev
+  testflight: 1.4 (39) testflight since 2026-09-29
+  watchos: 1.4 (39) dev
   web: live
 review: none
 next_dates: []
@@ -22,8 +22,8 @@ dispatches:
 ---
 
 ## Top open items
-0. **1.4 (38) is on TestFlight** (iOS + tvOS, uploaded 2026-09-29, tag flight/build-38). Adds the fourth Siri shortcut, ramps as a parameter: "Hey Siri, is Flagler Avenue open with Beach Info" (one-shot, quick path, no model). Siri's hard limit, confirmed on device: every phrase must name the app, and free text inside a phrase never matches — "can you tell me if the Flagler ramp will open today" (no app name) gets Siri's "doesn't support in-app searching" fallback. Free-form goes through "Hey Siri, Beach Info question" → speak, or the in-app mic. Open the app once after install so the ramp values register; check the Shortcuts app shows four entries. Submit for review when it reads right — supersedes 35–37.
-1. **Submit 1.4 (38) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-38`.
+0. **1.4 (39) is on TestFlight** (iOS + tvOS, uploaded 2026-09-29, tag flight/build-39). On 38 Don saw a server clarifying question ("which city?") end the shortcut, after which Siri's own answer engine took his reply and answered from the web (tide-forecast.com, "check the Visit NSB app"). 39: the free-form intent asks the clarifying question through Siri and sends the answer as the next turn (up to two rounds), and the board's last selected city rides along as context so the common questions need no clarification. Four shortcuts: "Beach Info question", city, ramp ("is Flagler Avenue open with Beach Info"), best day. Open the app once after install. Submit for review when it reads right — supersedes 35–38.
+1. **Submit 1.4 (39) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-39`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
 4. **County outreach is on hold.** It was sent 2026-08-17. One county-network reader opened it and nobody replied. Don pivoted (8/26) to a portfolio-level messaging campaign run from the hub. The beach-traffic-check skill still flags any new county visitor.
