@@ -262,7 +262,7 @@ func TestRouterOnModeRampNow(t *testing.T) {
 	router := NewRouter(api.client(), ModeOn)
 	resp, ok := router.Route(context.Background(), defaultFake(), "is Flagler open?", "")
 	require.True(t, ok)
-	assert.Equal(t, "Flagler Ave is closed for high tide right now. Closed for high tide.", resp.Reply)
+	assert.Equal(t, "Flagler Ave is closed for high tide right now.", resp.Reply, "the status is said once")
 	assert.Equal(t, "city_now", resp.Sources[0].Kind)
 }
 
