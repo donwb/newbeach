@@ -108,7 +108,12 @@ struct BeachAppShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: AskBeachIntent(),
             phrases: [
-                "Ask \(.applicationName)",
+                // Siri treats a leading "Ask …" as a chat hand-off on newer
+                // iOS ("can't find the app"), so the first phrases avoid it.
+                "\(.applicationName) question",
+                "Question for \(.applicationName)",
+                "Check the beach with \(.applicationName)",
+                "\(.applicationName) beach check",
                 "Ask \(.applicationName) about the beach",
                 "Ask \(.applicationName) a question",
             ],
@@ -119,9 +124,11 @@ struct BeachAppShortcuts: AppShortcutsProvider {
             intent: BeachOpenNowIntent(),
             phrases: [
                 "Is the beach open in \(\.$city) with \(.applicationName)",
+                "Is the beach open in \(\.$city) in \(.applicationName)",
                 "Can I get on the beach in \(\.$city) with \(.applicationName)",
                 "Are the \(\.$city) ramps open with \(.applicationName)",
                 "\(.applicationName) is the beach open in \(\.$city)",
+                "Check \(\.$city) with \(.applicationName)",
             ],
             shortTitle: "Is the beach open?",
             systemImageName: "car.fill"

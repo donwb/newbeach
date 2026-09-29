@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import AppIntents
 import BeachStatus
 
 /// Exists only to force-and-hold landscape while the live cam is up. UIKit
@@ -27,6 +28,9 @@ struct BeachRampApp: App {
 
     init() {
         BeachFont.registerFonts()
+        // Register the Siri phrases (App Shortcuts) on every launch; the
+        // system also reads them at install, but this makes it explicit.
+        BeachAppShortcuts.updateAppShortcutParameters()
         // The beach cam plays silent video, but AVPlayer defaults to the
         // `.soloAmbient` session category, which stops other apps' audio (e.g.
         // music) the moment a player starts. Use `.ambient` so our playback

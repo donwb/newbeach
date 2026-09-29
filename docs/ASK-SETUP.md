@@ -118,15 +118,23 @@ Three ways in, all the same endpoint:
   transcript fills the field live; a 1.4 s pause sends it.
 - **Siri** (App Intents + App Shortcuts, `BeachRamp/Intents/AskIntents.swift`).
   Apple requires the app name in every phrase and no free text inside it:
-  - "Hey Siri, ask Beach Info" → Siri asks "What do you want to know about the
-    beach?" → speak → Siri reads the answer.
+  - "Hey Siri, Beach Info question" (also "Question for Beach Info", "Check the
+    beach with Beach Info") → Siri asks "What do you want to know about the
+    beach?" → speak → Siri reads the answer. A leading "Ask …" is risky: newer
+    iOS treats "Ask ⟨name⟩" as a chat hand-off and answers "can't find the
+    ⟨name⟩ app" when there is none, so the "Ask Beach Info …" forms are kept
+    only as extras.
   - "Hey Siri, is the beach open in New Smyrna Beach with Beach Info" (city
     is a fixed list: Ponce Inlet, New Smyrna Beach, Daytona Beach Shores,
     Daytona Beach, Ormond Beach).
   - "Hey Siri, which beach day is best with Beach Info".
   The intent runs in the background with the Keychain key; with no key stored
   it says to open the app and enter it. Phrases register when the app first
-  launches after install; they also appear in the Shortcuts app.
+  launches after install (and `updateAppShortcutParameters()` runs at every
+  launch); they also appear in the Shortcuts app under "Beach Info" — if that
+  tile is missing, the metadata never registered. Siri answers to the names in
+  `Config/Info-iOS.plist` (`INAlternativeAppNames`: Beach Info, Volusia Beach
+  Info, Volusia Beach, Beach Ramp/Ramps) as well as the display name.
 - **Apple TV:** select the field, hold the remote's mic button to dictate.
 - **Web:** a mic button appears in browsers with the Web Speech API (Safari,
   Chrome); it sends with `voice: true`.

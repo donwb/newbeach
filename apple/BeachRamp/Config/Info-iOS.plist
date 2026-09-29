@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged into the generated Info.plist (GENERATE_INFOPLIST_FILE stays
+	     YES; this file carries only what build settings cannot express).
+	     Alternative spoken names for Siri: the home-screen label is "Beach
+	     Info", the product is "Volusia Beach Info", and the bundle name is
+	     the historical "BeachRamp" — Siri should answer to all of them. -->
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Beach Info</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Volusia Beach Info</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Volusia Beach</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Beach Ramp</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Beach Ramps</string>
+		</dict>
+	</array>
+</dict>
+</plist>
