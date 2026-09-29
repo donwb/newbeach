@@ -11,6 +11,8 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+
+	"github.com/donwb/beach/api/internal/jev"
 )
 
 const (
@@ -43,6 +45,20 @@ type Runner struct {
 	model      string
 	voiceModel string // used for Voice requests; empty = model
 	engine     Engine
+	router     *Router     // the quick path; pattern-only until SetJev
+	jev        *jev.Client // nil = Jev off
+	jevMode    string      // ModeOff | ModeShadow | ModeOn
+}
+
+// SetJev wires the System One client into the quick path and the copy
+// guard. mode is ModeOff, ModeShadow (pattern router answers, Jev logged
+// beside it) or ModeOn (Jev answers). A nil client is ModeOff.
+func (r *Runner) SetJev(client *jev.Client, mode string) {
+	r.router = NewRouter(client, mode)
+	r.jevMode = r.router.Mode()
+	if r.jevMode != ModeOff {
+		r.jev = client
+	}
 }
 
 // SetVoiceModel names the model for spoken (Voice) requests — a faster one,
@@ -51,6 +67,9 @@ func (r *Runner) SetVoiceModel(model string) {
 	r.voiceModel = model
 }
 
+// JevMode reports the effective Jev mode.
+func (r *Runner) JevMode() string { return r.jevMode }
+
 // New builds a Runner. The client reads ANTHROPIC_API_KEY from the
 // environment unless opts override it; tests pass option.WithBaseURL to a
 // fake server.
@@ -58,7 +77,7 @@ func New(engine Engine, model string, opts ...option.RequestOption) *Runner {
 	if model == "" {
 		model = DefaultModel
 	}
-	return &Runner{client: anthropic.NewClient(opts...), model: model, engine: engine}
+	return &Runner{client: anthropic.NewClient(opts...), model: model, engine: engine, router: NewRouter(nil, ModeOff), jevMode: ModeOff}
 }
 
 // Run answers the transcript's last user turn. It returns an error only
@@ -77,12 +96,12 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 		}
 	}
 
-	// The quick path: a fresh question in one of the shapes the router
+	// The quick path: a fresh question in one of the shapes a router
 	// knows is answered from the engine's own copy, no model. Only for the
 	// first turn — a follow-up needs the conversation.
 	if len(req.Messages) == 1 {
-		if resp, ok := TryQuick(ctx, r.engine, req.Messages[0].Text, contextCityRaw); ok {
-			slog.Info("chat.quick", "voice", req.Voice, "ms", time.Since(start).Milliseconds())
+		if resp, ok := r.router.Route(ctx, r.engine, req.Messages[0].Text, contextCityRaw); ok {
+			slog.Info("chat.quick", "voice", req.Voice, "router", r.jevMode, "ms", time.Since(start).Milliseconds())
 			return resp, nil
 		}
 	}
@@ -183,7 +202,7 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 	resp.Reply = lastText
 
 	// The copy guard: one corrective round, then the engine's own words.
-	if problems := checkCopy(resp.Reply, resp.Sources); len(problems) > 0 {
+	if problems := r.checkCopy(ctx, resp.Reply, resp.Sources); len(problems) > 0 {
 		slog.Warn("chat.guard_tripped", "problems", problems)
 		params.Messages = append(params.Messages, anthropic.NewUserMessage(anthropic.NewTextBlock(correctiveTurn)))
 		msg, err := r.client.Messages.New(ctx, params)
@@ -201,12 +220,57 @@ func (r *Runner) Run(ctx context.Context, req Request) (*Response, error) {
 				resp.Reply = strings.Join(texts, "\n\n")
 			}
 		}
-		if again := checkCopy(resp.Reply, resp.Sources); len(again) > 0 || err != nil {
+		if again := r.checkCopy(ctx, resp.Reply, resp.Sources); len(again) > 0 || err != nil {
 			slog.Warn("chat.guard_fallback", "problems", again, "err", err)
 			resp.Reply = templatedReply(resp.Sources)
 		}
 	}
 	return r.finish(resp, start), nil
+}
+
+// checkCopy applies the copy rules in the configured mode: the pattern
+// guard alone (off), the pattern guard with Jev's read logged beside it
+// (shadow), or Jev's semantic read plus the two literal rules (on). A Jev
+// failure in on mode falls back to the pattern guard, never to no guard.
+func (r *Runner) checkCopy(ctx context.Context, reply string, sources []Source) []string {
+	switch r.jevMode {
+	case ModeShadow:
+		problems := checkCopy(reply, sources)
+		go func() {
+			sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			jp, tr := jevCheckCopy(sctx, r.jev, reply, sources)
+			if tr.Err != "" {
+				slog.Warn("chat.guard.shadow", "err", tr.Err)
+				return
+			}
+			regexPromise := false
+			for _, p := range problems {
+				if strings.HasPrefix(p, "promises") {
+					regexPromise = true
+				}
+			}
+			slog.Info("chat.guard.shadow",
+				"agree", regexPromise == (len(jp) > 0),
+				"regex_promise", regexPromise,
+				"jev_promise", round2(tr.Promises),
+				"jev_unsupported", round2(tr.Unsupported),
+				"jev_ms", tr.Latency.Milliseconds(),
+				"tokens", tr.InputTokens)
+		}()
+		return problems
+	case ModeOn:
+		jp, tr := jevCheckCopy(ctx, r.jev, reply, sources)
+		if tr.Err != "" {
+			slog.Warn("chat.guard", "guard", "regex", "reason", "jev unavailable: "+tr.Err)
+			return checkCopy(reply, sources)
+		}
+		slog.Info("chat.guard", "guard", "jev",
+			"promise", round2(tr.Promises), "unsupported", round2(tr.Unsupported),
+			"jev_ms", tr.Latency.Milliseconds(), "tokens", tr.InputTokens)
+		return append(jp, literalCopyRules(reply, sources)...)
+	}
+	return checkCopy(reply, sources)
 }
 
 func (r *Runner) finish(resp *Response, start time.Time) *Response {

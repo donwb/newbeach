@@ -23,6 +23,7 @@ import (
 	"github.com/donwb/beach/api/internal/database"
 	"github.com/donwb/beach/api/internal/handlers"
 	"github.com/donwb/beach/api/internal/ingester"
+	"github.com/donwb/beach/api/internal/jev"
 	"github.com/donwb/beach/api/internal/noaa"
 	"github.com/donwb/beach/api/internal/nwsfc"
 	"github.com/donwb/beach/api/internal/predict"
@@ -234,7 +235,14 @@ func main() {
 			voiceModel = chat.DefaultVoiceModel
 		}
 		chatRunner.SetVoiceModel(voiceModel)
-		slog.Info("chat enabled", "model", chatModel, "voice_model", voiceModel, "key_configured", os.Getenv("CHAT_API_KEY") != "")
+		// Jev (TypeSafe System One): the quick-path router and the copy
+		// guard as calibrated judgments instead of patterns. Off without a
+		// key; JEV_MODE=shadow (default) logs Jev beside the pattern
+		// router, JEV_MODE=on lets Jev answer.
+		jevClient := jev.New(os.Getenv("TYPESAFE_API_KEY"), jev.WithModel(os.Getenv("JEV_MODEL")))
+		chatRunner.SetJev(jevClient, os.Getenv("JEV_MODE"))
+		slog.Info("chat enabled", "model", chatModel, "voice_model", voiceModel, "key_configured", os.Getenv("CHAT_API_KEY") != "",
+			"jev_mode", chatRunner.JevMode(), "jev_model", jevClient.Model())
 	} else {
 		slog.Info("chat disabled")
 	}

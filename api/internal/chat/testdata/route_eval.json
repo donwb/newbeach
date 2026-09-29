@@ -1,0 +1,648 @@
+[
+ {
+  "group": "A",
+  "q": "Can I get on the beach in NSB right now?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "NEW SMYRNA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "Are the New Smyrna ramps open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "NEW SMYRNA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "is the beach open in new smyrna beach",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "NEW SMYRNA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "Are the Daytona ramps open Saturday at 2?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH",
+    "at": "2026-06-13T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "is the beach open saturday at 2:30pm",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-13T14:30:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "is the beach open sat around 10am",
+  "context_city": "daytona",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH",
+    "at": "2026-06-13T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "can I get on the beach friday at noon",
+  "context_city": "ormond",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "ORMOND BEACH",
+    "at": "2026-06-12T12:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "are the ramps open tomorrow morning",
+  "context_city": "shores",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH SHORES",
+    "at": "2026-06-11T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "are the ramps open tomorrow",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-11T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "is the beach open this evening",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-10T18:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "can I get on the beach this afternoon",
+  "context_city": "ponce",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "PONCE INLET",
+    "at": "2026-06-10T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "Which day this weekend is best?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "best day to go this week?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "when should I go?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "what's open in Ormond?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "ORMOND BEACH"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "is the beach open at 5",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-10T17:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "Are the ramps in the Shores open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "DAYTONA BEACH SHORES"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "can we drive on the beach in Ponce Inlet tomorrow afternoon?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "PONCE INLET",
+    "at": "2026-06-11T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "A",
+  "q": "can i drive on the beach in smyrna tomorrow at 9:30am",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-11T09:30:00"
+   }
+  ]
+ },
+ {
+  "group": "B",
+  "q": "was the beach open yesterday",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "is the beach open later",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "is the beach open wednesday",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "is the beach open next week",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "is the beach open at 8am",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "hi",
+  "context_city": "",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "what's the water temperature?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "how big is the surf today?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "when is high tide?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "why did Flagler close yesterday?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "Can I get on the beach right now?",
+  "context_city": "",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "what about tomorrow?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "was Flagler closed this morning?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "is Flagler usually closed at high tide?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "Do I need 4x4 for Ormond?",
+  "context_city": "",
+  "want": []
+ },
+ {
+  "group": "B",
+  "q": "are there sharks at NSB today?",
+  "context_city": "",
+  "want": []
+ },
+ {
+  "group": "C",
+  "q": "any chance of getting on the sand in New Smyrna at the moment?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "NEW SMYRNA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "How's beach driving looking in Daytona today?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "DAYTONA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "Ormond ramps \u2014 open or closed?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "ORMOND BEACH"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "will the Shores be drivable Saturday morning?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH SHORES",
+    "at": "2026-06-13T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "Daytona this Sunday around lunchtime, can I get on?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH",
+    "at": "2026-06-14T12:00:00"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "Is NSB good to go Thursday at 3pm?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-11T15:00:00"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "Should I bother heading to New Smyrna tonight?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-10T18:00:00"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "Are they letting cars on in Ormond?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "ORMOND BEACH"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "anything closed in daytona right now",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "DAYTONA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "which day should we hit the beach this weekend?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "sat or sun \u2014 which looks better?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "is it worth going Saturday or Sunday?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "we're thinking friday at 4 in the shores, open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH SHORES",
+    "at": "2026-06-12T16:00:00"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "beach status?",
+  "context_city": "daytona",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "DAYTONA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "C",
+  "q": "open?",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "NEW SMYRNA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "is Flagler open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "NS-110"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "Is the Dunlawton ramp open right now?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "DBS-078"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "how's 27th Ave looking tomorrow morning?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "NS-141",
+    "at": "2026-06-11T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "will Beachway be open Saturday at 2pm?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "NS-106",
+    "at": "2026-06-13T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "Cardinal in Ormond friday afternoon?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "OB-036",
+    "at": "2026-06-12T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "can I get on at Granada tonight?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "OB-030",
+    "at": "2026-06-10T18:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "is ISB open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "DB-059"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "Silver Beach tomorrow at noon",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "DB-064",
+    "at": "2026-06-11T12:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "Third Ave in NSB, open Sunday?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "NS-118",
+    "at": "2026-06-14T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "is Rockefeller open right now",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "OB-034"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "what about El Portal Saturday morning?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "DBS-076",
+    "at": "2026-06-13T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "Botefuhr tomorrow?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "DBS-067",
+    "at": "2026-06-11T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "is the Inlet open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "PONCE INLET"
+   },
+   {
+    "kind": "ramp_now",
+    "access_id": "PI-097"
+   }
+  ]
+ },
+ {
+  "group": "D",
+  "q": "how long will Flagler stay closed?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "NS-110"
+   }
+  ]
+ }
+]

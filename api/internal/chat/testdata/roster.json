@@ -1,0 +1,137 @@
+[
+ {
+  "access_id": "DB-041",
+  "ramp_name": "BOYLSTON AV",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-043",
+  "ramp_name": "HARTFORD AV",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-059",
+  "ramp_name": "INTERNATIONAL SPEEDWAY BLVD",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-051",
+  "ramp_name": "SEABREEZE BLVD",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-064",
+  "ramp_name": "SILVER BEACH AV",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-048",
+  "ramp_name": "UNIVERSITY BLVD",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-042",
+  "ramp_name": "WILLIAMS AV",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DB-046",
+  "ramp_name": "ZELDA BLVD",
+  "city": "DAYTONA BEACH"
+ },
+ {
+  "access_id": "DBS-067",
+  "ramp_name": "BOTEFUHR AV",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-079",
+  "ramp_name": "DEMOTTE AV",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-078",
+  "ramp_name": "DUNLAWTON BLVD",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-076",
+  "ramp_name": "EL PORTAL ST",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-082",
+  "ramp_name": "EMILIA AV",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-071",
+  "ramp_name": "FLORIDA SHORES BLVD",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-069",
+  "ramp_name": "MINERVA RD",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "DBS-075",
+  "ramp_name": "VAN AV",
+  "city": "DAYTONA BEACH SHORES"
+ },
+ {
+  "access_id": "NS-141",
+  "ramp_name": "27TH AV",
+  "city": "NEW SMYRNA BEACH"
+ },
+ {
+  "access_id": "NS-118",
+  "ramp_name": "3RD AV",
+  "city": "NEW SMYRNA BEACH"
+ },
+ {
+  "access_id": "NS-106",
+  "ramp_name": "BEACHWAY AV",
+  "city": "NEW SMYRNA BEACH"
+ },
+ {
+  "access_id": "NS-108",
+  "ramp_name": "CRAWFORD RD",
+  "city": "NEW SMYRNA BEACH"
+ },
+ {
+  "access_id": "NS-110",
+  "ramp_name": "FLAGLER AV",
+  "city": "NEW SMYRNA BEACH"
+ },
+ {
+  "access_id": "OB-036",
+  "ramp_name": "CARDINAL DR",
+  "city": "ORMOND BEACH"
+ },
+ {
+  "access_id": "OB-030",
+  "ramp_name": "GRANADA BLVD",
+  "city": "ORMOND BEACH"
+ },
+ {
+  "access_id": "OB-038",
+  "ramp_name": "HARVARD DR",
+  "city": "ORMOND BEACH"
+ },
+ {
+  "access_id": "OB-037",
+  "ramp_name": "MILSAP RD",
+  "city": "ORMOND BEACH"
+ },
+ {
+  "access_id": "OB-034",
+  "ramp_name": "ROCKEFELLER DR",
+  "city": "ORMOND BEACH"
+ },
+ {
+  "access_id": "PI-097",
+  "ramp_name": "BEACH ST",
+  "city": "PONCE INLET"
+ }
+]

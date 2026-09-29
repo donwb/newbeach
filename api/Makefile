@@ -21,6 +21,13 @@ run: check-env db-up
 test:
 	go test -race ./...
 
+# The Jev routing eval: the pattern router vs. the Jev router over the
+# labeled questions in internal/chat/testdata/route_eval.json. Needs
+# TYPESAFE_API_KEY (from .env). JEV_EVAL_MODEL=1 also times the model path
+# on the questions the pattern router misses (needs ANTHROPIC_API_KEY).
+jev-eval:
+	JEV_EVAL=1 go test ./internal/chat/ -run TestJevRouteEval -v -count=1 2>&1 | sed -n '/## Routing eval/,/^--- /p'
+
 # Run linters
 lint:
 	go vet ./...

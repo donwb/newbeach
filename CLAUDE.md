@@ -390,6 +390,16 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   in the Ask bar (`BeachRamp/Voice`) + App Intents with Siri phrases
   (`BeachRamp/Intents/AskIntents.swift`, app name required in every phrase); tvOS: remote
   dictation hint; web: Web Speech mic. **Keys, switch-on, phrases: `docs/ASK-SETUP.md`.**
+  **Jev (2026-09-29, spike):** the quick-path router and the copy guard can run as
+  calibrated judgments from TypeSafe's System One model instead of regexes —
+  `api/internal/jev` (client), `chat/route.go` (plan + modes), `chat/jevroute.go`
+  (one call: intent/city/ramp/day/daypart/clock Choices; code assembles the instant with
+  `quickWhen`'s rules), `guard.go` (`jevCheckCopy`: the promise rule as a Noul; the
+  "likely" word and the minute-precise clock stay regexes on purpose). Ramp questions go
+  quick only via Jev (the roster is a Choice). `JEV_MODE=shadow` is the default: the
+  patterns answer, Jev is logged beside them (`chat.route.shadow`). Eval + write-up:
+  `docs/JEV-SPIKE.md`, `make jev-eval`; `TestRegexRouteFixture` pins the pattern router
+  against the labeled fixture. Jev never touches the prediction engine.
 
 ## TRMNL (E-Ink Display)
 
@@ -489,6 +499,9 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `CHAT_API_KEY` | API | Shared secret the iOS/tvOS apps present as `X-Chat-Key`; separate from `ADMIN_API_KEY` on purpose |
 | `CHAT_MODEL` | Chat | Model id for the chat runner (default `claude-opus-5`) |
 | `CHAT_VOICE_MODEL` | Chat | Model for spoken free-form questions, `voice: true` (default `claude-sonnet-5`) |
+| `TYPESAFE_API_KEY` | Chat (Jev) | TypeSafe System One key; unset = Jev off (pattern router and guard as before) |
+| `JEV_MODE` | Chat (Jev) | `off` \| `shadow` (default: pattern router answers, Jev logged beside it) \| `on` (Jev answers) |
+| `JEV_MODEL` | Chat (Jev) | Model or alias for System One calls (default `jev-latest`; pin `jev-1.13.0` once floors are tuned) |
 
 ## Agent Team Notes
 

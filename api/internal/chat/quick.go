@@ -142,50 +142,17 @@ func weekdayFor(s string) (time.Weekday, bool) {
 }
 
 // TryQuick answers the question deterministically when it is one of the
-// shapes the router knows. contextCity is the board's city (any alias).
-// The returned Response carries Model "quick" and zero usage.
+// shapes the pattern router knows. contextCity is the board's city (any
+// alias). The returned Response carries Model "quick" and zero usage.
+// (The Runner goes through Router.Route, which adds the Jev router; this
+// is the pattern-only path.)
 func TryQuick(ctx context.Context, eng Engine, question, contextCity string) (*Response, bool) {
-	q := strings.TrimSpace(question)
-	if q == "" || len(q) > 160 {
-		return nil, false
-	}
 	now := eng.Now()
-
-	if weekendRe.MatchString(q) && !intentRe.MatchString(q) {
-		wk, err := eng.Weekend(ctx)
-		if err != nil {
-			return nil, false
-		}
-		return finishQuick(quickWeekendReply(wk), sourcesFromWeekend(wk), now), true
-	}
-
-	if !intentRe.MatchString(q) {
-		return nil, false
-	}
-	city, _, ok := ResolveCity(q)
-	if !ok {
-		city, _, ok = ResolveCity(contextCity)
-		if !ok {
-			return nil, false
-		}
-	}
-	at, isNow, ok := quickWhen(q, now)
+	plan, ok := regexRoute(question, contextCity, now)
 	if !ok {
 		return nil, false
 	}
-
-	if isNow {
-		res, err := eng.CityNow(ctx, city)
-		if err != nil {
-			return nil, false
-		}
-		return finishQuick(quickCityNowReply(res), []Source{sourceFromCityNow(res)}, now), true
-	}
-	res, err := eng.CityOutlookAt(ctx, city, at)
-	if err != nil {
-		return nil, false
-	}
-	return finishQuick(quickCityAtReply(res), []Source{sourceFromCityAt(res)}, now), true
+	return runPlan(ctx, eng, plan, now)
 }
 
 func finishQuick(reply string, sources []Source, now time.Time) *Response {

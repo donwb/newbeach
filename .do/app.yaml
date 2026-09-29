@@ -145,6 +145,20 @@ services:
       - key: CHAT_VOICE_MODEL
         scope: RUN_AND_BUILD_TIME
         value: "claude-sonnet-5"
+      # Jev (TypeSafe System One): the Ask quick-path router and copy guard
+      # as calibrated judgments. Off without TYPESAFE_API_KEY (set the real
+      # value in the platform UI). JEV_MODE: off | shadow (pattern router
+      # answers, Jev logged beside it) | on (Jev answers).
+      - key: TYPESAFE_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: "CHANGE_ME_IN_PLATFORM_UI"
+      - key: JEV_MODE
+        scope: RUN_AND_BUILD_TIME
+        value: "shadow"
+      - key: JEV_MODEL
+        scope: RUN_AND_BUILD_TIME
+        value: "jev-latest"
       - key: ANTHROPIC_API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
