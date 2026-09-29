@@ -233,7 +233,7 @@ CRAWFORD RD is : CLOSED
 | `/api/v2/weather` | GET | Current conditions (incl. wind speed/gust) + forecast from NWS API (api.weather.gov) |
 | `/api/v2/health` | GET | Health check endpoint for monitoring |
 | `/api/v2/config` | GET | Client configuration (webcam URL, feature flags) |
-| `/api/v2/chat` | POST | "Ask" (2026-09-27): a natural-language question over the prediction engine. Body `{messages:[{role,text}], context?:{access_id}}` (stateless — the client sends the whole transcript); reply `{reply, sources[], model, usage}`. A model picks from deterministic engine tools and relays the engine's copy verbatim; `sources` are server-built facts for the client's card. Locked behind `X-Chat-Key` = `CHAT_API_KEY`; route absent when `CHAT_ENABLED=false` or no `ANTHROPIC_API_KEY`. v1 answers future "open at T" (≤7 days) and weekend day verdicts; past and current-status questions are declined. |
+| `/api/v2/chat` | POST | "Ask" (2026-09-27): a natural-language question over the prediction engine. Body `{messages:[{role,text}], context?:{access_id, city}, voice?}` (stateless — the client sends the whole transcript); reply `{reply, spoken, sources[], model, usage}`. Common shapes (city now / city at a time / best day) are answered from engine copy with no model (`model: "quick"`); `voice: true` runs free-form on the faster voice model. A model picks from deterministic engine tools and relays the engine's copy verbatim; `sources` are server-built facts for the client's card. Locked behind `X-Chat-Key` = `CHAT_API_KEY`; route absent when `CHAT_ENABLED=false` or no `ANTHROPIC_API_KEY`. v1 answers future "open at T" (≤7 days) and weekend day verdicts; past and current-status questions are declined. |
 
 ### 5.3 Response Models
 
@@ -389,7 +389,7 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Live Activities** — show ramp status on Dynamic Island / Lock Screen (when at the beach)
 - **Haptic feedback** on status changes
 - **Settings screen** — default city, notification preferences, units (°F/°C)
-- **Ask** ✅ 2026-09-28 — an ask bar inline on the board (after the weekend outlook, `Views/Board/AskSectionView.swift`) over `POST /api/v2/chat`: three suggested questions for the selected city as text links, free text, and the answer in the board's voice (kicker · headline · detail, `AskPresentation`) with only the rows that carry news. Not a chat — only the latest answer shows; follow-ups keep context server-side. Locked behind the chat key, entered once and kept in the Keychain (`BeachStatus/Chat/ChatSession`). DEBUG: `--ask-preview` seeds a canned answer.
+- **Ask** ✅ 2026-09-28 — an ask bar inline on the board (after the weekend outlook, `Views/Board/AskSectionView.swift`) over `POST /api/v2/chat`: three suggested questions for the selected city as text links, free text, and the answer in the board's voice (kicker · headline · detail, `AskPresentation`) with only the rows that carry news. Not a chat — only the latest answer shows; follow-ups keep context server-side. Locked behind the chat key, entered once and kept in the Keychain (`BeachStatus/Chat/ChatSession`). DEBUG: `--ask-preview` seeds a canned answer. **Spoken** (2026-09-29): a mic in the bar (Speech framework) and Siri via App Intents — "Ask Beach Info", "Is the beach open in ⟨city⟩ with Beach Info", "Which beach day is best with Beach Info" — reading the reply's `spoken` form.
 
 ### 8.4 App Architecture
 
@@ -469,8 +469,8 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
   (kicker · headline · detail + only the rows that carry news); right, three
   suggested questions for the board's city and a text field (system keyboard →
   Siri Remote dictation / iPhone keyboard). Chat key entered once per Apple TV
-  (no iCloud Keychain on tvOS). DEBUG: `--surface-chat[=ID]`, `--ask-preview`,
-  `--chat-key <k>`.
+  (no iCloud Keychain on tvOS). Dictation: select the field, hold the remote's
+  mic. DEBUG: `--surface-chat[=ID]`, `--ask-preview`, `--chat-key <k>`.
 - **Default to New Smyrna Beach** — matches phone/web behavior
 - **Auto-refresh** — data updates every 60 seconds; the sky/clock tick every 30 seconds
 - **No Top Shelf extension** — just the main dashboard app

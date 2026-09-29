@@ -381,7 +381,15 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `BuildCityOutlookAt`) exist alongside the per-ramp tool; the client sends the board's
   selected city as `context.city` and suggestions are written for it. Web: `web/js/ask.js`
   (key in `localStorage`, first-run prompt) — the place to try new question shapes before
-  touching native placement. **Keys, switch-on, smoke test: `docs/ASK-SETUP.md`.**
+  touching native placement.
+  **Spoken questions (2026-09-29):** the common shapes — city now, city at a time, best day —
+  are answered by `chat/quick.go` from engine copy with **no model call** (`model: "quick"`;
+  conservative router, falls through on any doubt, first turns only); `voice: true` runs
+  free-form on `CHAT_VOICE_MODEL` (default `claude-sonnet-5`, latency not cost); every
+  response carries `spoken` (glyphs → words) for text-to-speech. iOS: Speech-framework mic
+  in the Ask bar (`BeachRamp/Voice`) + App Intents with Siri phrases
+  (`BeachRamp/Intents/AskIntents.swift`, app name required in every phrase); tvOS: remote
+  dictation hint; web: Web Speech mic. **Keys, switch-on, phrases: `docs/ASK-SETUP.md`.**
 
 ## TRMNL (E-Ink Display)
 
@@ -480,6 +488,7 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `ANTHROPIC_API_KEY` | Chat | Anthropic API key the chat runner reads; unset = chat disabled (logged at boot) |
 | `CHAT_API_KEY` | API | Shared secret the iOS/tvOS apps present as `X-Chat-Key`; separate from `ADMIN_API_KEY` on purpose |
 | `CHAT_MODEL` | Chat | Model id for the chat runner (default `claude-opus-5`) |
+| `CHAT_VOICE_MODEL` | Chat | Model for spoken free-form questions, `voice: true` (default `claude-sonnet-5`) |
 
 ## Agent Team Notes
 
