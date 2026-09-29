@@ -399,7 +399,9 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   quick only via Jev (the roster is a Choice). `JEV_MODE=shadow` is the default: the
   patterns answer, Jev is logged beside them (`chat.route.shadow`). Eval + write-up:
   `docs/JEV-SPIKE.md`, `make jev-eval`; `TestRegexRouteFixture` pins the pattern router
-  against the labeled fixture. Jev never touches the prediction engine.
+  against the labeled fixture. Jev never touches the prediction engine. **Verdict (Don,
+  2026-09-29): marginal here, not worth the dependency — the code stays, off; don't set the
+  key in prod or propose flipping it on without a new reason.**
 
 ## TRMNL (E-Ink Display)
 
