@@ -57,6 +57,29 @@ struct FiveSquareStrip: View {
     }
 }
 
+// MARK: - Ask button
+
+/// One tap from the Home Screen into the Ask bar, mic already listening —
+/// the reliable way to speak a question (Siri's phrase matching is not).
+/// A deep link, so it works from any widget family that shows it.
+struct AskWidgetButton: View {
+    let tokens: TokenSet
+    var size: CGFloat = 26
+
+    static let url = URL(string: "beachinfo://ask?listen=1")!
+
+    var body: some View {
+        Link(destination: Self.url) {
+            Image(systemName: "mic.fill")
+                .font(.system(size: size * 0.5, weight: .semibold))
+                .foregroundStyle(tokens.ink)
+                .frame(width: size, height: size)
+                .overlay(Rectangle().strokeBorder(tokens.rule, lineWidth: 1.5))
+        }
+        .accessibilityLabel("Ask about the beach")
+    }
+}
+
 // MARK: - Small
 
 struct SmallWidgetView: View {
@@ -159,6 +182,8 @@ struct MediumWidgetView: View {
                             .font(.archivo(9))
                             .monospacedDigit()
                             .foregroundStyle(t.ink2)
+                        Spacer(minLength: 4)
+                        AskWidgetButton(tokens: t, size: 22)
                     }
                     FiveSquareStrip(ramps: entry.ramps, isDay: ground.isDay)
                     verdictBlock(tokens: t)
@@ -328,6 +353,8 @@ struct LargeWidgetView: View {
                         .monospacedDigit()
                         .foregroundStyle(t.ink)
                     sparkline
+                    Spacer(minLength: 6)
+                    AskWidgetButton(tokens: t, size: 28)
                 }
                 .frame(height: 30)
             }

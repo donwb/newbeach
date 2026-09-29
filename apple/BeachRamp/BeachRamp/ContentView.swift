@@ -69,6 +69,12 @@ struct ContentView: View {
             #if DEBUG
             // QA hook: --ask-preview seeds the Ask section with a canned
             // answer (no model call) so the layout can be screenshot.
+            // QA hook: --ask-listen behaves like the widget's Ask button
+            // (beachinfo://ask?listen=1) without the simulator's open-URL prompt.
+            if ProcessInfo.processInfo.arguments.contains("--ask-listen") {
+                try? await Task.sleep(for: .seconds(1.5))
+                viewModel.askListenToken += 1
+            }
             if ProcessInfo.processInfo.arguments.contains("--ask-preview") {
                 if !viewModel.chat.hasKey { viewModel.chat.saveKey("preview") }
                 viewModel.chat.load(turns: [
@@ -86,6 +92,12 @@ struct ContentView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .onOpenURL { url in
+            // beachinfo://ask?listen=1 from a widget's Ask button: straight
+            // into the Ask bar, listening — no Siri in between.
+            guard url.scheme == "beachinfo", url.host == "ask" else { return }
+            viewModel.askListenToken += 1
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {

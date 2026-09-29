@@ -7,6 +7,19 @@
 	     Alternative spoken names for Siri: the home-screen label is "Beach
 	     Info", the product is "Volusia Beach Info", and the bundle name is
 	     the historical "BeachRamp" — Siri should answer to those too. -->
+	<!-- beachinfo://ask?listen=1 — the widgets' Ask button deep-links into
+	     the board with the mic already listening (ContentView.onOpenURL). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.donwb.BeachRampTV</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>beachinfo</string>
+			</array>
+		</dict>
+	</array>
 	<key>INAlternativeAppNames</key>
 	<!-- App Store Connect allows at most three synonyms per language
 	     (ITMS-90626, build 36). "Beach Info" itself is the display name and

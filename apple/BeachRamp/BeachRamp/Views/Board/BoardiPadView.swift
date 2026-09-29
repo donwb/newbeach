@@ -231,7 +231,7 @@ struct BoardiPadView: View {
 
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 18)
-            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity)
+            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity, listenToken: viewModel.askListenToken)
                 .padding(.top, 12)
         }
     }
@@ -331,7 +331,7 @@ struct BoardiPadView: View {
 
             Rectangle().fill(t.rule).frame(height: 2)
                 .padding(.top, 18)
-            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity)
+            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity, listenToken: viewModel.askListenToken)
                 .padding(.top, 12)
 
             Rectangle().fill(t.rule).frame(height: 2)

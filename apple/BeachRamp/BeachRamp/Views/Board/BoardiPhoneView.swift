@@ -19,6 +19,11 @@ struct BoardiPhoneView: View {
             .background {
                 ground.skyGradient.ignoresSafeArea()
             }
+            .onChange(of: viewModel.askListenToken) { _, _ in
+                // The widget's Ask button: bring the Ask bar into view; the
+                // section itself starts the mic.
+                withAnimation { proxy.scrollTo("askSection", anchor: .top) }
+            }
             #if DEBUG
             .task {
                 // QA hook: --ask-preview scrolls the seeded Ask section into
@@ -84,7 +89,8 @@ struct BoardiPhoneView: View {
                     .padding(.top, 14)
             }
 
-            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity)
+            AskSectionView(session: viewModel.chat, city: viewModel.selectedCity,
+                           listenToken: viewModel.askListenToken)
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
                 .id("askSection")

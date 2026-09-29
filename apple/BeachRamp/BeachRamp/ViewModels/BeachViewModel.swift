@@ -45,6 +45,9 @@ final class BeachViewModel {
     /// "Ask" — the question box over the prediction engine, inline on the
     /// board. Owned here so the answer survives navigation.
     let chat = ChatSession()
+    /// Bumped by the beachinfo://ask?listen=1 deep link (the widgets' Ask
+    /// button): the board scrolls to Ask and the mic starts listening.
+    var askListenToken = 0
 
     /// When ramps last loaded successfully. Feeds the stale state alongside
     /// the server's own feed timestamp.

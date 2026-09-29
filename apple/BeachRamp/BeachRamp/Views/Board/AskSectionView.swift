@@ -10,6 +10,9 @@ struct AskSectionView: View {
     /// The board's selected city (GIS key); questions that name no place
     /// are about it, and the suggestions are written for it.
     let city: String?
+    /// Bumped by the widget deep link: each new value starts the mic once.
+    var listenToken = 0
+    @State private var listenedToken = 0
     @Environment(\.ground) private var ground
     @FocusState private var inputFocused: Bool
     @State private var keyDraft = ""
@@ -57,6 +60,8 @@ struct AskSectionView: View {
         .onChange(of: speech.transcript) { _, text in
             if speech.isListening { session.draft = text }
         }
+        .onChange(of: listenToken) { _, _ in listenIfRequested() }
+        .task { listenIfRequested() }
         .onDisappear { speech.stop(deliver: false) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("askSection")
@@ -225,6 +230,15 @@ struct AskSectionView: View {
             .buttonStyle(PressTintButtonStyle())
             .padding(.top, 4)
         }
+    }
+
+    /// Start the mic for a deep-link request that has not been served yet
+    /// (the token can arrive before or after this view appears).
+    private func listenIfRequested() {
+        guard listenToken > listenedToken, !session.needsKey, !speech.isListening else { return }
+        listenedToken = listenToken
+        session.draft = ""
+        speech.start()
     }
 
     private var canSend: Bool {

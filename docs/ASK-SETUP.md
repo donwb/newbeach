@@ -151,6 +151,14 @@ Three ways in, all the same endpoint:
   tile is missing, the metadata never registered. Siri answers to the names in
   `Config/Info-iOS.plist` (`INAlternativeAppNames`: Beach Info, Volusia Beach
   Info, Volusia Beach, Beach Ramp/Ramps) as well as the display name.
+- **The widget Ask button (the reliable one-tap path).** The medium and
+  large Home Screen widgets carry a mic button that opens the app straight
+  into the Ask bar, already listening — `beachinfo://ask?listen=1`, handled by
+  `ContentView.onOpenURL` → `askListenToken` → `AskSectionView` starts the
+  mic. No Siri in between, so it has the in-app accuracy. The same URL works
+  from a Shortcuts "Open URL" action, so a personal Shortcut named "Beach"
+  gives "Hey Siri, Beach" → listening, which Siri matches far more reliably
+  than app phrases.
 - **Apple TV:** select the field, hold the remote's mic button to dictate.
 - **Web:** a mic button appears in browsers with the Web Speech API (Safari,
   Chrome); it sends with `voice: true`.
