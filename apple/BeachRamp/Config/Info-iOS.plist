@@ -6,13 +6,12 @@
 	     YES; this file carries only what build settings cannot express).
 	     Alternative spoken names for Siri: the home-screen label is "Beach
 	     Info", the product is "Volusia Beach Info", and the bundle name is
-	     the historical "BeachRamp" — Siri should answer to all of them. -->
+	     the historical "BeachRamp" — Siri should answer to those too. -->
 	<key>INAlternativeAppNames</key>
+	<!-- App Store Connect allows at most three synonyms per language
+	     (ITMS-90626, build 36). "Beach Info" itself is the display name and
+	     needs no synonym. -->
 	<array>
-		<dict>
-			<key>INAlternativeAppName</key>
-			<string>Beach Info</string>
-		</dict>
 		<dict>
 			<key>INAlternativeAppName</key>
 			<string>Volusia Beach Info</string>
@@ -24,10 +23,6 @@
 		<dict>
 			<key>INAlternativeAppName</key>
 			<string>Beach Ramp</string>
-		</dict>
-		<dict>
-			<key>INAlternativeAppName</key>
-			<string>Beach Ramps</string>
 		</dict>
 	</array>
 </dict>
