@@ -12,6 +12,39 @@ The spike asks two questions, using this repo as the test bed:
 1. **Is Ask faster with Jev routing than with the pattern router?**
 2. **Is the code less brittle or simpler — does Jev replace the regexes?**
 
+## Verdict (Don, 2026-09-29): not worth switching on here
+
+The improvement is real but marginal: seconds saved, for one user, a
+handful of times a week, against a third-party dependency with rate limits
+still in flux, another secret, and a probabilistic component in a path that
+was deterministic. **The code stays** — isolated, off without a key, and the
+labeled fixture plus the pinned regex test are useful regardless — but
+`TYPESAFE_API_KEY` is not set in prod and `JEV_MODE` should stay off.
+
+Why the case was weak, and the lesson for the toolbox:
+
+- **Right shape, wrong economics.** Routing a question into a bounded set
+  is exactly what Jev is for. But Jev earns its dependency only when one of
+  these holds: volume makes model calls cost real money; latency is on a hard
+  budget with no acceptable slow path; calibrated probabilities are needed to
+  act unattended; there is no good fallback. Here the fallback (the model) is
+  fine, just slower, and Siri's budget is the only one of the four that even
+  partly applies.
+- **Built around not having it.** The quick path was designed regex-first
+  with a model fallback, and Jev was bolted in as a third tier. Designed from
+  scratch with Jev available there would be no regex tier: Jev routes
+  everything, the model handles only open-ended questions, the resolver's
+  alias table becomes option descriptions. The spike proved that design works
+  (no wrong plan on either set) — it just would not have changed the
+  economics.
+- **Where to reach for it next:** a high-volume classifier or verifier,
+  anything you would otherwise fine-tune a small model for, or a guard behind
+  generation at scale where a regex genuinely cannot keep up.
+- **What transfers regardless of Jev:** one judgment per question, no
+  distractors in the state, gate on the probability of the outcome class
+  code acts on rather than a peakedness statistic, and spell boundaries into
+  the criteria. Those are the rules for any calibrated-decision model.
+
 ## What was built
 
 Four uses, all inside `api/internal/chat`, all behind one switch:
