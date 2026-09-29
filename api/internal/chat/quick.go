@@ -324,6 +324,9 @@ func spokenForm(reply string) string {
 	s = strings.ReplaceAll(s, "—", ", ")
 	s = strings.ReplaceAll(s, " – ", " to ")
 	s = strings.ReplaceAll(s, "–", " to ")
+	// "the ~3pm high" reads as "the 3pm high" aloud; "~3pm" elsewhere is
+	// "about 3pm".
+	s = strings.ReplaceAll(s, "the ~", "the ")
 	s = strings.ReplaceAll(s, "~", "about ")
 	s = strings.ReplaceAll(s, "  ", " ")
 	s = strings.ReplaceAll(s, ". .", ".")

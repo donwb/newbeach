@@ -112,4 +112,5 @@ func TestTryQuickWeekend(t *testing.T) {
 func TestSpokenForm(t *testing.T) {
 	assert.Equal(t, "Closure possible around 2:30pm. often back open by about 4:30pm", spokenForm("Closure possible around 2:30pm · often back open by ~4:30pm"))
 	assert.Equal(t, "Best stretch about 8am to 12pm, clear of the tide", spokenForm("Best stretch ~8am–12pm — clear of the tide"))
+	assert.Equal(t, "Seven could shut on the 3pm high.", spokenForm("Seven could shut on the ~3pm high."))
 }

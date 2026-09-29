@@ -17,6 +17,7 @@ reference only — never apply that file blindly (see its header comment).
 | `CHAT_API_KEY` | any string you choose, e.g. `openssl rand -hex 24` | **Secret.** The shared key the apps present as `X-Chat-Key`. Deliberately separate from `ADMIN_API_KEY` so the admin secret never lives in an app Keychain. This is the one you type into each app. |
 | `CHAT_ENABLED` | `true` | Kill switch. `false` removes the route entirely (clients read the 404 as "Ask is switched off"). |
 | `CHAT_MODEL` | `claude-opus-5` | Model id the runner uses. Swappable without a redeploy of code — any current Claude model id works; thinking is left at the model's default so older ids don't break. |
+| `CHAT_VOICE_MODEL` | `claude-sonnet-5` | Model for *spoken* free-form questions (`voice: true` — Siri, the mic buttons). Faster tier because a listener waits seconds. Optional. |
 
 The route exists only when **`CHAT_ENABLED` is not `false` AND
 `ANTHROPIC_API_KEY` is set**. The boot log says which:
@@ -97,3 +98,35 @@ thousand input tokens and a few hundred output tokens — on the order of a
 few cents per question. `chat.done` logs `input_tokens` / `output_tokens` /
 `calls` per request. There is no rate limit or budget cap: the key is the
 gate, and only Don has it.
+
+## Speaking the question
+
+Three ways in, all the same endpoint:
+
+- **The quick path (no model).** The server answers the common spoken shapes
+  from the engine's own copy before any model is involved (`chat/quick.go`):
+  "can I get on the beach in NSB right now", "are the Daytona ramps open
+  Saturday at 2", "which day this weekend is best". Sub-second, `model:
+  "quick"`, zero usage. Anything the router isn't sure about (a past time,
+  "later", a ramp by name, a weekday that is also today) falls through to
+  the model. Only first turns are eligible; follow-ups need the conversation.
+- **`voice: true`** on the request marks a spoken question: free-form ones
+  run on `CHAT_VOICE_MODEL`. Every response carries `spoken` — the reply
+  rewritten for text-to-speech (`·` → `.`, `~` → "about", dashes → commas).
+- **iOS mic** in the Ask bar (Speech framework, on-device where supported).
+  First tap asks for microphone + speech-recognition permission. The
+  transcript fills the field live; a 1.4 s pause sends it.
+- **Siri** (App Intents + App Shortcuts, `BeachRamp/Intents/AskIntents.swift`).
+  Apple requires the app name in every phrase and no free text inside it:
+  - "Hey Siri, ask Beach Info" → Siri asks "What do you want to know about the
+    beach?" → speak → Siri reads the answer.
+  - "Hey Siri, is the beach open in New Smyrna Beach with Beach Info" (city
+    is a fixed list: Ponce Inlet, New Smyrna Beach, Daytona Beach Shores,
+    Daytona Beach, Ormond Beach).
+  - "Hey Siri, which beach day is best with Beach Info".
+  The intent runs in the background with the Keychain key; with no key stored
+  it says to open the app and enter it. Phrases register when the app first
+  launches after install; they also appear in the Shortcuts app.
+- **Apple TV:** select the field, hold the remote's mic button to dictate.
+- **Web:** a mic button appears in browsers with the Web Speech API (Safari,
+  Chrome); it sends with `voice: true`.
