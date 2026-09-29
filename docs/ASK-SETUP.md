@@ -128,7 +128,15 @@ Three ways in, all the same endpoint:
   - "Hey Siri, is the beach open in New Smyrna Beach with Beach Info" (city
     is a fixed list: Ponce Inlet, New Smyrna Beach, Daytona Beach Shores,
     Daytona Beach, Ormond Beach).
+  - "Hey Siri, is Flagler Avenue open with Beach Info" (ramps are a Siri
+    parameter too, `RampIntents.swift`: the roster from the widget snapshot,
+    names expanded to their spoken form — "Avenue", "Boulevard" — and
+    re-registered at every launch).
   - "Hey Siri, which beach day is best with Beach Info".
+  Anything else — a ramp or a time *inside* a free-form sentence after the app
+  name ("ask Beach Info if Flagler is open") — cannot match a phrase; Siri then
+  tries to search the app's data and says it "doesn't support in-app
+  searching". Use the two-step form for those.
   The intent runs in the background with the Keychain key; with no key stored
   it says to open the app and enter it. Phrases register when the app first
   launches after install (and `updateAppShortcutParameters()` runs at every

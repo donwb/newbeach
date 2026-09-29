@@ -27,13 +27,15 @@ enum BeachCity: String, AppEnum {
 
 /// Shared plumbing: the stored chat key, one request, one dialog.
 enum AskService {
-    static func ask(_ question: String, city: BeachCity?) async throws -> IntentDialog {
+    static func ask(_ question: String, city: BeachCity?, accessID: String? = nil) async throws -> IntentDialog {
         guard let key = KeychainChatKeyStore().read() else {
             return IntentDialog("Open Beach Info and enter the chat key first, then I can answer.")
         }
+        let context: ChatContext? = (city != nil || accessID != nil)
+            ? ChatContext(accessID: accessID, city: city?.rawValue) : nil
         let request = ChatRequest(
             messages: [ChatTurn(role: .user, text: question)],
-            context: city.map { ChatContext(city: $0.rawValue) },
+            context: context,
             voice: true
         )
         do {
@@ -132,6 +134,18 @@ struct BeachAppShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Is the beach open?",
             systemImageName: "car.fill"
+        )
+        AppShortcut(
+            intent: RampOpenNowIntent(),
+            phrases: [
+                "Is \(\.$ramp) open with \(.applicationName)",
+                "Is \(\.$ramp) open right now with \(.applicationName)",
+                "Is the \(\.$ramp) ramp open with \(.applicationName)",
+                "\(.applicationName) is \(\.$ramp) open",
+                "Check \(\.$ramp) with \(.applicationName)",
+            ],
+            shortTitle: "Is a ramp open?",
+            systemImageName: "road.lanes"
         )
         AppShortcut(
             intent: BestBeachDayIntent(),
