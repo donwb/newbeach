@@ -8,10 +8,12 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <meta name="theme-color" content="#0A1420">
+  <!-- Safari's Smart App Banner: the native "Open / View" strip on iPhone and iPad. -->
+  <meta name="apple-itunes-app" content="app-id=6761724123">
   <link rel="preload" href="/fonts/archivo-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/archivo-400.woff2" as="font" type="font/woff2" crossorigin>
   <!-- ?v= busts the browser's heuristic HTTP cache; bump alongside sw.js CACHE_NAME. -->
-  <link rel="stylesheet" href="/styles.css?v=23">
+  <link rel="stylesheet" href="/styles.css?v=24">
 </head>
 <body>
   <div id="ground" aria-hidden="true"></div>
@@ -48,6 +50,6 @@
     </p>
   </noscript>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
-  <script type="module" src="/app.js?v=23"></script>
+  <script type="module" src="/app.js?v=24"></script>
 </body>
 </html>

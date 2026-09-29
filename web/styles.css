@@ -274,6 +274,26 @@ svg {
   gap: 18px;
 }
 
+/* "Get the app" in the top bar: bordered like the freshness chip, accent
+   text so it reads as the one call to action up there. */
+.app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 6px 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-link:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 .freshness {
   display: inline-flex;
   align-items: center;
@@ -1032,6 +1052,48 @@ html[data-ground='night'] .ask-send {
   text-decoration: none;
 }
 
+/* ---------- The apps ---------- */
+
+.apps {
+  padding: 0 0 24px;
+  border-top: 2px solid var(--rule);
+}
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  padding-top: 14px;
+}
+.app-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 2px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+}
+.app-tile-k {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.app-tile-h {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.app-tile-h .chev {
+  color: var(--accent);
+}
+.app-tile-d {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink2);
+}
+
 /* ---------- Weekend outlook + surf ---------- */
 
 .weekend {
@@ -1424,6 +1486,14 @@ html[data-ground='night'] .ask-send {
   .brand-sub,
   .phase-name {
     display: none;
+  }
+  .app-link {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+  .apps-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .clock {
     font-size: 15px;

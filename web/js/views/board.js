@@ -53,6 +53,7 @@ export function createBoardView(store) {
         </div>
         <span class="brand-sub">Volusia County, FL</span>
         <div class="topbar-right">
+          <a class="app-link" href="https://apps.apple.com/us/app/volusia-beach-info/id6761724123" rel="noopener">Get the app <span class="chev">›</span></a>
           <span class="freshness" id="freshness"><span class="dot"></span><span id="freshness-text">Live</span></span>
           <span class="phase-name" id="phase-name"></span>
           <span class="clock tabular" id="board-clock"></span>
@@ -122,6 +123,25 @@ export function createBoardView(store) {
       </section>
 
       <section class="ask" id="ask-section"></section>
+
+      <section class="apps" id="apps-section">
+        <div class="section-head">
+          <span class="kicker">On your phone and TV</span>
+          <span class="section-note">Free on the App Store</span>
+        </div>
+        <div class="apps-grid">
+          <a class="app-tile hover-accent" href="https://apps.apple.com/us/app/volusia-beach-info/id6761724123" rel="noopener">
+            <span class="app-tile-k">iPhone &amp; iPad</span>
+            <span class="app-tile-h">Volusia Beach Info <span class="chev">›</span></span>
+            <span class="app-tile-d">The board in your pocket: Home Screen widgets, the live cam sideways, and Ask by voice — one tap from a widget.</span>
+          </a>
+          <a class="app-tile hover-accent" href="https://apps.apple.com/us/app/volusia-beach-info/id6761724123?platform=appleTV" rel="noopener">
+            <span class="app-tile-k">Apple TV</span>
+            <span class="app-tile-h">Volusia Beach Info for TV <span class="chev">›</span></span>
+            <span class="app-tile-d">The panoramic cam and the ledger across the room, with the week's outlook and Ask on the remote.</span>
+          </a>
+        </div>
+      </section>
 
       <section class="cam" id="cam-section" hidden>
         <div class="section-head">
