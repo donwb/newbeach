@@ -284,12 +284,6 @@
  },
  {
   "group": "B",
-  "q": "what about tomorrow?",
-  "context_city": "nsb",
-  "want": []
- },
- {
-  "group": "B",
   "q": "was Flagler closed this morning?",
   "context_city": "nsb",
   "want": []
@@ -311,6 +305,19 @@
   "q": "are there sharks at NSB today?",
   "context_city": "",
   "want": []
+ },
+ {
+  "group": "C",
+  "q": "what about tomorrow?",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-11T14:00:00"
+   }
+  ],
+  "model_ok": true
  },
  {
   "group": "C",
@@ -643,6 +650,7 @@
     "kind": "ramp_now",
     "access_id": "NS-110"
    }
-  ]
+  ],
+  "model_ok": true
  }
 ]

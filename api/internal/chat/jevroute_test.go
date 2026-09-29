@@ -65,7 +65,7 @@ func (f *fakeJev) calls() int {
 }
 
 func choiceAnswer(choice string, conf float64) map[string]any {
-	return map[string]any{"type": "choice", "choice": choice, "confidence": conf, "probabilities": map[string]float64{choice: conf}}
+	return map[string]any{"type": "choice", "choice": choice, "confidence": conf, "probabilities": map[string]float64{choice: conf, "_other": 1 - conf}}
 }
 
 func noulAnswer(p float64) map[string]any {
@@ -75,7 +75,7 @@ func noulAnswer(p float64) map[string]any {
 // routeAnswers is a full, confident answer set; tests override fields.
 func routeAnswers(over map[string]any) map[string]any {
 	a := map[string]any{
-		"intent":   choiceAnswer(intentCity, 0.95),
+		"intent":   choiceAnswer(intentStatus, 0.95),
 		"city":     choiceAnswer("new_smyrna_beach", 0.95),
 		"ramp":     choiceAnswer(noneNamed, 0.95),
 		"day":      choiceAnswer("today", 0.95),
@@ -101,8 +101,8 @@ func TestAssemblePlan(t *testing.T) {
 		if tr.CityConf == 0 {
 			tr.CityConf = 0.9
 		}
-		if tr.RampConf == 0 {
-			tr.RampConf = 0.9
+		if tr.RampProb == 0 {
+			tr.RampProb, tr.RampMargin = 0.9, 0.8
 		}
 		if tr.DayConf == 0 {
 			tr.DayConf = 0.9
@@ -124,39 +124,39 @@ func TestAssemblePlan(t *testing.T) {
 		want    quickPlan
 		reason  string
 	}{
-		{"city now", conf(routeTrace{Intent: intentCity, City: "new_smyrna_beach", Day: "today", Daypart: "now"}), "",
+		{"city now", conf(routeTrace{Intent: intentStatus, City: "new_smyrna_beach", Day: "today", Daypart: "now"}), "",
 			quickPlan{Kind: planCityNow, City: "NEW SMYRNA BEACH"}, ""},
-		{"board city fills in", conf(routeTrace{Intent: intentCity, City: noneNamed, Day: "today", Daypart: "now"}), "nsb",
+		{"board city fills in", conf(routeTrace{Intent: intentStatus, City: noneNamed, Day: "today", Daypart: "now"}), "nsb",
 			quickPlan{Kind: planCityNow, City: "NEW SMYRNA BEACH"}, ""},
-		{"no city anywhere", conf(routeTrace{Intent: intentCity, City: noneNamed, Day: "today", Daypart: "now"}), "",
+		{"no city anywhere", conf(routeTrace{Intent: intentStatus, City: noneNamed, Day: "today", Daypart: "now"}), "",
 			quickPlan{}, "no city named and no board city"},
-		{"this afternoon", conf(routeTrace{Intent: intentCity, City: "daytona_beach", Day: "today", Daypart: "afternoon"}), "",
+		{"this afternoon", conf(routeTrace{Intent: intentStatus, City: "daytona_beach", Day: "today", Daypart: "afternoon"}), "",
 			quickPlan{Kind: planCityAt, City: "DAYTONA BEACH", At: e(10, 14, 0)}, ""},
-		{"tomorrow morning", conf(routeTrace{Intent: intentCity, City: "ormond_beach", Day: "tomorrow", Daypart: "morning"}), "",
+		{"tomorrow morning", conf(routeTrace{Intent: intentStatus, City: "ormond_beach", Day: "tomorrow", Daypart: "morning"}), "",
 			quickPlan{Kind: planCityAt, City: "ORMOND BEACH", At: e(11, 10, 0)}, ""},
-		{"bare tomorrow is the afternoon", conf(routeTrace{Intent: intentCity, City: "ormond_beach", Day: "tomorrow", Daypart: "now"}), "",
+		{"bare tomorrow is the afternoon", conf(routeTrace{Intent: intentStatus, City: "ormond_beach", Day: "tomorrow", Daypart: "now"}), "",
 			quickPlan{Kind: planCityAt, City: "ORMOND BEACH", At: e(11, 14, 0)}, ""},
-		{"saturday at 2 means 2pm", conf(routeTrace{Intent: intentCity, City: "daytona_beach", Day: "saturday", Daypart: "clock_time", Hour: "2", Minute: "00", Meridiem: "unstated"}), "",
+		{"saturday at 2 means 2pm", conf(routeTrace{Intent: intentStatus, City: "daytona_beach", Day: "saturday", Daypart: "clock_time", Hour: "2", Minute: "00", Meridiem: "unstated"}), "",
 			quickPlan{Kind: planCityAt, City: "DAYTONA BEACH", At: e(13, 14, 0)}, ""},
-		{"saturday 2:30pm", conf(routeTrace{Intent: intentCity, City: "daytona_beach", Day: "saturday", Daypart: "clock_time", Hour: "2", Minute: "30", Meridiem: "pm"}), "",
+		{"saturday 2:30pm", conf(routeTrace{Intent: intentStatus, City: "daytona_beach", Day: "saturday", Daypart: "clock_time", Hour: "2", Minute: "30", Meridiem: "pm"}), "",
 			quickPlan{Kind: planCityAt, City: "DAYTONA BEACH", At: e(13, 14, 30)}, ""},
-		{"sat 10am", conf(routeTrace{Intent: intentCity, City: "daytona_beach", Day: "saturday", Daypart: "clock_time", Hour: "10", Minute: "none", Meridiem: "am"}), "",
+		{"sat 10am", conf(routeTrace{Intent: intentStatus, City: "daytona_beach", Day: "saturday", Daypart: "clock_time", Hour: "10", Minute: "none", Meridiem: "am"}), "",
 			quickPlan{Kind: planCityAt, City: "DAYTONA BEACH", At: e(13, 10, 0)}, ""},
-		{"friday noon", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "friday", Daypart: "midday"}), "",
+		{"friday noon", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "friday", Daypart: "midday"}), "",
 			quickPlan{Kind: planCityAt, City: "PONCE INLET", At: e(12, 12, 0)}, ""},
-		{"12am is midnight", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "friday", Daypart: "clock_time", Hour: "12", Minute: "00", Meridiem: "am"}), "",
+		{"12am is midnight", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "friday", Daypart: "clock_time", Hour: "12", Minute: "00", Meridiem: "am"}), "",
 			quickPlan{Kind: planCityAt, City: "PONCE INLET", At: e(12, 0, 0)}, ""},
-		{"today at 8am is already past", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "8", Minute: "00", Meridiem: "am"}), "",
+		{"today at 8am is already past", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "8", Minute: "00", Meridiem: "am"}), "",
 			quickPlan{}, "instant already past"},
-		{"today at 5 is 5pm", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "5", Minute: "00", Meridiem: "unstated"}), "",
+		{"today at 5 is 5pm", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "5", Minute: "00", Meridiem: "unstated"}), "",
 			quickPlan{Kind: planCityAt, City: "PONCE INLET", At: e(10, 17, 0)}, ""},
-		{"wednesday on a wednesday is ambiguous", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "wednesday", Daypart: "now"}), "",
+		{"wednesday on a wednesday is ambiguous", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "wednesday", Daypart: "now"}), "",
 			quickPlan{}, "named weekday is today: ambiguous"},
-		{"next week is other", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "other", Daypart: "now"}), "",
+		{"next week is other", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "other", Daypart: "now"}), "",
 			quickPlan{}, "day is other"},
-		{"later is other daypart", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "today", Daypart: "other"}), "",
+		{"later is other daypart", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "today", Daypart: "other"}), "",
 			quickPlan{}, "daypart other"},
-		{"odd minutes go to the model", conf(routeTrace{Intent: intentCity, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "3", Minute: "other", Meridiem: "pm"}), "",
+		{"odd minutes go to the model", conf(routeTrace{Intent: intentStatus, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "3", Minute: "other", Meridiem: "pm"}), "",
 			quickPlan{}, "odd minutes"},
 		{"best day", conf(routeTrace{Intent: intentBestDay}), "",
 			quickPlan{Kind: planWeekend}, ""},
@@ -164,19 +164,25 @@ func TestAssemblePlan(t *testing.T) {
 			quickPlan{}, "intent past"},
 		{"other", conf(routeTrace{Intent: intentOther}), "",
 			quickPlan{}, "intent other"},
-		{"low intent confidence", routeTrace{Intent: intentCity, IntentConf: 0.5, CityConf: 0.9, DayConf: 0.9, DaypartConf: 0.9, City: "ponce_inlet", Day: "today", Daypart: "now"}, "",
-			quickPlan{}, "intent city_status below floor (0.50)"},
-		{"low city confidence", routeTrace{Intent: intentCity, IntentConf: 0.9, CityConf: 0.4, DayConf: 0.9, DaypartConf: 0.9, City: "ponce_inlet", Day: "today", Daypart: "now"}, "",
+		{"low intent confidence", routeTrace{Intent: intentStatus, IntentConf: 0.5, CityConf: 0.9, DayConf: 0.9, DaypartConf: 0.9, City: "ponce_inlet", Day: "today", Daypart: "now"}, "",
+			quickPlan{}, "intent open_or_closed below floor (0.50)"},
+		{"low city confidence", routeTrace{Intent: intentStatus, IntentConf: 0.9, CityConf: 0.4, DayConf: 0.9, DaypartConf: 0.9, City: "ponce_inlet", Ramp: noneNamed, Day: "today", Daypart: "now"}, "",
 			quickPlan{}, "city ponce_inlet below floor (0.40)"},
-		{"low hour confidence", routeTrace{Intent: intentCity, IntentConf: 0.9, CityConf: 0.9, DayConf: 0.9, DaypartConf: 0.9, HourConf: 0.3, City: "ponce_inlet", Day: "today", Daypart: "clock_time", Hour: "3", Minute: "00"}, "",
+		{"low hour confidence", routeTrace{Intent: intentStatus, IntentConf: 0.9, CityConf: 0.9, DayConf: 0.9, DaypartConf: 0.9, HourConf: 0.3, City: "ponce_inlet", Ramp: noneNamed, Day: "today", Daypart: "clock_time", Hour: "3", Minute: "00"}, "",
 			quickPlan{}, "hour 3 below floor (0.30)"},
-		{"ramp now", conf(routeTrace{Intent: intentRamp, Ramp: "NS-110", Day: "today", Daypart: "now"}), "",
+		{"ramp now", conf(routeTrace{Intent: intentStatus, Ramp: "NS-110", Day: "today", Daypart: "now"}), "",
 			quickPlan{Kind: planRampNow, City: "NEW SMYRNA BEACH", AccessID: "NS-110"}, ""},
-		{"ramp friday at 2pm", conf(routeTrace{Intent: intentRamp, Ramp: "NS-110", Day: "friday", Daypart: "clock_time", Hour: "2", Minute: "00", Meridiem: "pm"}), "",
+		{"ramp friday at 2pm", conf(routeTrace{Intent: intentStatus, Ramp: "NS-110", Day: "friday", Daypart: "clock_time", Hour: "2", Minute: "00", Meridiem: "pm"}), "",
 			quickPlan{Kind: planRampAt, City: "NEW SMYRNA BEACH", AccessID: "NS-110", At: e(12, 14, 0)}, ""},
-		{"ramp intent but none named", conf(routeTrace{Intent: intentRamp, Ramp: noneNamed, Day: "today", Daypart: "now"}), "",
-			quickPlan{}, "ramp question names no ramp"},
-		{"ramp not in roster", conf(routeTrace{Intent: intentRamp, Ramp: "ZZ-1", Day: "today", Daypart: "now"}), "",
+		{"no ramp named falls to the city", conf(routeTrace{Intent: intentStatus, Ramp: noneNamed, City: "ormond_beach", Day: "today", Daypart: "now"}), "",
+			quickPlan{Kind: planCityNow, City: "ORMOND BEACH"}, ""},
+		{"unstated day is today", conf(routeTrace{Intent: intentStatus, City: "ormond_beach", Day: "unstated", Daypart: "now"}), "",
+			quickPlan{Kind: planCityNow, City: "ORMOND BEACH"}, ""},
+		{"unstated day with an evening", conf(routeTrace{Intent: intentStatus, City: "ormond_beach", Day: "unstated", Daypart: "evening"}), "",
+			quickPlan{Kind: planCityAt, City: "ORMOND BEACH", At: e(10, 18, 0)}, ""},
+		{"ramp unclear goes to the model", routeTrace{Intent: intentStatus, IntentConf: 0.9, RampProb: 0.45, RampMargin: 0.1, DayConf: 0.9, DaypartConf: 0.9, Ramp: "NS-110", Day: "today", Daypart: "now"}, "",
+			quickPlan{}, "ramp NS-110 unclear (p 0.45, margin 0.10)"},
+		{"ramp not in roster", conf(routeTrace{Intent: intentStatus, Ramp: "ZZ-1", Day: "today", Daypart: "now"}), "",
 			quickPlan{}, "ramp ZZ-1 not in roster"},
 	}
 	for _, tt := range tests {
@@ -200,6 +206,7 @@ func TestRouteQuestionsShape(t *testing.T) {
 	assert.Contains(t, ramp, "NS-110")
 	assert.Contains(t, ramp, noneNamed)
 	assert.Equal(t, "Flagler Ave (New Smyrna Beach)", ramp["NS-110"])
+	assert.Equal(t, "3rd Ave (New Smyrna Beach) — also 'Third Ave' or '3rd'", ramp["NS-118"])
 
 	// No roster → no ramp question, and a ramp intent falls to the model.
 	assert.NotContains(t, routeQuestions(nil), "ramp")
@@ -221,18 +228,18 @@ func TestRouterOnModeAnswersFromJev(t *testing.T) {
 	assert.Equal(t, "city_now", resp.Sources[0].Kind)
 	assert.Equal(t, 1, api.calls())
 
-	// The state carries the question and the weekday, and no board city.
+	// The state is the question alone: no board city, no weekday — code
+	// applies the context fallback and the calendar.
 	req := api.requests[0]
 	state := req["state"].(map[string]any)
 	assert.Equal(t, q, state["question"])
-	assert.Equal(t, "Wednesday", state["today_weekday"])
-	assert.NotContains(t, state, "board_city")
+	assert.Len(t, state, 1)
 	assert.Equal(t, "jev-test", req["model"])
 }
 
 func TestRouterOnModeRampAt(t *testing.T) {
 	api := newFakeJev(t, routeAnswers(map[string]any{
-		"intent":   choiceAnswer(intentRamp, 0.9),
+		"intent":   choiceAnswer(intentStatus, 0.9),
 		"ramp":     choiceAnswer("NS-110", 0.9),
 		"day":      choiceAnswer("friday", 0.9),
 		"daypart":  choiceAnswer("clock_time", 0.9),
@@ -249,7 +256,7 @@ func TestRouterOnModeRampAt(t *testing.T) {
 
 func TestRouterOnModeRampNow(t *testing.T) {
 	api := newFakeJev(t, routeAnswers(map[string]any{
-		"intent": choiceAnswer(intentRamp, 0.9),
+		"intent": choiceAnswer(intentStatus, 0.9),
 		"ramp":   choiceAnswer("NS-110", 0.9),
 	}))
 	router := NewRouter(api.client(), ModeOn)
@@ -260,7 +267,7 @@ func TestRouterOnModeRampNow(t *testing.T) {
 }
 
 func TestRouterOnModeLowConfidenceGoesToModel(t *testing.T) {
-	api := newFakeJev(t, routeAnswers(map[string]any{"intent": choiceAnswer(intentCity, 0.4)}))
+	api := newFakeJev(t, routeAnswers(map[string]any{"intent": choiceAnswer(intentStatus, 0.4)}))
 	router := NewRouter(api.client(), ModeOn)
 	_, ok := router.Route(context.Background(), defaultFake(), "can I get on the beach in NSB right now", "")
 	assert.False(t, ok, "Jev decides in on mode, even where the pattern router would have answered")

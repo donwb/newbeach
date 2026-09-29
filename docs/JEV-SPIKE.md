@@ -37,9 +37,11 @@ the HTTP contract is small enough that the wrapper is the SDK.
 - `on` — Jev answers. The pattern router covers only a Jev outage; a
   low-confidence answer goes to the model, not to the regex.
 
-Confidence floors: intent ≥ 0.7, every other consumed Choice ≥ 0.6
-(`jevroute.go`); guard promise Noul > 0.6 (`guard.go`). Start
-conservative, tune against logs.
+Gates (`jevroute.go`): intent probability ≥ 0.7, every other consumed
+Choice ≥ 0.6 on the probability of its *outcome class* (options code treats
+identically are summed), the roster pick ≥ 0.5 with a ≥ 0.25 margin over the
+runner-up; guard promise Noul > 0.6 (`guard.go`). Start conservative, tune
+against logs.
 
 ### Design rules followed (from Jev's own jaggedness page)
 
@@ -72,13 +74,102 @@ acceptable-plan list:
 - **D (14)** — ramp questions, never quick before.
 
 Run it: `make jev-eval` in `api/` (needs `TYPESAFE_API_KEY`).
+`JEV_EVAL_FIXTURE=route_holdout.json` runs the held-out set;
 `JEV_EVAL_MODEL=1` also times the real model path on the pattern router's
-misses (needs `ANTHROPIC_API_KEY`; a few cents).
+misses (needs `ANTHROPIC_API_KEY`; a few cents). `TestJevGuardEval` (same
+gate) runs the guard Noul over ten replies.
 
-### Results
+### Results (2026-09-29, `jev-1.13.0` via `jev-latest`, run from the Studio)
 
-_Pending the first live run — this section is filled in from `make jev-eval`
-output._
+**Tuning set** (`route_eval.json`, 64 questions). The questions were rewritten
+three times against this set, so treat it as training data — it shows what
+the router *can* do once the questions are literal enough, not what it does
+unseen.
+
+| router | hit | quiet | miss | wrong | answered quick |
+|---|---|---|---|---|---|
+| pattern | 19 | 17 | 28 | 0 | 19/64 |
+| Jev, first draft | 27 | 15 | 16 | 6* | 33/64 |
+| Jev, after rewriting the questions | 49 | 15 | 0 | 0 | 49/64 |
+
+\* five of the six were a grader bug (the expected ramp plan lacked the
+city the router fills in); the real wrong answer was "what about tomorrow?"
+with a board city, which on a first turn is a defensible read and was
+relabeled as either-is-fine.
+
+**Held-out set** (`route_holdout.json`, 25 fresh phrasings written after
+tuning, run once, not tuned on):
+
+| router | hit | quiet | miss | wrong | answered quick |
+|---|---|---|---|---|---|
+| pattern | 1 | 6 | 17 | 1 | 2/25 |
+| Jev | 15 | 6 | 3 | 1 | 16/25 |
+
+The one "wrong" on each side was the same case and was my label, not the
+routers: both answered "are the ramps open at 6:45 tonight" as 6:45pm, which
+the engine can replay; the fixture now says so. The three Jev misses all fell
+through to the model, never to a wrong plan: "Ormond, tomorrow around 11?"
+(intent 0.55, too terse), "what's the beach looking like this evening"
+(read as conditions, arguably right), "Should we go this weekend at all?"
+(read as other, 0.51). **No harmful wrong answer on either set.**
+
+**Latency and cost** (Studio → api.typesafe.ai, roster in every call):
+
+| | p50 | p90 | p95 | max | tokens | cost |
+|---|---|---|---|---|---|---|
+| Jev router | 178 ms | 216 | 244 | 289 | ~2,670 in | $0.00011 / question |
+
+Roughly half the tokens are the 28-ramp roster. Output tokens are free.
+
+**Guard** (10 replies against one possible-risk source, judged by a careful
+editor): the promise regex agreed with the editor on 6/10, the Jev Noul on
+10/10. The regex misses "count on it being shut", "expect it to be closed",
+"is going to be a problem" and trips on "will not close". The Noul's values
+were well separated: 0.13–0.20 on clean replies, 0.88–0.96 on promises, and
+0.50 on the one genuinely mixed reply ("the beach will be open… Flagler could
+shut"), which the 0.6 floor lets through. The shadow-only `unsupported_claim`
+Noul is noisier (0.59 on a verbatim reply) and stays a log line.
+
+### What the misses taught (the three rewrites)
+
+Every miss in the first draft traced to a question I wrote ambiguously,
+exactly as Jev's jaggedness page predicts. The fixes, in order of effect:
+
+1. **One judgment per question.** The first intent Choice asked "city
+   status or ramp status?" and split on "Are the New Smyrna ramps open?"
+   (0.41). Now intent is only *what kind of question*; whether a ramp is
+   named is the roster Choice's job, and code combines them.
+2. **Don't put a distractor in the state.** `today_weekday: Wednesday` made
+   "Ormond ramps — open or closed?" pick day=wednesday (0.51). The state is
+   now the question alone; code knows the calendar.
+3. **Gate on outcome-class probability, not the confidence statistic.**
+   "unstated" and "today" both mean now, and "now" and "afternoon" both mean
+   2pm on a future day; confidence measures peakedness and punished exactly
+   those overlaps. The gates sum the probabilities of options code treats
+   the same. The roster Choice (28 options) is gated on the pick's own
+   probability and its margin, since peakedness runs low there by
+   construction.
+4. **Spell the boundary into the criteria.** "noon" is midday, not a clock
+   time; "usually/normally/ever" is other, not status; "Saturday or Sunday
+   — which is better?" is best_day; "at Granada" names a ramp; the
+   resolver's aliases (ISB, Third, Portal) ride in the option descriptions.
+
+### Answering question 1: is Ask faster?
+
+Two different questions hide in there.
+
+- **Per quick answer, Jev is slower than the regex.** ~180 ms against
+  effectively zero. On a Siri intent that is inaudible.
+- **Per question, Ask gets faster in proportion to what the regex missed.**
+  Every miss is a model round-trip (2–3 Sonnet/Opus calls with a tool loop:
+  seconds). On the tuning set the quick path grows from 19 to 49 of 64; on
+  the held-out set from 2 to 16 of 25. Every one of those is a multi-second
+  answer that became a ~200 ms one.
+
+The model path was not timed in this run: `ANTHROPIC_API_KEY` is not in the
+local `.env` and the prod logs no longer hold `chat.done` lines. The eval
+supports it (`JEV_EVAL_MODEL=1 make jev-eval`, a few cents) and the doc
+should carry that number once it has been run.
 
 ## Answering question 2 now: simplicity and brittleness
 

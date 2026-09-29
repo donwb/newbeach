@@ -1,0 +1,256 @@
+[
+ {
+  "group": "H",
+  "q": "Is New Smyrna drivable at the moment?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "NEW SMYRNA BEACH"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "are cars allowed on the beach in Daytona Shores today",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "DAYTONA BEACH SHORES"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Ormond, tomorrow around 11?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "ORMOND BEACH",
+    "at": "2026-06-11T11:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Any ramps shut in Ponce right now?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_now",
+    "city": "PONCE INLET"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Think we can get the truck on at NSB Sunday morning?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-14T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "what's the beach looking like this evening",
+  "context_city": "daytona",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH",
+    "at": "2026-06-10T18:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Monday at 1?",
+  "context_city": "ormond",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "ORMOND BEACH",
+    "at": "2026-06-15T13:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Is Seabreeze open?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "DB-051"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Crawford Road ramp tomorrow at 3:30?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "NS-108",
+    "at": "2026-06-11T15:30:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "can I drive on at Dunlawton Saturday afternoon",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "DBS-078",
+    "at": "2026-06-13T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Will Williams Ave be open Friday morning?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "DB-042",
+    "at": "2026-06-12T10:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Harvard Dr tonight?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_at",
+    "access_id": "OB-038",
+    "at": "2026-06-10T18:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Minerva open right now?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "ramp_now",
+    "access_id": "DBS-069"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Which is the better beach day, Saturday or Sunday?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "Should we go this weekend at all?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "When's the best time to go this week?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "weekend"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "what was the beach like last Saturday?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "H",
+  "q": "how warm is the water?",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "H",
+  "q": "are the ramps ever closed for turtles?",
+  "context_city": "",
+  "want": []
+ },
+ {
+  "group": "H",
+  "q": "tell me about the tides tomorrow",
+  "context_city": "nsb",
+  "want": []
+ },
+ {
+  "group": "H",
+  "q": "Does Ormond usually close at high tide?",
+  "context_city": "",
+  "want": []
+ },
+ {
+  "group": "H",
+  "q": "is the beach open at 7am tomorrow",
+  "context_city": "nsb",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "NEW SMYRNA BEACH",
+    "at": "2026-06-11T07:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "are the ramps open at 6:45 tonight",
+  "context_city": "daytona",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH",
+    "at": "2026-06-10T18:45:00"
+   }
+  ],
+  "note": "first run labeled this 'model' (odd minutes); both routers answered 6:45pm, which the engine can replay \u2014 the label was wrong, not the routers"
+ },
+ {
+  "group": "H",
+  "q": "open in the shores next tuesday?",
+  "context_city": "",
+  "want": [
+   {
+    "kind": "city_at",
+    "city": "DAYTONA BEACH SHORES",
+    "at": "2026-06-16T14:00:00"
+   }
+  ]
+ },
+ {
+  "group": "H",
+  "q": "thanks!",
+  "context_city": "nsb",
+  "want": []
+ }
+]

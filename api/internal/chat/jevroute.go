@@ -23,23 +23,37 @@ import (
 // question goes to the model, as the pattern router does on any doubt.
 
 const (
-	// routeIntentFloor is the confidence the intent Choice must reach.
+	// The gates read probability, not Jev's confidence statistic: the
+	// probability of the chosen outcome *as code will treat it*, summing
+	// options that lead to the same plan (day "today" and "unstated" both
+	// mean now). Confidence measures peakedness, which punishes exactly
+	// the overlaps code doesn't care about.
+	//
+	// routeIntentFloor is what the intent's probability must reach.
 	// Conservative to start; the eval (make jev-eval) reports how the
 	// fixture behaves as it moves.
 	routeIntentFloor = 0.7
 	// routePartFloor applies to every other consumed Choice.
 	routePartFloor = 0.6
 
-	intentCity    = "city_status"
-	intentRamp    = "ramp_status"
+	intentStatus  = "open_or_closed"
 	intentBestDay = "best_day"
 	intentPast    = "past"
 	intentOther   = "other"
 
+	// The roster Choice has ~28 options, where the confidence statistic
+	// (how peaked the distribution is) runs low even for a clear pick, so
+	// it is gated on the chosen option's own probability and its margin
+	// over the runner-up instead.
+	rampMinProb   = 0.5
+	rampMinMargin = 0.25
+
 	noneNamed = "none_named"
 )
 
-// routeTrace is what the Jev router saw, for logs and the eval.
+// routeTrace is what the Jev router saw, for logs and the eval. The
+// *Conf fields hold the probability of the chosen outcome class (see the
+// gate constants), not Jev's confidence statistic.
 type routeTrace struct {
 	Intent      string
 	IntentConf  float64
@@ -47,6 +61,8 @@ type routeTrace struct {
 	CityConf    float64
 	Ramp        string
 	RampConf    float64
+	RampProb    float64 // the chosen option's own probability
+	RampMargin  float64 // over the runner-up
 	Day         string
 	DayConf     float64
 	Daypart     string
@@ -72,6 +88,18 @@ var cityOptions = []struct{ key, gis, desc string }{
 	{"ormond_beach", "ORMOND BEACH", "Ormond Beach — also 'Ormond'"},
 }
 
+// rampAliases are the spoken forms the resolver's alias table knows,
+// spelled into the option descriptions so Jev can match them.
+var rampAliases = map[string]string{
+	"DB-059":  "'ISB' or 'Speedway'",
+	"NS-118":  "'Third Ave' or '3rd'",
+	"NS-141":  "'Twenty-seventh' or '27th'",
+	"DBS-076": "'Portal'",
+	"DBS-067": "'Botefur'",
+	"OB-034":  "'Rockerfeller'",
+	"PI-097":  "'Beach Street in Ponce'",
+}
+
 var weekdayOptions = []string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
 
 // routeQuestions builds the request. ramps may be empty (the ramp
@@ -79,16 +107,15 @@ var weekdayOptions = []string{"monday", "tuesday", "wednesday", "thursday", "fri
 func routeQuestions(ramps []models.RampStatusWithSince) map[string]jev.Question {
 	qs := map[string]jev.Question{
 		"intent": jev.Choice(
-			"What is the question asking? The app reports whether Volusia County's beach driving ramps are open or closed, right now and up to a week ahead.",
+			"What kind of question is this? The app reports whether Volusia County's beach driving ramps are open or closed, right now and up to a week ahead.",
 			map[string]any{
-				intentCity:    "Whether the beach, the ramps, or beach driving — in a named city or in general — is open, closed, or drivable, either right now or at a stated future time. No individual ramp is named.",
-				intentRamp:    "Whether one specific named ramp or beach approach is open or closed, right now or at a stated future time. Ramps are named after a street or landmark, such as Flagler, 27th Ave, Beachway, Dunlawton, Cardinal, Granada, or Silver Beach.",
-				intentBestDay: "Which day this weekend or this week is the best one for the beach, or when the person should go.",
+				intentStatus:  "Whether the beach, beach driving, the ramps, or one named ramp is open, closed, drivable, or possible to get onto — right now or at a stated future time, not in general. Includes terse forms such as 'open?', 'beach status?', or a ramp name followed by a day.",
+				intentBestDay: "Which day this weekend or this week is the best one for the beach, when the person should go, or a comparison of days ('Saturday or Sunday — which looks better?').",
 				intentPast:    "What happened before now: yesterday, last weekend, earlier today, or any past time.",
-				intentOther:   "Anything else — tides, surf, weather, water temperature, sharks, turtles, how the app works, a greeting, or a question that only makes sense as a follow-up to an earlier message.",
+				intentOther:   "Anything else — tides, surf, weather, water temperature, sharks, turtles, 4x4 rules, how the app works, a greeting, why something happened, or a general or habitual question ('usually', 'normally', 'ever', 'how often').",
 			}),
 		"city": jev.Choice(
-			"Which city does the question name? Pick none_named when the question does not name a city, even if it mentions the beach or the ramps.",
+			"Which city does the question name? A nickname counts as naming the city: 'NSB', 'Smyrna', 'the Shores', 'Daytona', 'Ormond', 'the Inlet'. Pick none_named when no city or nickname appears, even if the question mentions the beach, the ramps, or a ramp's street name.",
 			func() map[string]any {
 				m := map[string]any{noneNamed: "The question names no city."}
 				for _, c := range cityOptions {
@@ -100,7 +127,8 @@ func routeQuestions(ramps []models.RampStatusWithSince) map[string]jev.Question 
 			"Which day does the question ask about?",
 			func() map[string]any {
 				m := map[string]any{
-					"today":    "Today, right now, or no day is mentioned.",
+					"unstated": "No day is mentioned at all — the question is only about the beach, a place, or a time of day.",
+					"today":    "Today, this morning/afternoon/evening, tonight, or right now.",
 					"tomorrow": "Tomorrow.",
 					"other":    "Next week, a calendar date, a vague time such as 'later' or 'soon', or a day in the past.",
 				}
@@ -110,14 +138,14 @@ func routeQuestions(ramps []models.RampStatusWithSince) map[string]jev.Question 
 				return m
 			}()),
 		"daypart": jev.Choice(
-			"What time of day does the question ask about?",
+			"What time of day does the question ask about? If a clock time appears, pick clock_time even when the question also says morning, afternoon, or evening.",
 			map[string]any{
 				"now":        "Right now, currently, at the moment, or no time of day is mentioned at all.",
-				"morning":    "Morning, early, first thing, or sunrise.",
-				"midday":     "Noon, midday, or lunchtime.",
-				"afternoon":  "Afternoon.",
-				"evening":    "Evening, tonight, late, or sunset.",
-				"clock_time": "A clock time is given, such as 2, 2:30, 10am, or 5 o'clock.",
+				"morning":    "Morning, early, first thing, or sunrise — with no clock time given.",
+				"midday":     "The words noon, midday, or lunchtime — with no digits given.",
+				"afternoon":  "Afternoon — with no clock time given.",
+				"evening":    "Evening, tonight, late, or sunset — with no clock time given.",
+				"clock_time": "A clock time in digits is given, such as 2, 2:30, 10am, 4 in the afternoon, or 5 o'clock. The word 'noon' alone is midday, not this.",
 				"other":      "Later, earlier, or a time of day that fits none of the others.",
 			}),
 		"hour": jev.Choice(
@@ -148,12 +176,16 @@ func routeQuestions(ramps []models.RampStatusWithSince) map[string]jev.Question 
 			}),
 	}
 	if len(ramps) > 0 {
-		opts := map[string]any{noneNamed: "The question names no specific ramp — it is about a city, the beach in general, or something else."}
+		opts := map[string]any{noneNamed: "The question names no ramp: it mentions only a city, 'the beach', 'the ramps' in general, or nothing of the kind."}
 		for _, r := range ramps {
-			opts[r.AccessID] = predict.RampDisplayName(r) + " (" + models.PrettyCityName(r.City) + ")"
+			desc := predict.RampDisplayName(r) + " (" + models.PrettyCityName(r.City) + ")"
+			if alias, ok := rampAliases[r.AccessID]; ok {
+				desc += " — also " + alias
+			}
+			opts[r.AccessID] = desc
 		}
 		qs["ramp"] = jev.Choice(
-			"Which ramp or beach approach does the question name? Ramps are named by a street or landmark; the options list every ramp with its city. Pick none_named when no specific ramp is named.",
+			"Which ramp does the question name? A ramp is named by its street or landmark, with or without the words 'ramp', 'approach', 'Ave', or 'Blvd', and often after 'at' or 'on' — 'Flagler', 'the Dunlawton ramp', 'Silver Beach', 'Cardinal in Ormond', 'get on at Granada'. The options list every ramp with its city. Pick none_named only when no ramp's name appears.",
 			opts)
 	}
 	return qs
@@ -170,11 +202,7 @@ func jevRoute(ctx context.Context, client *jev.Client, question, contextCity str
 		tr.Reason = "empty or too long"
 		return quickPlan{}, tr, false
 	}
-	et := now.In(eastern)
-	state := map[string]any{
-		"question":      q,
-		"today_weekday": et.Weekday().String(),
-	}
+	state := map[string]any{"question": q}
 	res, err := client.Ask(ctx, state, routeQuestions(ramps))
 	if err != nil {
 		tr.Err = err.Error()
@@ -183,12 +211,21 @@ func jevRoute(ctx context.Context, client *jev.Client, question, contextCity str
 	tr.Latency = res.Latency
 	tr.InputTokens = res.Usage.InputTokens
 	tr.Model = res.Model
-	tr.Intent, tr.IntentConf = res.Choice("intent")
-	tr.City, tr.CityConf = res.Choice("city")
-	tr.Ramp, tr.RampConf = res.Choice("ramp")
-	tr.Day, tr.DayConf = res.Choice("day")
-	tr.Daypart, tr.DaypartConf = res.Choice("daypart")
-	tr.Hour, tr.HourConf = res.Choice("hour")
+	tr.Intent, tr.IntentConf = classProb(res, "intent", nil)
+	tr.City, tr.CityConf = classProb(res, "city", nil)
+	tr.Ramp, _ = res.Choice("ramp")
+	tr.RampConf = tr.RampProb
+	tr.RampProb, tr.RampMargin = topMargin(res, "ramp")
+	tr.RampConf = tr.RampProb
+	tr.Day, tr.DayConf = classProb(res, "day", map[string]string{"unstated": "today"})
+	// A future day with no time of day means the afternoon, so "now" and
+	// "afternoon" are one outcome there.
+	var daypartSame map[string]string
+	if tr.Day != "today" && tr.Day != "unstated" {
+		daypartSame = map[string]string{"afternoon": "now"}
+	}
+	tr.Daypart, tr.DaypartConf = classProb(res, "daypart", daypartSame)
+	tr.Hour, tr.HourConf = classProb(res, "hour", nil)
 	tr.Minute, _ = res.Choice("minute")
 	tr.Meridiem, _ = res.Choice("meridiem")
 
@@ -210,7 +247,7 @@ func assemblePlan(tr routeTrace, contextCity string, now time.Time, ramps []mode
 		return quickPlan{Kind: planWeekend}, ""
 	case intentPast, intentOther:
 		return quickPlan{}, "intent " + tr.Intent
-	case intentCity, intentRamp:
+	case intentStatus:
 	default:
 		return quickPlan{}, "unknown intent " + tr.Intent
 	}
@@ -221,16 +258,10 @@ func assemblePlan(tr routeTrace, contextCity string, now time.Time, ramps []mode
 		return quickPlan{}, reason
 	}
 
-	// Who: a ramp, or a city.
-	if tr.Intent == intentRamp {
-		if tr.Ramp == "" {
-			return quickPlan{}, "ramp question but no roster"
-		}
-		if tr.RampConf < routePartFloor {
-			return quickPlan{}, fmt.Sprintf("ramp %s below floor (%.2f)", tr.Ramp, tr.RampConf)
-		}
-		if tr.Ramp == noneNamed {
-			return quickPlan{}, "ramp question names no ramp"
+	// Who: a ramp when one is named clearly, else a city.
+	if tr.Ramp != "" && tr.Ramp != noneNamed {
+		if tr.RampProb < rampMinProb || tr.RampMargin < rampMinMargin {
+			return quickPlan{}, fmt.Sprintf("ramp %s unclear (p %.2f, margin %.2f)", tr.Ramp, tr.RampProb, tr.RampMargin)
 		}
 		city := ""
 		for _, r := range ramps {
@@ -286,7 +317,7 @@ func whenFromParts(tr routeTrace, now time.Time) (at time.Time, isNow bool, reas
 	et := now.In(eastern)
 	day := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern)
 	switch tr.Day {
-	case "today":
+	case "today", "unstated":
 	case "tomorrow":
 		day = day.AddDate(0, 0, 1)
 	case "other":
@@ -303,7 +334,7 @@ func whenFromParts(tr routeTrace, now time.Time) (at time.Time, isNow bool, reas
 		day = day.AddDate(0, 0, delta)
 	}
 
-	if tr.Day == "today" && tr.Daypart == "now" {
+	if (tr.Day == "today" || tr.Day == "unstated") && tr.Daypart == "now" {
 		return now, true, ""
 	}
 
@@ -358,6 +389,48 @@ func whenFromParts(tr routeTrace, now time.Time) (at time.Time, isNow bool, reas
 		return at, false, "instant already past"
 	}
 	return at, false, ""
+}
+
+// classProb returns a Choice answer's pick and the summed probability of
+// every option in the same outcome class (same maps option → class name;
+// unmapped options are their own class).
+func classProb(res *jev.Result, id string, same map[string]string) (string, float64) {
+	a, ok := res.Answers[id]
+	if !ok || a.Type != "choice" {
+		return "", 0
+	}
+	class := func(opt string) string {
+		if c, ok := same[opt]; ok {
+			return c
+		}
+		return opt
+	}
+	chosen := class(a.Choice)
+	var p float64
+	for opt, prob := range a.Probabilities {
+		if class(opt) == chosen {
+			p += prob
+		}
+	}
+	return a.Choice, p
+}
+
+// topMargin reads a Choice answer's distribution: the chosen option's
+// probability and its lead over the runner-up.
+func topMargin(res *jev.Result, id string) (top, margin float64) {
+	a, ok := res.Answers[id]
+	if !ok || a.Type != "choice" {
+		return 0, 0
+	}
+	var second float64
+	for k, p := range a.Probabilities {
+		if k == a.Choice {
+			top = p
+		} else if p > second {
+			second = p
+		}
+	}
+	return top, top - second
 }
 
 func round2(f float64) float64 { return float64(int(f*100+0.5)) / 100 }

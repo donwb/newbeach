@@ -41,11 +41,19 @@ type evalCase struct {
 	Group       string     `json:"group"`
 	Q           string     `json:"q"`
 	ContextCity string     `json:"context_city"`
-	Want        []evalPlan `json:"want"` // empty = the model should read it
+	Want        []evalPlan `json:"want"`               // empty = the model should read it
+	ModelOK     bool       `json:"model_ok,omitempty"` // falling through is also acceptable
 }
 
-func (p evalPlan) plan(t *testing.T) quickPlan {
+func (p evalPlan) plan(t *testing.T, ramps []models.RampStatusWithSince) quickPlan {
 	out := quickPlan{Kind: p.Kind, City: p.City, AccessID: p.AccessID}
+	if p.AccessID != "" && p.City == "" {
+		for _, r := range ramps {
+			if r.AccessID == p.AccessID {
+				out.City = r.City
+			}
+		}
+	}
 	if p.At != "" {
 		at, err := time.ParseInLocation("2006-01-02T15:04:05", p.At, eastern)
 		require.NoError(t, err)
@@ -55,7 +63,14 @@ func (p evalPlan) plan(t *testing.T) quickPlan {
 }
 
 func loadEval(t *testing.T) ([]evalCase, []models.RampStatusWithSince) {
-	raw, err := os.ReadFile(filepath.Join("testdata", "route_eval.json"))
+	return loadEvalFile(t, "route_eval.json")
+}
+
+// loadEvalFile reads a fixture by name. JEV_EVAL_FIXTURE selects another
+// file for the live eval — route_holdout.json is the set written after the
+// questions were tuned, run once and reported as-is.
+func loadEvalFile(t *testing.T, name string) ([]evalCase, []models.RampStatusWithSince) {
+	raw, err := os.ReadFile(filepath.Join("testdata", name))
 	require.NoError(t, err)
 	var cases []evalCase
 	require.NoError(t, json.Unmarshal(raw, &cases))
@@ -80,15 +95,15 @@ func loadEval(t *testing.T) ([]evalCase, []models.RampStatusWithSince) {
 // grade: hit (a wanted plan), miss (wanted a plan, fell through), wrong
 // (made a plan not wanted — the costly one), quiet (correctly fell
 // through).
-func grade(t *testing.T, c evalCase, plan quickPlan, ok bool) string {
+func grade(t *testing.T, c evalCase, plan quickPlan, ok bool, ramps []models.RampStatusWithSince) string {
 	if !ok {
-		if len(c.Want) == 0 {
+		if len(c.Want) == 0 || c.ModelOK {
 			return "quiet"
 		}
 		return "miss"
 	}
 	for _, w := range c.Want {
-		if w.plan(t).same(plan) {
+		if w.plan(t, ramps).same(plan) {
 			return "hit"
 		}
 	}
@@ -98,18 +113,22 @@ func grade(t *testing.T, c evalCase, plan quickPlan, ok bool) string {
 // The pattern router, pinned: every A case hits, everything else falls
 // through. Moving a case between groups is a deliberate act.
 func TestRegexRouteFixture(t *testing.T) {
-	cases, _ := loadEval(t)
+	cases, ramps := loadEval(t)
 	now := fixedNow()
 	for _, c := range cases {
 		plan, ok := regexRoute(c.Q, c.ContextCity, now)
-		g := grade(t, c, plan, ok)
+		g := grade(t, c, plan, ok, ramps)
 		switch c.Group {
 		case "A":
 			assert.Equal(t, "hit", g, "%q → %s", c.Q, plan)
 		case "B":
 			assert.Equal(t, "quiet", g, "%q → %s", c.Q, plan)
 		default:
-			assert.Equal(t, "miss", g, "%q → %s (the pattern router is not supposed to know this one; move it to group A if it now does)", c.Q, plan)
+			want := "miss"
+			if c.ModelOK {
+				want = "quiet"
+			}
+			assert.Equal(t, want, g, "%q → %s (the pattern router is not supposed to know this one; move it to group A if it now does)", c.Q, plan)
 		}
 	}
 }
@@ -127,6 +146,7 @@ type evalRow struct {
 	JevTokens  int64    `json:"jev_tokens"`
 	Intent     string   `json:"intent"`
 	IntentConf float64  `json:"intent_conf"`
+	Parts      string   `json:"parts"`
 	ModelMs    int64    `json:"model_ms,omitempty"` // the model path, when timed
 	ModelCalls int      `json:"model_calls,omitempty"`
 }
@@ -139,7 +159,11 @@ func TestJevRouteEval(t *testing.T) {
 	require.NotEmpty(t, key, "TYPESAFE_API_KEY")
 	client := jev.New(key, jev.WithModel(os.Getenv("JEV_MODEL")), jev.WithTimeout(10*time.Second))
 
-	cases, ramps := loadEval(t)
+	fixture := os.Getenv("JEV_EVAL_FIXTURE")
+	if fixture == "" {
+		fixture = "route_eval.json"
+	}
+	cases, ramps := loadEvalFile(t, fixture)
 	now := fixedNow()
 	ctx := context.Background()
 
@@ -165,13 +189,15 @@ func TestJevRouteEval(t *testing.T) {
 		require.Empty(t, tr.Err, "jev call failed on %q", c.Q)
 		row := evalRow{
 			Group: c.Group, Q: c.Q,
-			Regex: rp.String(), RegexGrade: grade(t, c, rp, rok),
-			Jev: jp.String(), JevGrade: grade(t, c, jp, jok), JevReason: tr.Reason,
+			Regex: rp.String(), RegexGrade: grade(t, c, rp, rok, ramps),
+			Jev: jp.String(), JevGrade: grade(t, c, jp, jok, ramps), JevReason: tr.Reason,
 			JevMs: tr.Latency.Milliseconds(), JevTokens: tr.InputTokens,
 			Intent: tr.Intent, IntentConf: round2(tr.IntentConf),
+			Parts: fmt.Sprintf("city %s %.2f · ramp %s p%.2f m%.2f · day %s %.2f · daypart %s %.2f · %s:%s %s",
+				tr.City, tr.CityConf, tr.Ramp, tr.RampProb, tr.RampMargin, tr.Day, tr.DayConf, tr.Daypart, tr.DaypartConf, tr.Hour, tr.Minute, tr.Meridiem),
 		}
 		for _, w := range c.Want {
-			row.Want = append(row.Want, w.plan(t).String())
+			row.Want = append(row.Want, w.plan(t, ramps).String())
 		}
 		if modelRunner != nil && !rok {
 			start := time.Now()
@@ -197,7 +223,7 @@ func TestJevRouteEval(t *testing.T) {
 
 	// Report.
 	var b strings.Builder
-	fmt.Fprintf(&b, "\n## Routing eval — %d questions, model %s, clock %s\n\n", len(cases), client.Model(), now.Format("Mon 2006-01-02 3:04pm MST"))
+	fmt.Fprintf(&b, "\n## Routing eval — %s, %d questions, model %s, clock %s\n\n", fixture, len(cases), client.Model(), now.Format("Mon 2006-01-02 3:04pm MST"))
 	fmt.Fprintf(&b, "| router | hit | quiet | miss | wrong | answered quick |\n|---|---|---|---|---|---|\n")
 	for _, r := range []string{routerRegex, routerJev} {
 		c := counts[r]
@@ -239,12 +265,18 @@ func TestJevRouteEval(t *testing.T) {
 		}
 	}
 
-	fmt.Fprintf(&b, "\n### Disagreements and errors\n\n| grp | question | want | regex | jev | conf | reason |\n|---|---|---|---|---|---|---|\n")
+	fmt.Fprintf(&b, "\n### Jev misses and wrong answers\n\n| grp | question | want | jev | intent | reason | parts |\n|---|---|---|---|---|---|---|\n")
 	for _, r := range rows {
-		if r.RegexGrade == r.JevGrade && r.JevGrade != "wrong" && r.Regex == r.Jev {
+		if r.JevGrade != "miss" && r.JevGrade != "wrong" {
 			continue
 		}
-		fmt.Fprintf(&b, "| %s | %s | %s | %s (%s) | %s (%s) | %s %.2f | %s |\n", r.Group, r.Q, strings.Join(r.Want, " / "), r.Regex, r.RegexGrade, r.Jev, r.JevGrade, r.Intent, r.IntentConf, r.JevReason)
+		fmt.Fprintf(&b, "| %s | %s | %s | %s (%s) | %s %.2f | %s | %s |\n", r.Group, r.Q, strings.Join(r.Want, " / "), r.Jev, r.JevGrade, r.Intent, r.IntentConf, r.JevReason, r.Parts)
+	}
+	fmt.Fprintf(&b, "\n### Jev hits the pattern router missed\n\n")
+	for _, r := range rows {
+		if r.JevGrade == "hit" && r.RegexGrade == "miss" {
+			fmt.Fprintf(&b, "- %s → %s\n", r.Q, r.Jev)
+		}
 	}
 	t.Log(b.String())
 	fmt.Println(b.String())
@@ -254,4 +286,55 @@ func TestJevRouteEval(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, os.WriteFile(out, raw, 0o644))
 	}
+}
+
+// TestJevGuardEval runs the guard Noul live over replies that do and do
+// not promise a closure, against one possible-risk source. Same gate as
+// the routing eval. Reported as-is in docs/JEV-SPIKE.md.
+func TestJevGuardEval(t *testing.T) {
+	if os.Getenv("JEV_EVAL") == "" {
+		t.Skip("set JEV_EVAL=1 (and TYPESAFE_API_KEY) to run the live guard eval")
+	}
+	key := os.Getenv("TYPESAFE_API_KEY")
+	require.NotEmpty(t, key)
+	client := jev.New(key, jev.WithModel(os.Getenv("JEV_MODEL")), jev.WithTimeout(10*time.Second))
+	sources := []Source{{Kind: "ramp_outlook", Name: "Flagler Ave", Risk: "possible", Reason: "high_tide",
+		Headline: "Could close around the 2:30pm high tide",
+		Detail:   "Closure possible around 2:30pm · often back open by ~4:30pm",
+		AtLabel:  "Friday ~2pm"}}
+
+	cases := []struct {
+		reply   string
+		promise bool // what a careful editor would say
+		regex   bool // what promiseRe says
+	}{
+		{"Flagler Ave could close around the 2:30pm high tide Friday. Closure possible around 2:30pm, often back open by ~4:30pm.", false, false},
+		{"Flagler will be closed Friday afternoon for the high tide.", true, true},
+		{"Count on Flagler being shut by two on Friday.", true, false},
+		{"Expect Flagler to be closed for the 2:30pm high — plan on Beachway instead.", true, false},
+		{"Flagler is likely to close around 2:30pm.", true, true},
+		{"Flagler will not close before the 2:30pm high; a closure is possible around then.", false, true},
+		{"The beach will be open Friday morning, and Flagler could shut around 2:30pm for the tide.", false, false},
+		{"Flagler's closure is possible around 2:30pm. It usually reopens by about 4:30pm.", false, false},
+		{"Friday at 2pm Flagler is going to be a problem — the tide closes it.", true, false},
+		{"No closure is expected before 2pm; it could close around the 2:30 high.", false, false},
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "\n## Guard eval — %d replies\n\n| reply | editor | regex | jev promise | jev unsupported |\n|---|---|---|---|---|\n", len(cases))
+	agreeJev, agreeRegex := 0, 0
+	for _, c := range cases {
+		problems, tr := jevCheckCopy(context.Background(), client, c.reply, sources)
+		require.Empty(t, tr.Err)
+		jev := len(problems) > 0
+		if jev == c.promise {
+			agreeJev++
+		}
+		if c.regex == c.promise {
+			agreeRegex++
+		}
+		fmt.Fprintf(&b, "| %s | %v | %v | %.2f → %v | %.2f |\n", c.reply, c.promise, c.regex, tr.Promises, jev, tr.Unsupported)
+	}
+	fmt.Fprintf(&b, "\nagreement with the editor: regex %d/%d · jev %d/%d\n", agreeRegex, len(cases), agreeJev, len(cases))
+	t.Log(b.String())
+	fmt.Println(b.String())
 }
