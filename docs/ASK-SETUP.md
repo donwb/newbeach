@@ -137,6 +137,13 @@ Three ways in, all the same endpoint:
   name ("ask Beach Info if Flagler is open") — cannot match a phrase; Siri then
   tries to search the app's data and says it "doesn't support in-app
   searching". Use the two-step form for those.
+  **Follow-ups:** once a shortcut returns its answer, whatever you say next
+  goes to Siri's own answer engine (web results, other apps) — not to us. So
+  the free-form intent keeps a clarifying exchange *inside* the shortcut
+  (`$question.requestValue`, up to two rounds) and sends the board's last
+  selected city as context so "can I get on the beach this afternoon" needs no
+  clarifying question at all. To continue a conversation, start again with
+  "Beach Info question".
   The intent runs in the background with the Keychain key; with no key stored
   it says to open the app and enter it. Phrases register when the app first
   launches after install (and `updateAppShortcutParameters()` runs at every

@@ -62,7 +62,9 @@ public final class ChatSession {
     /// name no place are about it and the suggestions are written for it.
     /// Any spelling the server's city resolver knows ("NEW SMYRNA BEACH",
     /// "New Smyrna Beach", "NSB") works.
-    public var contextCity: String?
+    public var contextCity: String? {
+        didSet { Self.rememberCity(contextCity) }
+    }
     /// The ramp on screen, when one was; questions that name no ramp are
     /// about it.
     public var contextRamp: Ramp?
@@ -75,6 +77,20 @@ public final class ChatSession {
 
     /// The server caps a transcript at 20 turns; the client trims to match.
     public static let maxTurns = 20
+
+    /// The board's selected city, remembered across launches (App Group
+    /// defaults) so a Siri question with no place in it is about the city
+    /// the person last looked at — instead of the server asking back.
+    static let rememberedCityKey = "askDefaultCity"
+
+    public static func rememberCity(_ city: String?) {
+        guard let city, !city.isEmpty else { return }
+        (SnapshotStore.sharedDefaults ?? .standard).set(city, forKey: rememberedCityKey)
+    }
+
+    public static func rememberedCity() -> String? {
+        (SnapshotStore.sharedDefaults ?? .standard).string(forKey: rememberedCityKey)
+    }
 
     public init(transport: ChatTransport = APIClient.shared,
                 keyStore: ChatKeyStore = KeychainChatKeyStore(),

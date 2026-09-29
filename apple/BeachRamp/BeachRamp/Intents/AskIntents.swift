@@ -27,26 +27,39 @@ enum BeachCity: String, AppEnum {
 
 /// Shared plumbing: the stored chat key, one request, one dialog.
 enum AskService {
+    struct Answer {
+        let dialog: IntentDialog
+        /// The server asked something back (no facts, a question mark):
+        /// the shortcut should ask the person and send their answer, or
+        /// Siri's own answer engine takes the reply once we return.
+        let isQuestion: Bool
+        let reply: String
+    }
+
+    /// The board's last selected city, when a question names no place.
+    static var defaultCity: String? { ChatSession.rememberedCity() }
+
     static func ask(_ question: String, city: BeachCity?, accessID: String? = nil) async throws -> IntentDialog {
+        try await converse([ChatTurn(role: .user, text: question)], city: city?.rawValue ?? defaultCity, accessID: accessID).dialog
+    }
+
+    static func converse(_ turns: [ChatTurn], city: String?, accessID: String? = nil) async throws -> Answer {
         guard let key = KeychainChatKeyStore().read() else {
-            return IntentDialog("Open Beach Info and enter the chat key first, then I can answer.")
+            return Answer(dialog: IntentDialog("Open Beach Info and enter the chat key first, then I can answer."), isQuestion: false, reply: "")
         }
         let context: ChatContext? = (city != nil || accessID != nil)
-            ? ChatContext(accessID: accessID, city: city?.rawValue) : nil
-        let request = ChatRequest(
-            messages: [ChatTurn(role: .user, text: question)],
-            context: context,
-            voice: true
-        )
+            ? ChatContext(accessID: accessID, city: city) : nil
+        let request = ChatRequest(messages: turns, context: context, voice: true)
         do {
             let response = try await APIClient.shared.sendChat(request, key: key)
-            return IntentDialog(stringLiteral: response.speech)
+            let isQuestion = response.sources.isEmpty && response.reply.contains("?")
+            return Answer(dialog: IntentDialog(stringLiteral: response.speech), isQuestion: isQuestion, reply: response.reply)
         } catch APIError.httpError(statusCode: 401), APIError.httpError(statusCode: 503) {
-            return IntentDialog("The chat key wasn't accepted. Open Beach Info to enter it again.")
+            return Answer(dialog: IntentDialog("The chat key wasn't accepted. Open Beach Info to enter it again."), isQuestion: false, reply: "")
         } catch APIError.httpError(statusCode: 404) {
-            return IntentDialog("Ask is switched off right now.")
+            return Answer(dialog: IntentDialog("Ask is switched off right now."), isQuestion: false, reply: "")
         } catch {
-            return IntentDialog("I couldn't reach the outlook. Try again in a moment.")
+            return Answer(dialog: IntentDialog("I couldn't reach the outlook. Try again in a moment."), isQuestion: false, reply: "")
         }
     }
 }
@@ -65,8 +78,21 @@ struct AskBeachIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let dialog = try await AskService.ask(question, city: nil)
-        return .result(dialog: dialog)
+        // When the outlook asks something back ("which city?"), ask the
+        // person through Siri and send their answer as the next turn — the
+        // exchange stays inside this shortcut. Once we return, any follow-up
+        // the person says goes to Siri's own answer engine, not to us.
+        var turns = [ChatTurn(role: .user, text: question)]
+        var answer = try await AskService.converse(turns, city: AskService.defaultCity)
+        var rounds = 0
+        while answer.isQuestion, rounds < 2 {
+            let followUp = try await $question.requestValue(answer.dialog)
+            turns.append(ChatTurn(role: .assistant, text: answer.reply))
+            turns.append(ChatTurn(role: .user, text: followUp))
+            answer = try await AskService.converse(turns, city: AskService.defaultCity)
+            rounds += 1
+        }
+        return .result(dialog: answer.dialog)
     }
 }
 
