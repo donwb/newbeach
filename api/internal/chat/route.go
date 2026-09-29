@@ -200,12 +200,15 @@ func runPlan(ctx context.Context, eng Engine, plan quickPlan, now time.Time) (*R
 // quickRampNowReply: one ramp's live status and outlook line.
 func quickRampNowReply(c *predict.CityNow, r predict.CityRampAt) string {
 	var b strings.Builder
-	b.WriteString(r.Name + " is " + strings.ToLower(predictStatusWords(r.Status)) + " right now.")
-	if r.Headline != "" {
+	status := predictStatusWords(r.Status)
+	b.WriteString(r.Name + " is " + strings.ToLower(status) + " right now.")
+	// The outlook headline for a closed ramp is the status again ("Closed
+	// for high tide"); say it once and keep the detail (the reopen read).
+	if r.Headline != "" && !strings.EqualFold(strings.TrimSuffix(r.Headline, "."), status) {
 		b.WriteString(" " + sentence(r.Headline))
-		if r.Detail != "" {
-			b.WriteString(" " + sentence(r.Detail))
-		}
+	}
+	if r.Detail != "" {
+		b.WriteString(" " + sentence(r.Detail))
 	}
 	return b.String()
 }

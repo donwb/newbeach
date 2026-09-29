@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/donwb/beach/api/internal/predict"
 )
 
 // fixedNow is Wednesday 2026-06-10 9:00am ET.
@@ -64,7 +66,7 @@ func TestTryQuickCityNow(t *testing.T) {
 		require.True(t, ok, q)
 		assert.Equal(t, "quick", resp.Model)
 		assert.Equal(t, "Four of five ramps open. Flagler Ave closed for high tide since 8:40am · often back open by ~11am.", resp.Reply, "the written reply keeps the engine glyphs")
-		assert.Equal(t, "Four of five ramps open. Flagler Ave closed for high tide since 8:40am. often back open by about 11am.", resp.Spoken)
+		assert.Equal(t, "Four of five ramps open. Flagler Ave closed for high tide since 8:40am. Often back open by about 11am.", resp.Spoken)
 		require.Len(t, resp.Sources, 1)
 		assert.Equal(t, "city_now", resp.Sources[0].Kind)
 	}
@@ -113,6 +115,7 @@ func TestSpokenForm(t *testing.T) {
 	assert.Equal(t, "Closure possible around 2:30pm. often back open by about 4:30pm", spokenForm("Closure possible around 2:30pm · often back open by ~4:30pm"))
 	assert.Equal(t, "Best stretch about 8am to 12pm, clear of the tide", spokenForm("Best stretch ~8am–12pm — clear of the tide"))
 	assert.Equal(t, "Seven could shut on the 3pm high.", spokenForm("Seven could shut on the ~3pm high."))
+	assert.Equal(t, "Closed for high tide since 7:44am. Often back open around 3pm.", spokenForm("Closed for high tide since 7:44am · often back open around 3pm."))
 }
 
 func TestRegexRouteWithRosterRampShapes(t *testing.T) {
@@ -145,4 +148,12 @@ func TestRegexRouteWithRosterRampShapes(t *testing.T) {
 	assert.False(t, ok, "no roster, no ramp plan")
 	_, ok = regexRouteWithRoster("Was Flagler open yesterday?", "", now, ramps)
 	assert.False(t, ok)
+}
+
+func TestQuickRampNowReplySaysTheStatusOnce(t *testing.T) {
+	c := &predict.CityNow{DisplayName: "New Smyrna Beach"}
+	r := predict.CityRampAt{Name: "Flagler Ave", Status: "CLOSED FOR HIGH TIDE", Headline: "Closed for high tide", Detail: "often back open around 3pm"}
+	assert.Equal(t, "Flagler Ave is closed for high tide right now. often back open around 3pm.", quickRampNowReply(c, r))
+	open := predict.CityRampAt{Name: "27th Ave", Status: "OPEN", Headline: "Could close around the 3pm high tide", Detail: "Closure possible around 3pm"}
+	assert.Equal(t, "27th Ave is open right now. Could close around the 3pm high tide. Closure possible around 3pm.", quickRampNowReply(c, open))
 }

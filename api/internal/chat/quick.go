@@ -297,5 +297,10 @@ func spokenForm(reply string) string {
 	s = strings.ReplaceAll(s, "~", "about ")
 	s = strings.ReplaceAll(s, "  ", " ")
 	s = strings.ReplaceAll(s, ". .", ".")
+	// A glyph became a full stop, so the clause after it now starts a
+	// sentence: "…since 7:44am. Often back open…".
+	s = sentenceStartRe.ReplaceAllStringFunc(s, strings.ToUpper)
 	return strings.TrimSpace(s)
 }
+
+var sentenceStartRe = regexp.MustCompile(`(?:^|[.!?] )[a-z]`)
