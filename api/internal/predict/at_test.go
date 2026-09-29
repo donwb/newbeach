@@ -177,3 +177,9 @@ func TestCityRamps(t *testing.T) {
 	assert.Len(t, cityRamps([]models.RampStatusWithSince{a, b}, "NEW SMYRNA BEACH"), 1)
 	assert.Empty(t, cityRamps([]models.RampStatusWithSince{a, b}, "PONCE INLET"))
 }
+
+func TestReplayCopyIsTimeNeutral(t *testing.T) {
+	assert.Equal(t, "Any of them could shut on the ~12pm high", replayCopy("Any of them could shut on the ~12pm high · could go any time now"))
+	assert.Equal(t, "High-tide closure possible by then", replayCopy("High-tide closure possible any time now"))
+	assert.Equal(t, "Could close around the 2:30pm high tide", replayCopy("Could close around the 2:30pm high tide"))
+}

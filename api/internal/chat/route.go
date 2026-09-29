@@ -3,10 +3,12 @@ package chat
 import (
 	"context"
 	"log/slog"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/donwb/beach/api/internal/jev"
+	"github.com/donwb/beach/api/internal/models"
 	"github.com/donwb/beach/api/internal/predict"
 )
 
@@ -100,6 +102,55 @@ func regexRoute(q, contextCity string, now time.Time) (quickPlan, bool) {
 		return quickPlan{Kind: planCityNow, City: city}, true
 	}
 	return quickPlan{Kind: planCityAt, City: city, At: at}, true
+}
+
+// rampIntentRe catches "is Flagler open right now", "will 27th Ave be open
+// tomorrow at 2", "can I use Beachway this afternoon" — a ramp named the
+// way people say it, which intentRe (city shapes) does not cover.
+var rampIntentRe = regexp.MustCompile(`(?i)^\s*(?:is|are|will|can i (?:use|drive|get on))\s+(?:the\s+)?([a-z0-9' ]+?)(?:\s+ramp)?\s+(?:be\s+)?(?:open|closed|drivable|available)\b`)
+
+// regexRouteWithRoster is regexRoute plus the ramp shapes: when the city
+// parse fails, a question that names one ramp exactly (Resolve, exact)
+// becomes a ramp plan. A name that is really a city alias ("is NSB open")
+// becomes the city plan. ramps may be nil — then only city shapes route.
+func regexRouteWithRoster(q, contextCity string, now time.Time, ramps []models.RampStatusWithSince) (quickPlan, bool) {
+	if plan, ok := regexRoute(q, contextCity, now); ok {
+		return plan, true
+	}
+	m := rampIntentRe.FindStringSubmatch(strings.TrimSpace(q))
+	if m == nil || len(q) > 160 {
+		return quickPlan{}, false
+	}
+	name := strings.TrimSpace(m[1])
+	at, isNow, ok := quickWhen(q, now)
+	if !ok {
+		return quickPlan{}, false
+	}
+	if city, _, ok := ResolveCity(name); ok {
+		if isNow {
+			return quickPlan{Kind: planCityNow, City: city}, true
+		}
+		return quickPlan{Kind: planCityAt, City: city, At: at}, true
+	}
+	if len(ramps) == 0 {
+		return quickPlan{}, false
+	}
+	res := Resolve(ramps, name)
+	if !res.Exact || len(res.Matches) == 0 {
+		return quickPlan{}, false
+	}
+	id := res.Matches[0].AccessID
+	cityKey := ""
+	for i := range ramps {
+		if ramps[i].AccessID == id {
+			cityKey = ramps[i].City
+			break
+		}
+	}
+	if isNow {
+		return quickPlan{Kind: planRampNow, City: cityKey, AccessID: id}, true
+	}
+	return quickPlan{Kind: planRampAt, City: cityKey, AccessID: id, At: at}, true
 }
 
 // runPlan makes the engine call and builds the reply in the engine's own
@@ -213,8 +264,14 @@ func (r *Router) Mode() string {
 // router can place it. ok is false when the model should read it.
 func (r *Router) Route(ctx context.Context, eng Engine, question, contextCity string) (*Response, bool) {
 	now := eng.Now()
+	// The roster lets the pattern router place a ramp named outright; it
+	// is cached, and nil just means ramp shapes go to the model.
+	ramps, rerr := eng.Ramps(ctx)
+	if rerr != nil {
+		ramps = nil
+	}
 	if r == nil || r.mode == ModeOff {
-		plan, ok := regexRoute(question, contextCity, now)
+		plan, ok := regexRouteWithRoster(question, contextCity, now, ramps)
 		if !ok {
 			return nil, false
 		}
@@ -222,7 +279,7 @@ func (r *Router) Route(ctx context.Context, eng Engine, question, contextCity st
 	}
 
 	if r.mode == ModeShadow {
-		plan, ok := regexRoute(question, contextCity, now)
+		plan, ok := regexRouteWithRoster(question, contextCity, now, ramps)
 		// Jev runs beside the answer, off the request's clock, and only
 		// its verdict against the pattern router is recorded.
 		go r.shadow(eng, question, contextCity, now, plan, ok)
@@ -234,20 +291,16 @@ func (r *Router) Route(ctx context.Context, eng Engine, question, contextCity st
 
 	// ModeOn: Jev decides. The pattern router only covers an outage.
 	start := time.Now()
-	ramps, err := eng.Ramps(ctx)
-	if err != nil {
-		ramps = nil
-	}
 	plan, trace, ok := jevRoute(ctx, r.jev, question, contextCity, now, ramps)
 	if trace.Err != "" {
-		fallback, fok := regexRoute(question, contextCity, now)
+		fallback, fok := regexRouteWithRoster(question, contextCity, now, ramps)
 		slog.Warn("chat.route", "router", routerRegex, "reason", "jev unavailable: "+trace.Err, "plan", fallback.String(), "ms", time.Since(start).Milliseconds())
 		if !fok {
 			return nil, false
 		}
 		return runPlan(ctx, eng, fallback, now)
 	}
-	regexPlan, regexOK := regexRoute(question, contextCity, now)
+	regexPlan, regexOK := regexRouteWithRoster(question, contextCity, now, ramps)
 	slog.Info("chat.route",
 		"router", routerJev,
 		"plan", plan.String(),

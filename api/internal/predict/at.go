@@ -132,7 +132,7 @@ func BuildRampOutlookAt(now, at time.Time, r models.RampStatusWithSince, params 
 
 	out := BuildOutlook(clock, []models.RampStatusWithSince{r}, params, water, wave, nil, prior)
 	if len(out.Ramps) == 1 {
-		res.Outlook = out.Ramps[0]
+		res.Outlook = replayRampOutlook(out.Ramps[0])
 	}
 
 	if res.Relation == "" {
@@ -159,6 +159,24 @@ func BuildRampOutlookAt(now, at time.Time, r models.RampStatusWithSince, params 
 		res.Caveats = append(res.Caveats, "water-level gauges stale; assuming normal water")
 	}
 	return res
+}
+
+// replayCopy makes a line written for "now" read right at another instant:
+// the live board says "any time now" and "could go any time now" when a
+// quoted close has already passed its clock; at a replayed instant that
+// is "by then". Applied to every string a replay hands out.
+func replayCopy(s string) string {
+	s = strings.ReplaceAll(s, " · could go any time now", "")
+	s = strings.ReplaceAll(s, "could go any time now", "could go by then")
+	s = strings.ReplaceAll(s, "any time now", "by then")
+	return s
+}
+
+func replayRampOutlook(ro RampOutlook) RampOutlook {
+	ro.Headline = replayCopy(ro.Headline)
+	ro.Detail = replayCopy(ro.Detail)
+	ro.Short = replayCopy(ro.Short)
+	return ro
 }
 
 // relationTo places at inside the day's frame and the predicted window.
@@ -484,13 +502,15 @@ func BuildCityOutlookAt(now, at time.Time, ramps []models.RampStatusWithSince, p
 
 	out := BuildOutlook(clock, replay, params, water, wave, nil, prior)
 	for i := range out.Ramps {
-		row := cityRampRow(replay[i], out.Ramps[i])
+		row := cityRampRow(replay[i], replayRampOutlook(out.Ramps[i]))
 		row.Relation = relationTo(at, sched, out.Ramps[i].Window)
 		res.Ramps = append(res.Ramps, row)
 		res.Counts[out.Ramps[i].Risk]++
 	}
 	if len(out.Cities) > 0 {
 		cv := out.Cities[0]
+		cv.Headline = replayCopy(cv.Headline)
+		cv.Detail = replayCopy(cv.Detail)
 		res.Verdict = &cv
 	}
 

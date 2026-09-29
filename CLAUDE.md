@@ -383,7 +383,7 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   (key in `localStorage`, first-run prompt) — the place to try new question shapes before
   touching native placement.
   **Spoken questions (2026-09-29):** the common shapes — city now, city at a time, best day —
-  are answered by `chat/quick.go` from engine copy with **no model call** (`model: "quick"`;
+  are answered by the pattern router (`chat/route.go`, replies in `chat/quick.go`; ramps named outright too, via the roster) from engine copy with **no model call** (`model: "quick"`;
   conservative router, falls through on any doubt, first turns only); `voice: true` runs
   free-form on `CHAT_VOICE_MODEL` (default `claude-sonnet-5`, latency not cost); every
   response carries `spoken` (glyphs → words) for text-to-speech. iOS: Speech-framework mic

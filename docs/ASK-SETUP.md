@@ -104,9 +104,10 @@ gate, and only Don has it.
 Three ways in, all the same endpoint:
 
 - **The quick path (no model).** The server answers the common spoken shapes
-  from the engine's own copy before any model is involved (`chat/quick.go`):
+  from the engine's own copy before any model is involved (`chat/route.go`, the pattern router; replies in `chat/quick.go`):
   "can I get on the beach in NSB right now", "are the Daytona ramps open
-  Saturday at 2", "which day this weekend is best". Sub-second, `model:
+  Saturday at 2", "which day this weekend is best", and a ramp named outright
+  ("is Flagler open right now", "will 27th Ave be open tomorrow at 2"). Sub-second, `model:
   "quick"`, zero usage. Anything the router isn't sure about (a past time,
   "later", a ramp by name, a weekday that is also today) falls through to
   the model. Only first turns are eligible; follow-ups need the conversation.

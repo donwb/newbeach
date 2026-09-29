@@ -114,3 +114,35 @@ func TestSpokenForm(t *testing.T) {
 	assert.Equal(t, "Best stretch about 8am to 12pm, clear of the tide", spokenForm("Best stretch ~8am–12pm — clear of the tide"))
 	assert.Equal(t, "Seven could shut on the 3pm high.", spokenForm("Seven could shut on the ~3pm high."))
 }
+
+func TestRegexRouteWithRosterRampShapes(t *testing.T) {
+	now := fixedNow()
+	ramps := rosterFixture()
+
+	plan, ok := regexRouteWithRoster("Is Flagler open right now?", "", now, ramps)
+	require.True(t, ok)
+	assert.Equal(t, planRampNow, plan.Kind)
+	assert.Equal(t, "NS-110", plan.AccessID)
+	assert.Equal(t, "NEW SMYRNA BEACH", plan.City)
+
+	plan, ok = regexRouteWithRoster("Will 27th Ave be open tomorrow at 2?", "", now, ramps)
+	require.True(t, ok)
+	assert.Equal(t, planRampAt, plan.Kind)
+	assert.Equal(t, "NS-141", plan.AccessID)
+	assert.Equal(t, time.Date(2026, 6, 11, 14, 0, 0, 0, eastern), plan.At)
+
+	plan, ok = regexRouteWithRoster("Is NSB open?", "", now, ramps)
+	require.True(t, ok, "a city alias in the ramp slot is the city plan")
+	assert.Equal(t, planCityNow, plan.Kind)
+
+	// The city shapes still route first, and unknown names fall through.
+	plan, ok = regexRouteWithRoster("Are the Daytona ramps open?", "", now, ramps)
+	require.True(t, ok)
+	assert.Equal(t, planCityNow, plan.Kind)
+	_, ok = regexRouteWithRoster("Is it open?", "", now, ramps)
+	assert.False(t, ok)
+	_, ok = regexRouteWithRoster("Is Flagler open right now?", "", now, nil)
+	assert.False(t, ok, "no roster, no ramp plan")
+	_, ok = regexRouteWithRoster("Was Flagler open yesterday?", "", now, ramps)
+	assert.False(t, ok)
+}
