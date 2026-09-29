@@ -38,6 +38,8 @@ dispatches:
 - **The bundle ID is permanently frozen at `com.donwb.BeachRampTV`** for every platform. This was accepted deliberately and users never see it.
 
 ## Recently shipped
+- 2026-09-29: The website now points people at the apps: Safari Smart App Banner, a "Get the app ›" link in the top bar, and an iPhone/iPad + Apple TV tile section between Ask and the cam (0dc501d). Web only.
+- 2026-09-29: Voice for Ask, end to end: server quick path (common questions from engine copy, no model) + spoken replies; iOS mic in the Ask bar; four Siri shortcuts (free-form, city, ramp-by-name, best day) with clarifying exchanges kept inside the shortcut; widget Ask mic button as the reliable one-tap path. Flighted through 1.4 (40). Jev spike punted (code stays off).
 - 2026-09-29: **Jev spike (TypeSafe System One) in Ask, behind `JEV_MODE`.** A second quick-path router (one calibrated Choice call for intent/city/ramp/day/clock parts, code assembles the instant) and the copy guard's promise rule as a Noul; ramp questions can go quick for the first time. Off in prod (no key yet); default `shadow` logs Jev beside the pattern router. Evals: tuning set 49/64 quick vs 19/64 for the regexes with no wrong plan; held-out 16/25 vs 2/25; guard Noul 10/10 vs regex 6/10; ~180 ms, $0.0001/question. Write-up `docs/JEV-SPIKE.md`. Server-side only, not switched on.
 - 2026-09-29: Ask can be spoken: server quick path (no model for the common questions) + `spoken` replies; iOS mic + Siri intents; tvOS dictation hint; web mic. Server + web live; native in source until the next flight.
 - 2026-09-29: Web weekend grid fits the seven-day outlook on one row (one column per day sent, b0e85b6). Web only.
