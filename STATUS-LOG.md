@@ -3,6 +3,7 @@
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
 ## 2026-09-30
+- 2026-09-30: 1.4 (41) uploaded to TestFlight, iOS + tvOS, tag flight/build-41 — the widget refresh plan. Not submitted for review.
 - 2026-09-30: Widget refresh cadence. Don: the iOS widget "doesn't seem to update until you open the app" — the timeline asked WidgetKit back hourly (`.atEnd` after 60 min). New `WidgetRefreshPlan` (shared package, 6 tests): `.after(now + 15 min)` with 5-min sky entries while the beach is drivable (open − 10 min through learned close + 3h, for evening highs), then one refresh 10 min before the next open with half-hour sky entries overnight; 20-min fallback without a schedule, never dormant on a stale schedule. Spends WidgetKit's daily budget where ramps can change (Don's insight: skipping overnight buys daytime refreshes). Next step for real timeliness: iOS 26 widget push from the ingester on status flips (APNs; also the Live Activity plumbing). Not flighted yet.
 
 ## 2026-09-29

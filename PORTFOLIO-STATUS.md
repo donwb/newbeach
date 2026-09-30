@@ -4,14 +4,14 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-09-29
-summary: All platforms live; 1.4 (40) on TestFlight for iOS + tvOS (Ask, spoken: in-app mic, widget Ask button, four Siri shortcuts), not yet submitted; "Ask" live on the API and website since 9/28; NSB cam dark upstream since 9/19 (county-side)
+last_verified: 2026-09-30
+summary: All platforms live; 1.4 (41) on TestFlight for iOS + tvOS (Ask with voice; widget refreshes quarter-hourly through the driving day), not yet submitted; "Ask" live on the API and website since 9/28; NSB cam dark upstream since 9/19 (county-side)
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
   tvos: 1.3 (30) live since 2026-09-17
-  testflight: 1.4 (40) testflight since 2026-09-29
-  watchos: 1.4 (40) dev
+  testflight: 1.4 (41) testflight since 2026-09-30
+  watchos: 1.4 (41) dev
   web: live
 review: none
 next_dates: []
@@ -22,8 +22,8 @@ dispatches:
 ---
 
 ## Top open items
-0. **1.4 (40) is on TestFlight** (iOS + tvOS, uploaded 2026-09-29, tag flight/build-40). Adds the widget Ask button: the medium and large Home Screen widgets carry a mic that deep-links into the board listening — the reliable one-tap voice path now that Siri phrases proved a coin flip on device. Put the medium or large widget on the Home Screen, tap the mic, speak. Also in 40: clarifying exchanges stay inside a Siri shortcut, the remembered city rides along, the ramp-by-name shortcut. Submit for review when it reads right — supersedes 35–39.
-1. **Submit 1.4 (40) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-40`.
+0. **1.4 (41) is on TestFlight** (iOS + tvOS, uploaded 2026-09-30, tag flight/build-41). Adds the widget refresh plan: every 15 min while the beach is drivable (open − 10 min through close + 3h), one refresh before the next open overnight — Don noticed the widget only updated when the app opened (hourly `.atEnd` before). Everything from 40 rides along (widget Ask mic, Siri shortcuts, in-app mic). Next for timeliness: iOS 26 widget push from the ingester on status flips. Submit for review when ready — supersedes 35–40.
+1. **Submit 1.4 (41) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-41`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
 4. **County outreach is on hold.** It was sent 2026-08-17. One county-network reader opened it and nobody replied. Don pivoted (8/26) to a portfolio-level messaging campaign run from the hub. The beach-traffic-check skill still flags any new county visitor.
@@ -38,6 +38,7 @@ dispatches:
 - **The bundle ID is permanently frozen at `com.donwb.BeachRampTV`** for every platform. This was accepted deliberately and users never see it.
 
 ## Recently shipped
+- 2026-09-30: Widget refresh cadence follows the driving day (`WidgetRefreshPlan`, 945571c); flighted as 1.4 (41).
 - 2026-09-29: The website now points people at the apps: Safari Smart App Banner, a "Get the app ›" link in the top bar, and an iPhone/iPad + Apple TV tile section between Ask and the cam (0dc501d). Web only.
 - 2026-09-29: Voice for Ask, end to end: server quick path (common questions from engine copy, no model) + spoken replies; iOS mic in the Ask bar; four Siri shortcuts (free-form, city, ramp-by-name, best day) with clarifying exchanges kept inside the shortcut; widget Ask mic button as the reliable one-tap path. Flighted through 1.4 (40). Jev spike punted (code stays off).
 - 2026-09-29: **Jev spike (TypeSafe System One) in Ask, behind `JEV_MODE`.** A second quick-path router (one calibrated Choice call for intent/city/ramp/day/clock parts, code assembles the instant) and the copy guard's promise rule as a Noul; ramp questions can go quick for the first time. Off in prod (no key yet); default `shadow` logs Jev beside the pattern router. Evals: tuning set 49/64 quick vs 19/64 for the regexes with no wrong plan; held-out 16/25 vs 2/25; guard Noul 10/10 vs regex 6/10; ~180 ms, $0.0001/question. Write-up `docs/JEV-SPIKE.md`. Server-side only, not switched on.
