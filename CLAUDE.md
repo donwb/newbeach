@@ -403,6 +403,24 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   2026-09-29): marginal here, not worth the dependency — the code stays, off; don't set the
   key in prod or propose flipping it on without a new reason.**
 
+## Widgets (iOS)
+
+- **Refresh cadence is planned, not fixed** (`BeachStatus/Utilities/WidgetRefreshPlan.swift`,
+  2026-09-30): WidgetKit rations refreshes per day, so the timeline asks back every 15 min
+  while the beach is drivable (open − 10 min through learned close + 3h) and once before the
+  next open overnight. Never hard-code `.atEnd`/hourly again.
+- **Push-triggered reloads (iOS 26 widget push, 2026-09-30):** the widget extension registers
+  its APNs token at `POST /api/v2/widgets/push-token` (`BeachRampWidgets/WidgetPush.swift`,
+  `aps-environment` entitlement on the extension); the ingester's status-change hook feeds
+  `api/internal/widgetpush` (own JWT/HTTP2 APNs client, no dependency), which coalesces flips
+  (5 s debounce, 60 s floor) into `{"aps":{"content-changed":true}}` pushes on topic
+  `<bundle>.push-type.widgets` and forgets rejected tokens. **Inert until `APNS_KEY_P8` is
+  set** — registration still works, nothing is pushed. iOS 18 devices never register and
+  keep the timed plan. The bundle picks push-capable widget definitions by availability via
+  `WidgetBundleBuilder.buildLimitedAvailability` outside the builder (the builder has no
+  `else`); the widget kinds are unchanged so placed widgets survive. Runbook + APNs key
+  setup + admin trigger (`POST /api/v2/admin/widgets/push`): `docs/WIDGET-PUSH.md`.
+
 ## TRMNL (E-Ink Display)
 
 - Two devices, two templates:
@@ -501,6 +519,11 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `CHAT_API_KEY` | API | Shared secret the iOS/tvOS apps present as `X-Chat-Key`; separate from `ADMIN_API_KEY` on purpose |
 | `CHAT_MODEL` | Chat | Model id for the chat runner (default `claude-opus-5`) |
 | `CHAT_VOICE_MODEL` | Chat | Model for spoken free-form questions, `voice: true` (default `claude-sonnet-5`) |
+| `WIDGET_PUSH_ENABLED` | Widget push | Set `false` to never push; the token route stays (default on, but inert without `APNS_KEY_P8`) |
+| `APNS_KEY_P8` | Widget push | APNs auth key (.p8 contents; literal `\n` accepted). **Secret.** Unset = no pushes |
+| `APNS_KEY_ID` | Widget push | The APNs key's id. **Secret** |
+| `APNS_TEAM_ID` | Widget push | Apple team id (default none; `YR2B55YA56`) |
+| `APNS_BUNDLE_ID` | Widget push | App bundle id; topic is `<id>.push-type.widgets` (default `com.donwb.BeachRampTV`) |
 | `TYPESAFE_API_KEY` | Chat (Jev) | TypeSafe System One key; unset = Jev off (pattern router and guard as before) |
 | `JEV_MODE` | Chat (Jev) | `off` \| `shadow` (default: pattern router answers, Jev logged beside it) \| `on` (Jev answers) |
 | `JEV_MODEL` | Chat (Jev) | Model or alias for System One calls (default `jev-latest`; pin `jev-1.13.0` once floors are tuned) |

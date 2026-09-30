@@ -162,6 +162,14 @@ public actor APIClient {
         try await post("/api/v2/chat", body: request, headers: ["X-Chat-Key": key], timeout: 60)
     }
 
+    /// Register (or refresh) the widget's APNs push token so the server can
+    /// tell WidgetKit to reload when a ramp flips (iOS 26 widget push).
+    public func registerWidgetPushToken(_ tokenHex: String, environment: String) async throws {
+        struct Body: Encodable { let token: String; let environment: String }
+        struct Response: Decodable { let status: String }
+        let _: Response = try await post("/api/v2/widgets/push-token", body: Body(token: tokenHex, environment: environment))
+    }
+
     // MARK: - Private
 
     private func get<T: Decodable>(_ path: String, query: [URLQueryItem]? = nil) async throws -> T {

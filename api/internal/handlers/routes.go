@@ -14,12 +14,13 @@ import (
 	"github.com/donwb/beach/api/internal/predict"
 	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
+	"github.com/donwb/beach/api/internal/widgetpush"
 )
 
 // RegisterRoutes wires all HTTP routes onto the Echo instance.
 // It configures CORS, request logging, and registers both v1 (backward-compatible)
 // and v2 endpoints.
-func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, weekendSvc *predict.WeekendService, chatRunner *chat.Runner, ndbcStation string, levelStations []string) {
+func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, weatherClient *weather.Client, videoRefresher *videostream.Refresher, ing *ingester.Ingester, outlookSvc *predict.Service, weekendSvc *predict.WeekendService, chatRunner *chat.Runner, widgetNotifier *widgetpush.Notifier, widgetBundleID string, ndbcStation string, levelStations []string) {
 	// --- Middleware ---
 
 	// CORS: allow all origins (public API).
@@ -97,6 +98,10 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 		chatGroup.POST("", HandleV2Chat(chatRunner))
 	}
 
+	// Widget push tokens (iOS 26 WidgetKit push): the widget extension
+	// registers here; the ingester pushes on every status flip.
+	v2.POST("/widgets/push-token", HandleV2RegisterWidgetPushToken(pool, widgetBundleID))
+
 	// Relay hooks (hook key protected) — MediaMTX on the cam relay droplet
 	// reports stream up/down transitions here (see docs/CAM-RELAY.md).
 	hooks := v2.Group("/hooks")
@@ -115,6 +120,7 @@ func RegisterRoutes(e *echo.Echo, pool *pgxpool.Pool, noaaClient *noaa.Client, w
 	admin.GET("/pageviews", HandleAdminPageViews(pool))
 	admin.GET("/prediction/params", HandleAdminPredictionParams(pool))
 	admin.GET("/prediction/scorecard", HandleAdminPredictionScorecard(pool, noaaClient, ndbcStation, levelStations))
+	admin.POST("/widgets/push", HandleAdminWidgetPush(widgetNotifier, pool))
 }
 
 // apiKeyAuth returns middleware that validates the X-Api-Key header

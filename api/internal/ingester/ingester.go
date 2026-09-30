@@ -21,6 +21,16 @@ type Ingester struct {
 
 	mu     sync.Mutex
 	health Health
+
+	// onStatusChange fires after a ramp's status flips and its history row
+	// is written (widget pushes). Optional; never blocks the poll.
+	onStatusChange func()
+}
+
+// SetStatusChangeHook registers a function to call whenever a ramp's status
+// changes. It runs on the poll goroutine, so it should return quickly.
+func (ing *Ingester) SetStatusChangeHook(fn func()) {
+	ing.onStatusChange = fn
 }
 
 // Health is a snapshot of the ingester's recent poll outcomes. A poll is

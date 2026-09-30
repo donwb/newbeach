@@ -29,6 +29,7 @@ import (
 	"github.com/donwb/beach/api/internal/predict"
 	"github.com/donwb/beach/api/internal/videostream"
 	"github.com/donwb/beach/api/internal/weather"
+	"github.com/donwb/beach/api/internal/widgetpush"
 )
 
 func main() {
@@ -246,7 +247,28 @@ func main() {
 	} else {
 		slog.Info("chat disabled")
 	}
-	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, chatRunner, ndbcStation, waterLevelStations)
+
+	// Widget push (iOS 26): tell WidgetKit to reload the Home Screen widgets
+	// the moment a ramp flips. Needs an APNs auth key; without one the
+	// registration endpoint still works and nothing is pushed.
+	widgetBundleID := os.Getenv("APNS_BUNDLE_ID")
+	if widgetBundleID == "" {
+		widgetBundleID = "com.donwb.BeachRampTV"
+	}
+	var widgetNotifier *widgetpush.Notifier
+	if os.Getenv("WIDGET_PUSH_ENABLED") != "false" && os.Getenv("APNS_KEY_P8") != "" {
+		apns, err := widgetpush.NewClient(os.Getenv("APNS_TEAM_ID"), os.Getenv("APNS_KEY_ID"), os.Getenv("APNS_KEY_P8"), widgetBundleID)
+		if err != nil {
+			slog.Error("widget push disabled: bad APNs config", "err", err)
+		} else {
+			widgetNotifier = widgetpush.NewNotifier(apns, pool)
+			ing.SetStatusChangeHook(widgetNotifier.Notify)
+			slog.Info("widget push enabled", "topic", apns.Topic())
+		}
+	} else {
+		slog.Info("widget push disabled")
+	}
+	handlers.RegisterRoutes(e, pool, noaaClient, weatherClient, videoRefresher, ing, outlookSvc, weekendSvc, chatRunner, widgetNotifier, widgetBundleID, ndbcStation, waterLevelStations)
 
 	// Serve static website files from the filesystem, after API routes so the
 	// CORS and logging middleware registered there wrap static responses too.

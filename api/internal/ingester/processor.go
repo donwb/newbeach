@@ -65,6 +65,9 @@ func (ing *Ingester) processFeature(ctx context.Context, ramp models.RampStatus)
 			"ramp_name", ramp.RampName,
 			"new_status", ramp.AccessStatus,
 		)
+		if ing.onStatusChange != nil {
+			ing.onStatusChange()
+		}
 	}
 
 	return nil

@@ -145,6 +145,26 @@ services:
       - key: CHAT_VOICE_MODEL
         scope: RUN_AND_BUILD_TIME
         value: "claude-sonnet-5"
+      # Widget push (iOS 26): APNs auth key for "content-changed" pushes on
+      # ramp status flips. Set the three secrets in the platform UI; the
+      # feature stays off (registration only) until APNS_KEY_P8 exists.
+      - key: WIDGET_PUSH_ENABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
+      - key: APNS_BUNDLE_ID
+        scope: RUN_AND_BUILD_TIME
+        value: "com.donwb.BeachRampTV"
+      - key: APNS_TEAM_ID
+        scope: RUN_AND_BUILD_TIME
+        value: "YR2B55YA56"
+      - key: APNS_KEY_ID
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: "CHANGE_ME_IN_PLATFORM_UI"
+      - key: APNS_KEY_P8
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: "CHANGE_ME_IN_PLATFORM_UI"
       # Jev (TypeSafe System One): the Ask quick-path router and copy guard
       # as calibrated judgments. Off without TYPESAFE_API_KEY (set the real
       # value in the platform UI). JEV_MODE: off | shadow (pattern router
