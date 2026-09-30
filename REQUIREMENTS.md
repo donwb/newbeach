@@ -385,7 +385,7 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Status filtering**
 - ~~**Favorites**~~ — *removed 2026-08-21 (see §7.3). What remains: "Pin to widget" on the ramp detail screen, feeding the widget's "Pinned ramps" mode on that device only.*
 - **Push notifications** — alert when a pinned ramp changes status (requires backend support)
-- **Widgets** — iOS home screen widgets showing pinned-ramp status ✅ shipped; medium and large carry an Ask mic button (2026-09-29) that deep-links (`beachinfo://ask?listen=1`) into the board with the mic listening
+- **Widgets** — iOS home screen widgets showing pinned-ramp status ✅ shipped; medium and large carry an Ask mic button (2026-09-29) that deep-links (`beachinfo://ask?listen=1`) into the board with the mic listening. Refresh cadence (2026-09-30, `WidgetRefreshPlan`): every 15 min through the driving day plus a 3h evening margin, one refresh 10 min before the next open overnight — WidgetKit's daily budget spent where ramps can change. Push-triggered reloads (iOS 26 widget push) are the next step for closure-time timeliness.
 - **Live Activities** — show ramp status on Dynamic Island / Lock Screen (when at the beach)
 - **Haptic feedback** on status changes
 - **Settings screen** — default city, notification preferences, units (°F/°C)

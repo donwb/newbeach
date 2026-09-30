@@ -116,14 +116,19 @@ struct BoardTimelineProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: RampWidgetIntent, in context: Context) async -> Timeline<BoardEntry> {
         let snapshot = await WidgetData.freshSnapshot()
-        // Entries every 15 minutes for an hour: the sun moves even when the
-        // data doesn't, and WidgetKit re-requests at the end.
-        let entries = stride(from: 0, through: 60, by: 15).map { minutes in
-            entry(for: configuration,
-                  at: Date().addingTimeInterval(TimeInterval(minutes * 60)),
-                  snapshot: snapshot)
+        // Spend WidgetKit's daily refresh budget where a ramp can change:
+        // every quarter hour through the driving day (and the evening
+        // margin), then one refresh just before the next open. Sky entries
+        // fill the gaps so the ground keeps moving between fetches.
+        let plan = WidgetRefreshPlan.plan(
+            now: Date(),
+            opensAt: snapshot?.outlook?.schedule.opensAt,
+            closesAt: snapshot?.outlook?.schedule.closesAt
+        )
+        let entries = plan.entryDates.map { date in
+            entry(for: configuration, at: date, snapshot: snapshot)
         }
-        return Timeline(entries: entries, policy: .atEnd)
+        return Timeline(entries: entries, policy: .after(plan.nextRefresh))
     }
 
     private func entry(for configuration: RampWidgetIntent, at date: Date,
