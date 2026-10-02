@@ -3,6 +3,7 @@
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
 ## 2026-10-01
+- 2026-10-01: 1.4 (42) uploaded to TestFlight, iOS + tvOS, tag flight/build-42 — first build with the widget push registration (`aps-environment` on the extension exported cleanly). Not submitted for review.
 - 2026-10-01: Widget push is live on the server. Don created a Sandbox & Production APNs key and set `APNS_KEY_ID` / `APNS_KEY_P8` / `APNS_TEAM_ID`; boot log: `widget push enabled, topic com.donwb.BeachRampTV.push-type.widgets`. Verified against APNs itself: `POST /api/v2/admin/widgets/push` on the throwaway sandbox token returned `{"dropped":1,"failed":0}` — Apple accepted the provider JWT and rejected the fake device token, which the notifier then deleted (`registered: 0`). Remaining: a build after 41 so widgets register real tokens (flight 42), then watch a county flip reach the Home Screen.
 
 ## 2026-09-30
