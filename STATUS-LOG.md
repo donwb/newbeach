@@ -2,6 +2,9 @@
 
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
+## 2026-10-01
+- 2026-10-01: Widget push is live on the server. Don created a Sandbox & Production APNs key and set `APNS_KEY_ID` / `APNS_KEY_P8` / `APNS_TEAM_ID`; boot log: `widget push enabled, topic com.donwb.BeachRampTV.push-type.widgets`. Verified against APNs itself: `POST /api/v2/admin/widgets/push` on the throwaway sandbox token returned `{"dropped":1,"failed":0}` — Apple accepted the provider JWT and rejected the fake device token, which the notifier then deleted (`registered: 0`). Remaining: a build after 41 so widgets register real tokens (flight 42), then watch a county flip reach the Home Screen.
+
 ## 2026-09-30
 - 2026-09-30: Widget push built (iOS 26 WidgetKit push updates). Server: migration 014 `widget_push_tokens`, `POST /api/v2/widgets/push-token` (public, hex-validated), `api/internal/widgetpush` (token-auth APNs client with ES256 JWT cached 50 min, HTTP/2, no dependency; notifier coalescing 5 s / 60 s floor, drops 410/BadDeviceToken tokens), `Ingester.SetStatusChangeHook` → `Notify` on every flip, `POST /api/v2/admin/widgets/push` to prove the pipeline; env `APNS_KEY_ID/APNS_TEAM_ID/APNS_KEY_P8/APNS_BUNDLE_ID/WIDGET_PUSH_ENABLED` (inert without the key). 12 tests. iOS: `BeachWidgetPushHandler` (`WidgetPush.swift`), `aps-environment` on the widget extension, push-capable widget definitions chosen by availability in the bundle (builder has no `else`; solved with `WidgetBundleBuilder.buildLimitedAvailability` outside the builder — two failed attempts first: `let` in body, `#unavailable`). Runbook `docs/WIDGET-PUSH.md`. Not flighted; Don must create the APNs key and set the three secrets.
 - 2026-09-30: 1.4 (41) uploaded to TestFlight, iOS + tvOS, tag flight/build-41 — the widget refresh plan. Not submitted for review.
