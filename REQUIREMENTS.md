@@ -385,7 +385,7 @@ The current warm gradient (cream/sand tones) with teal header is pleasant and be
 - **Status filtering**
 - ~~**Favorites**~~ — *removed 2026-08-21 (see §7.3). What remains: "Pin to widget" on the ramp detail screen, feeding the widget's "Pinned ramps" mode on that device only.*
 - **Push notifications** — alert when a pinned ramp changes status (requires backend support)
-- **Widgets** — iOS home screen widgets showing pinned-ramp status ✅ shipped; medium and large carry an Ask mic button (2026-09-29) that deep-links (`beachinfo://ask?listen=1`) into the board with the mic listening. Refresh cadence (2026-09-30, `WidgetRefreshPlan`): every 15 min through the driving day plus a 3h evening margin, one refresh 10 min before the next open overnight — WidgetKit's daily budget spent where ramps can change. Push-triggered reloads (iOS 26 widget push) are the next step for closure-time timeliness.
+- **Widgets** — iOS home screen widgets showing pinned-ramp status ✅ shipped; medium and large carry an Ask mic button (2026-09-29) that deep-links (`beachinfo://ask?listen=1`) into the board with the mic listening. Refresh cadence (2026-09-30, `WidgetRefreshPlan`): every 15 min through the driving day plus a 3h evening margin, one refresh 10 min before the next open overnight — WidgetKit's daily budget spent where ramps can change. **Push-triggered reloads** ✅ 2026-10-01 (iOS 26 widget push): the extension registers its token, the ingester pushes `content-changed` on every status flip, the widget reloads in seconds; verified on device.
 - **Live Activities** — show ramp status on Dynamic Island / Lock Screen (when at the beach)
 - **Haptic feedback** on status changes
 - **Settings screen** — default city, notification preferences, units (°F/°C)
@@ -1237,6 +1237,25 @@ These items are not in scope for the initial rebuild but the architecture should
 - Pure CSS layout (flexbox), no JavaScript — e-ink displays don't execute JS
 - 27th Ave removed for space — 4 ramps displayed (3rd Ave, Flagler, Crawford, Beachway)
 - Footer and title_bar removed to maximize space for ramp status display
+
+---
+
+### Phase 7 — Ask, voice, and widget push ✅ Complete (October 1, 2026)
+
+**Delivered (2026-09-27 → 10-01, builds 34–42):**
+- `POST /api/v2/chat` — a model over deterministic engine tools (`resolve_ramp`, `ramp_outlook_at`, `city_now`, `city_outlook_at`, `weekend_outlook`) relaying engine copy verbatim; copy guard; server-built `sources`; `predict.Service.OutlookAt` / `CityOutlookAt` replays; dedicated `CHAT_API_KEY`
+- Quick path: the common question shapes answered from engine copy with no model; `voice: true` → faster model; `spoken` form on every reply
+- Web: Ask bar in the board's voice (kicker · headline · detail · only rows with news), Web Speech mic, App Store links + Smart App Banner
+- iOS: inline Ask section, Speech-framework mic, four Siri App Shortcuts (free-form, city, ramp-by-name, best day; clarifying exchanges inside the shortcut; remembered city), widget Ask mic button (`beachinfo://ask?listen=1`), `WidgetRefreshPlan`, iOS 26 widget push registration
+- tvOS: Ask pull surface with suggested questions and remote dictation
+- Server: `api/internal/widgetpush` (APNs client + coalescing notifier) fed by the ingester's status-change hook; migration 014
+- Jev (TypeSafe) router spike behind `JEV_MODE`, evaluated and left off (`docs/JEV-SPIKE.md`)
+
+**Key decisions:**
+- Ask is not a chat: one ask bar, the latest answer only, follow-ups keep context server-side
+- City questions are the design center; the ramp-by-name path exists but is secondary
+- Siri phrases are a bonus, not the promise — Siri's matcher is a coin flip; the widget mic deep link is the reliable voice path
+- Action Button / Control Center controls deliberately deferred
 
 ---
 

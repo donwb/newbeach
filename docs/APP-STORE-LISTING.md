@@ -553,3 +553,70 @@ and 17 predates two things that are on main now: iOS/iPadOS consumption of the
 the iPad inline camera chips. Submitting 17 would ship a listing that describes
 features the binary doesn't have. Confirm what's actually in TestFlight, and re-flight
 if 18 didn't complete.
+
+---
+
+## Version metadata — iOS / iPadOS 1.4 (build 42, drafted 2026-10-01)
+
+**Ready to submit once Don is happy with Ask on his phone.** iOS 1.2 (28) is live
+(released 2026-09-02); 1.3 was tvOS-only. 1.4 (42) is on TestFlight (tag
+`flight/build-42`) and is the build to attach — it supersedes builds 31–41, which
+were iterations of the same work. Everything since 1.2 rides in it: Ask (typed and
+spoken), the widget mic and widget push, and the server-side prediction work
+(evening highs, morning highs, high-water reopens — already reaching installed
+copies, mentioned here for the first time).
+
+### What's New in This Version
+
+```
+Ask the board a question — and hear the answer.
+
+• Ask — type or say "can I get on the beach in New Smyrna this afternoon?" or "will the Daytona ramps be open Saturday at 2?" and get the outlook's own answer, in its own words. Tap the mic in the Ask bar, speak, and a pause sends it.
+• Ask from your Home Screen — the medium and large widgets have a mic. One tap opens the app already listening.
+• Siri — "Hey Siri, is the beach open in New Smyrna Beach with Beach Info", "which beach day is best with Beach Info", or "Beach Info question" for anything else.
+• Widgets that keep up — on iOS 26 the widget reloads the moment the county changes a ramp, and on every iOS it now refreshes every fifteen minutes through the driving day instead of hourly.
+• A sharper tide read — the outlook now warns ahead of evening high tides, reads the water that actually arrives (not just the moon's prediction), and knows when a morning high will hold a ramp shut past the 8am open.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected — Ask sends only the question you type or say.
+```
+
+### Description
+
+Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under iOS
+1.1) — every claim still holds. Consider one added sentence after the widgets
+paragraph: "Ask a question in plain words — typed, spoken, or from the widget's mic —
+and get the outlook's answer." Promotional text, keywords, URLs, copyright: unchanged.
+
+### Review notes
+
+Ask needs a chat key (locked to Don's devices; reviewers see "Ask is locked" with a
+key field). If App Review asks, provide a review-only key via the App Review
+Information notes, or submit with the Ask section explained as a limited beta. The
+microphone and speech permission strings are in the build.
+
+---
+
+## Version metadata — tvOS 1.4 (build 42, drafted 2026-10-01)
+
+**Ready to submit after the gallery reshoot** (open item: the lead shot's surf
+headline truncation; `apple/scripts/screenshots.sh tv` now also captures the Ask
+surface as `04-ask.png`). tvOS 1.3 (30) is live (released 2026-09-17); 1.4 (42) is
+the build to attach.
+
+### What's New in This Version
+
+```
+Ask the board — and today's tide, caption by caption.
+
+• Ask — press "Ask ›" in the header, pick a suggested question or dictate your own with the remote, and read the outlook's answer in its own words.
+• The tide wave now captions each high and low with its time, and draws tomorrow's curve as a dashed line on the same scale.
+• The board stays on the camera you chose — after ten idle minutes it no longer snaps back to New Smyrna.
+• A sharper tide read — the outlook warns ahead of evening high tides and reads the water that actually arrives.
+
+Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
+```
+
+### Description
+
+Unchanged from the 1.1 draft above (§"Description (redrafted for 1.1)" under tvOS
+1.1) — every claim still holds. Promotional text, keywords, URLs, copyright: unchanged.
