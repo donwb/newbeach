@@ -97,40 +97,13 @@ struct RampEntity: AppEntity {
 /// snapshot first (instant), the network as fallback.
 enum WidgetData {
     static func snapshot() async -> BoardSnapshot? {
-        if let cached = SnapshotStore.load() {
-            return cached
-        }
-        // No snapshot (fresh install, app never opened) — fetch once.
-        async let ramps = try? APIClient.shared.fetchRamps()
-        async let tide = try? APIClient.shared.fetchTides()
-        async let chart = try? APIClient.shared.fetchTideChart()
-        async let outlook = try? APIClient.shared.fetchOutlook()
-        guard let ramps = await ramps else { return nil }
-        return BoardSnapshot(ramps: ramps, tide: await tide, tideChart: await chart,
-                             weather: nil, outlook: await outlook, fetchedAt: Date())
+        await SnapshotLoader.cachedOrFetched()
     }
 
     /// Snapshot refreshed over the network when it has aged past the poll
     /// cycle; the stale snapshot is still returned on network failure.
     static func freshSnapshot() async -> BoardSnapshot? {
-        let cached = SnapshotStore.load()
-        if let cached, cached.age() < 120 {
-            return cached
-        }
-        async let rampsTask = try? APIClient.shared.fetchRamps()
-        async let tideTask = try? APIClient.shared.fetchTides()
-        async let chartTask = try? APIClient.shared.fetchTideChart()
-        async let outlookTask = try? APIClient.shared.fetchOutlook()
-        if let ramps = await rampsTask {
-            let fresh = BoardSnapshot(ramps: ramps, tide: await tideTask,
-                                      tideChart: await chartTask,
-                                      weather: cached?.weather,
-                                      outlook: await outlookTask ?? cached?.outlook,
-                                      fetchedAt: Date())
-            SnapshotStore.save(fresh)
-            return fresh
-        }
-        return cached
+        await SnapshotLoader.fresh(maxAge: 120)
     }
 
     static func ramps() async -> [Ramp] {

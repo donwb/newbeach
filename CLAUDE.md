@@ -84,9 +84,11 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   (`INFOPLIST_KEY_CFBundleDisplayName = Beach Info`), shortened because iOS truncates
   icon labels past ~12 characters. Never reintroduce "Beach Ramp Status" or
   "Beach Ramps" as a user-facing name.
-- **watchOS is out of scope for 1.0** — the target still exists and builds, but the
-  "Embed Watch Content" phase was removed from the iOS app so it does not ride into the
-  archive. Re-adding that phase is how it ships later.
+- **The watch app rides inside the iOS archive** (re-embedded 2026-10-02 after being left
+  out of 1.0): "Embed Watch Content" on the iOS target copies it to `Watch/`, and the watch
+  app in turn embeds `BeachRampWatchWidgetsExtension` (`com.donwb.BeachRampTV.watchkitapp.widgets`).
+  There is no separate watchOS flight platform — `flight` ships it with iOS. If the watch
+  app is ever missing from a phone, check the archive's `Watch/` directory first.
 - **Shared schemes are committed** at `BeachRamp.xcodeproj/xcshareddata/xcschemes/`.
   Without them `xcodebuild -scheme` is not reproducible across machines.
 - **Auth: an App Store Connect API key (Admin) plus a local Apple Distribution cert**,
@@ -420,6 +422,20 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   `WidgetBundleBuilder.buildLimitedAvailability` outside the builder (the builder has no
   `else`); the widget kinds are unchanged so placed widgets survive. Runbook + APNs key
   setup + admin trigger (`POST /api/v2/admin/widgets/push`): `docs/WIDGET-PUSH.md`.
+
+## Widgets (watchOS)
+
+- `BeachRampWatchWidgets/` — one widget kind (`WatchRampWidget`), configured by city: the
+  Smart Stack card (`accessoryRectangular`) shows **four ramp circles**, the faces
+  (circular/corner/inline) show the city's open count. Smart Stack has no config screen, so
+  `recommendations()` offers one ready-made widget per city.
+- **Which four:** `WatchRampPicks` (shared package) — ramps pinned in the watch app (tap a
+  row; four per city, a fifth drops the oldest) first, then the city's driver order fills
+  the rest, displayed in board order. Pins live in the **watch's** App Group; the phone's
+  "Pin to widget" favorites do not sync to the watch.
+- The watch app writes its own `BoardSnapshot` (`SnapshotLoader.fresh`, the same loader the
+  iOS widget uses) — the App Group id matches the phone's but the containers are separate.
+  Refresh pacing is `WidgetRefreshPlan`, as on iOS. No widget push on watch yet.
 
 ## TRMNL (E-Ink Display)
 

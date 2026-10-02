@@ -12,6 +12,9 @@
 		EDA11E570000000000000008 /* BeachStatus in Frameworks */ = {isa = PBXBuildFile; productRef = EDA11E570000000000000007 /* BeachStatus */; };
 		EDA11E57000000000000000F /* BeachRampWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EDA11E570000000000000003 /* BeachRampWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EDF7BD0B2FE979C200EC5440 /* BeachStatus in Frameworks */ = {isa = PBXBuildFile; productRef = EDF7BD0A2FE979C200EC5440 /* BeachStatus */; };
+		EDB0A7C10000000000000001 /* BeachRampWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EDB0A7C1000000000000000B /* BeachRampWatchWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EDB0A7C1000000000000000A /* BeachRampWatchWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EDB0A7C1000000000000000C /* BeachStatus in Frameworks */ = {isa = PBXBuildFile; productRef = EDB0A7C1000000000000000D /* BeachStatus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +53,20 @@
 			remoteGlobalIDString = EDA11E570000000000000002;
 			remoteInfo = BeachRampWidgetsExtension;
 		};
+		EDB0A7C10000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED7681042F60ADF300B251E5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EDF7BCF62FE979B000EC5440;
+			remoteInfo = "BeachRampWatch Watch App";
+		};
+		EDB0A7C1000000000000000E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED7681042F60ADF300B251E5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EDB0A7C10000000000000014;
+			remoteInfo = BeachRampWatchWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -60,6 +77,28 @@
 			dstSubfolderSpec = 13;
 			files = (
 				EDA11E57000000000000000F /* BeachRampWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDB0A7C10000000000000004 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				EDB0A7C10000000000000001 /* BeachRampWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDB0A7C10000000000000010 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EDB0A7C1000000000000000B /* BeachRampWatchWidgetsExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -76,6 +115,7 @@
 		EDA11E570000000000000003 /* BeachRampWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeachRampWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDCF16010000000000000001 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BeachRampWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDB0A7C1000000000000000A /* BeachRampWatchWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeachRampWatchWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -85,6 +125,13 @@
 				Info.plist,
 			);
 			target = EDA11E570000000000000002 /* BeachRampWidgetsExtension */;
+		};
+		EDB0A7C10000000000000011 /* Exceptions for "BeachRampWatchWidgets" folder in "BeachRampWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EDB0A7C10000000000000014 /* BeachRampWatchWidgetsExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -130,6 +177,14 @@
 		EDF7BCF82FE979B000EC5440 /* BeachRampWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "BeachRampWatch Watch App";
+			sourceTree = "<group>";
+		};
+		EDB0A7C10000000000000012 /* BeachRampWatchWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EDB0A7C10000000000000011 /* Exceptions for "BeachRampWatchWidgets" folder in "BeachRampWatchWidgetsExtension" target */,
+			);
+			path = BeachRampWatchWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -195,6 +250,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EDB0A7C10000000000000016 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EDB0A7C1000000000000000C /* BeachStatus in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -209,6 +272,7 @@
 				ED1D184A2F619814000604A1 /* BeachRampTVUITests */,
 				EDF7BCF82FE979B000EC5440 /* BeachRampWatch Watch App */,
 				EDA11E570000000000000001 /* BeachRampWidgets */,
+				EDB0A7C10000000000000012 /* BeachRampWatchWidgets */,
 				EDCF16020000000000000002 /* Config */,
 				ED7681632F60B75400B251E5 /* Frameworks */,
 				ED76810D2F60ADF300B251E5 /* Products */,
@@ -226,6 +290,7 @@
 				ED1D18472F619814000604A1 /* BeachRampTVUITests.xctest */,
 				EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */,
 				EDA11E570000000000000003 /* BeachRampWidgetsExtension.appex */,
+				EDB0A7C1000000000000000A /* BeachRampWatchWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -325,11 +390,13 @@
 				ED7681092F60ADF300B251E5 /* Frameworks */,
 				ED76810A2F60ADF300B251E5 /* Resources */,
 				EDA11E57000000000000000E /* Embed Foundation Extensions */,
+				EDB0A7C10000000000000004 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				EDA11E57000000000000000D /* PBXTargetDependency */,
+				EDB0A7C10000000000000003 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				ED76810E2F60ADF300B251E5 /* BeachRamp */,
@@ -418,10 +485,12 @@
 				EDF7BCF32FE979B000EC5440 /* Sources */,
 				EDF7BCF42FE979B000EC5440 /* Frameworks */,
 				EDF7BCF52FE979B000EC5440 /* Resources */,
+				EDB0A7C10000000000000010 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				EDB0A7C1000000000000000F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				EDF7BCF82FE979B000EC5440 /* BeachRampWatch Watch App */,
@@ -433,6 +502,29 @@
 			productName = "BeachRampWatch Watch App";
 			productReference = EDF7BCF72FE979B000EC5440 /* BeachRampWatch Watch App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		EDB0A7C10000000000000014 /* BeachRampWatchWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EDB0A7C10000000000000018 /* Build configuration list for PBXNativeTarget "BeachRampWatchWidgetsExtension" */;
+			buildPhases = (
+				EDB0A7C10000000000000015 /* Sources */,
+				EDB0A7C10000000000000016 /* Frameworks */,
+				EDB0A7C10000000000000017 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EDB0A7C10000000000000012 /* BeachRampWatchWidgets */,
+			);
+			name = BeachRampWatchWidgetsExtension;
+			packageProductDependencies = (
+				EDB0A7C1000000000000000D /* BeachStatus */,
+			);
+			productName = BeachRampWatchWidgetsExtension;
+			productReference = EDB0A7C1000000000000000A /* BeachRampWatchWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -472,6 +564,9 @@
 					EDF7BCF62FE979B000EC5440 = {
 						CreatedOnToolsVersion = 26.5;
 					};
+					EDB0A7C10000000000000014 = {
+						CreatedOnToolsVersion = 26.3;
+					};
 				};
 			};
 			buildConfigurationList = ED7681072F60ADF300B251E5 /* Build configuration list for PBXProject "BeachRamp" */;
@@ -499,6 +594,7 @@
 				ED1D18462F619814000604A1 /* BeachRampTVUITests */,
 				EDF7BCF62FE979B000EC5440 /* BeachRampWatch Watch App */,
 				EDA11E570000000000000002 /* BeachRampWidgetsExtension */,
+				EDB0A7C10000000000000014 /* BeachRampWatchWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -554,6 +650,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		EDF7BCF52FE979B000EC5440 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDB0A7C10000000000000017 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -619,6 +722,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EDB0A7C10000000000000015 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -646,6 +756,16 @@
 			isa = PBXTargetDependency;
 			target = EDA11E570000000000000002 /* BeachRampWidgetsExtension */;
 			targetProxy = EDA11E57000000000000000C /* PBXContainerItemProxy */;
+		};
+		EDB0A7C10000000000000003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EDF7BCF62FE979B000EC5440 /* BeachRampWatch Watch App */;
+			targetProxy = EDB0A7C10000000000000002 /* PBXContainerItemProxy */;
+		};
+		EDB0A7C1000000000000000F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EDB0A7C10000000000000014 /* BeachRampWatchWidgetsExtension */;
+			targetProxy = EDB0A7C1000000000000000E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1140,6 +1260,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = YR2B55YA56;
 				ENABLE_PREVIEWS = YES;
@@ -1170,6 +1291,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = YR2B55YA56;
 				ENABLE_PREVIEWS = YES;
@@ -1185,6 +1307,63 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
+		EDB0A7C10000000000000019 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = YR2B55YA56;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeachRampWatchWidgets/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.donwb.BeachRampTV.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
+		EDB0A7C1000000000000001A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/BeachRampWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = YR2B55YA56;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeachRampWatchWidgets/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.donwb.BeachRampTV.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1280,6 +1459,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		EDB0A7C10000000000000018 /* Build configuration list for PBXNativeTarget "BeachRampWatchWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EDB0A7C10000000000000019 /* Debug */,
+				EDB0A7C1000000000000001A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -1306,6 +1494,11 @@
 			productName = BeachStatus;
 		};
 		EDF7BD0A2FE979C200EC5440 /* BeachStatus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = ED76814D2F60B65200B251E5 /* XCLocalSwiftPackageReference "BeachStatus" */;
+			productName = BeachStatus;
+		};
+		EDB0A7C1000000000000000D /* BeachStatus */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = ED76814D2F60B65200B251E5 /* XCLocalSwiftPackageReference "BeachStatus" */;
 			productName = BeachStatus;

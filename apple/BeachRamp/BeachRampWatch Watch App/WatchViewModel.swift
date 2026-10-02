@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import WidgetKit
 import BeachStatus
 
 /// View model for the watchOS app — ramps only, optimized for quick glances.
@@ -13,6 +14,9 @@ final class WatchViewModel {
     /// Show NSB ramps by default, with ability to see all.
     var showAllCities = false
 
+    /// Ramps pinned to the watch widget card (`WatchRampPicks`).
+    var pinnedIDs: [String] = WatchRampPicks.load()
+
     private let api: APIClient
 
     init(api: APIClient = .shared) {
@@ -21,7 +25,7 @@ final class WatchViewModel {
 
     /// NSB ramps (default glance view).
     var nsbRamps: [Ramp] {
-        ramps.filter { $0.cityDisplay == defaultCity }
+        ramps.filter { $0.cityDisplay == defaultCity }.boardOrdered()
     }
 
     /// Ramps currently displayed based on filter.
@@ -61,11 +65,27 @@ final class WatchViewModel {
         await loadAll()
     }
 
+    func isPinned(_ ramp: Ramp) -> Bool {
+        pinnedIDs.contains(ramp.accessID)
+    }
+
+    @MainActor
+    func togglePin(_ ramp: Ramp) {
+        pinnedIDs = WatchRampPicks.toggling(ramp.accessID, in: pinnedIDs, all: ramps)
+        WatchRampPicks.save(pinnedIDs)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Ramps come through the shared snapshot so the watch widget reads
+    /// exactly what the app just showed (and the outlook schedule that
+    /// paces its refreshes).
     @MainActor
     private func loadRamps() async {
-        do {
-            ramps = try await api.fetchRamps()
-        } catch {
+        if let snapshot = await SnapshotLoader.fresh(maxAge: 60, api: api) {
+            ramps = snapshot.ramps
+            if snapshot.age() > 60 { errorMessage = "Failed to load ramps" }
+            WidgetCenter.shared.reloadAllTimelines()
+        } else {
             errorMessage = "Failed to load ramps"
         }
     }

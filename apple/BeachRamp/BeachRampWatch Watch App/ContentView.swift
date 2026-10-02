@@ -51,10 +51,16 @@ struct ContentView: View {
             // Ramp rows
             Section {
                 ForEach(viewModel.displayedRamps) { ramp in
-                    WatchRampRow(ramp: ramp)
+                    Button {
+                        viewModel.togglePin(ramp)
+                    } label: {
+                        WatchRampRow(ramp: ramp, pinned: viewModel.isPinned(ramp))
+                    }
                 }
             } header: {
                 Text(viewModel.showAllCities ? "All Cities" : viewModel.defaultCity)
+            } footer: {
+                Text("Tap a ramp to pin it to the widget — four per city.")
             }
 
             // Toggle to show all cities
@@ -79,6 +85,7 @@ struct ContentView: View {
 /// Single ramp row for the watch list.
 struct WatchRampRow: View {
     let ramp: Ramp
+    var pinned = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -95,6 +102,14 @@ struct WatchRampRow: View {
                     .font(.caption2)
                     .foregroundStyle(ramp.category.watchColor)
                     .lineLimit(1)
+            }
+
+            if pinned {
+                Spacer(minLength: 0)
+                Image(systemName: "pin.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Pinned to widget")
             }
         }
         .padding(.vertical, 2)
