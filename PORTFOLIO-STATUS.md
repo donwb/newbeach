@@ -22,7 +22,7 @@ dispatches:
 ---
 
 ## Top open items
-0. **1.4 (42) is on TestFlight with widget push** (iOS + tvOS, uploaded 2026-10-01, tag flight/build-42). Install, make sure a Ramp Board widget is on the Home Screen, then `POST /api/v2/admin/widgets/push` (admin key) should show `sent ≥ 1` and the widget's clock should move; after that a county flip reaches the Home Screen within seconds. Submit for review when ready — supersedes 35–41.
+0. **1.4 (42) is on TestFlight; widget push verified live** (iOS + tvOS, uploaded 2026-10-01, tag flight/build-42). Admin trigger on Don's phone: `sent 4, dropped 0, failed 0`. Next: watch the first real county flip reach the Home Screen (log trace: `ramp status changed` → `widget push`). Submit for review when ready — supersedes 35–41.
 1. **Submit 1.4 (42) for review** when Don wants it public. It carries Ask (typed and spoken), the tvOS idle-reset fix (8127e53), the tide-wave time captions, and the tomorrow overlay. Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`, tag `flight/build-42`.
 2. **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off at "…but ramps are tide-closed…" right above "Every ramp open", so it reads as a contradiction. f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`) should come out clean. Check the headline fits before the next tvOS submission. Authority: `docs/APP-STORE-LISTING.md`, STATUS-LOG 2026-09-19.
 3. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted.
@@ -38,7 +38,7 @@ dispatches:
 - **The bundle ID is permanently frozen at `com.donwb.BeachRampTV`** for every platform. This was accepted deliberately and users never see it.
 
 ## Recently shipped
-- 2026-10-01: Widget push (iOS 26) built and live on the API — ingester flips → coalesced APNs `content-changed` pushes; APNs key verified. App side awaits flight 42.
+- 2026-10-01: Widget push (iOS 26) live end to end — ingester flips → coalesced APNs `content-changed` pushes → Home Screen widgets reload in seconds. Verified on device with 1.4 (42): 4 sent, 0 failed.
 - 2026-09-30: Widget refresh cadence follows the driving day (`WidgetRefreshPlan`, 945571c); flighted as 1.4 (41).
 - 2026-09-29: The website now points people at the apps: Safari Smart App Banner, a "Get the app ›" link in the top bar, and an iPhone/iPad + Apple TV tile section between Ask and the cam (0dc501d). Web only.
 - 2026-09-29: Voice for Ask, end to end: server quick path (common questions from engine copy, no model) + spoken replies; iOS mic in the Ask bar; four Siri shortcuts (free-form, city, ramp-by-name, best day) with clarifying exchanges kept inside the shortcut; widget Ask mic button as the reliable one-tap path. Flighted through 1.4 (40). Jev spike punted (code stays off).
