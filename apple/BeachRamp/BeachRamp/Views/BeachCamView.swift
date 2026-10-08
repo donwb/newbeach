@@ -21,6 +21,7 @@ struct BeachCamView: View {
     @State private var isMuted = true
     @State private var failureObserver: BeachCamFailureObserver?
     @State private var stallWatcher: BeachCamStallWatcher?
+    @State private var failureGate: BeachCamFailureGate?
 
     var body: some View {
         Group {
@@ -46,6 +47,7 @@ struct BeachCamView: View {
         }
         .onAppear { setupPlayer() }
         .onDisappear {
+            failureGate?.cancel()
             stallWatcher = nil
             failureObserver = nil
             player?.pause()
@@ -62,6 +64,7 @@ struct BeachCamView: View {
     }
 
     private func setupPlayer(url override: URL? = nil) {
+        failureGate?.cancel()
         stallWatcher = nil
         failureObserver = nil
         if let oldPlayer = player {
@@ -74,11 +77,17 @@ struct BeachCamView: View {
         let newPlayer = AVPlayer(playerItem: item)
         newPlayer.isMuted = isMuted
 
+        // One report per player. A single failure can trip the item status,
+        // the player error, the failed-to-end notification and the stall
+        // watcher; each extra report would queue a second rebuild that
+        // blacks out the replacement once it's playing.
+        let gate = BeachCamFailureGate { onPlaybackFailure?() }
+        failureGate = gate
         failureObserver = BeachCamFailureObserver(item: item, player: newPlayer) {
-            onPlaybackFailure?()
+            gate.fire()
         }
         stallWatcher = BeachCamStallWatcher(player: newPlayer) {
-            onPlaybackFailure?()
+            gate.fire()
         }
 
         player = newPlayer
@@ -171,5 +180,26 @@ private final class BeachCamStallWatcher {
             hasFired = true
             DispatchQueue.main.async { [onStall] in onStall() }
         }
+    }
+}
+
+/// Passes the first failure report through and drops the rest. Cancelled when
+/// the player is torn down, so a report still queued from a replaced player
+/// can't rebuild its successor.
+private final class BeachCamFailureGate {
+    private var action: (() -> Void)?
+
+    init(_ action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    func fire() {
+        let action = self.action
+        self.action = nil
+        action?()
+    }
+
+    func cancel() {
+        action = nil
     }
 }

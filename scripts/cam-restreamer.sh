@@ -165,7 +165,6 @@ stream_one() {
                 local age=$(( $(date +%s) - $(stat -f %m "$prog") ))
                 if [ "$age" -gt "$STALL_SECS" ]; then
                     log "[$id] stalled (${age}s without progress), restarting" >> "$log_f"
-                    kill_pipeline "$id" "$vid" "$pid"
                     break
                 fi
             fi
@@ -178,12 +177,19 @@ stream_one() {
                     relay_misses=$(( relay_misses + 1 ))
                     if [ "$relay_misses" -ge "$RELAY_DEAD_CHECKS" ]; then
                         log "[$id] relay stopped serving the stream (${relay_misses} probes) while the local pipeline looked healthy — half-open publish, restarting" >> "$log_f"
-                        kill_pipeline "$id" "$vid" "$pid"
                         break
                     fi
                 fi
             fi
         done
+        # Reap every stage before waiting, however the loop ended. $pid is the
+        # remux ffmpeg, but bash's `wait` blocks until the whole pipeline job
+        # exits — and when the relay drops the publish, ffmpeg dies while
+        # yt-dlp's downloader sits retrying a failing googlevideo edge without
+        # ever writing, so it never takes the SIGPIPE that would end it.
+        # 2026-10-08: nsb and ormond-beach hung here for hours, dark, with no
+        # retry and nothing logged.
+        kill_pipeline "$id" "$vid" "$pid"
         wait "$pid" 2>/dev/null
 
         # ffmpeg CREATES $prog at startup but only WRITES to it once data

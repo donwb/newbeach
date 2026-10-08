@@ -27,6 +27,7 @@ struct TVVideoPlayerView: View {
     @State private var player: AVPlayer?
     @State private var failureObserver: PlayerFailureObserver?
     @State private var stallWatcher: PlayerStallWatcher?
+    @State private var failureGate: PlayerFailureGate?
 
     var body: some View {
         ZStack {
@@ -42,6 +43,7 @@ struct TVVideoPlayerView: View {
             setupPlayer()
         }
         .onDisappear {
+            failureGate?.cancel()
             stallWatcher = nil
             failureObserver = nil
             player?.pause()
@@ -70,6 +72,7 @@ struct TVVideoPlayerView: View {
         // Explicitly tear down the prior player so it stops any background
         // network work before we replace it. ARC would eventually deinit it
         // but a wedged AVPlayer can keep retrying segment loads in the meantime.
+        failureGate?.cancel()
         stallWatcher = nil
         failureObserver = nil
         if let oldPlayer = player {
@@ -82,11 +85,17 @@ struct TVVideoPlayerView: View {
         let newPlayer = AVPlayer(playerItem: item)
         newPlayer.isMuted = false
 
+        // One report per player. A single failure can trip the item status,
+        // the player error, the failed-to-end notification and the stall
+        // watcher; each extra report would queue a second rebuild that
+        // blacks out the replacement once it's playing.
+        let gate = PlayerFailureGate { onPlaybackFailure?() }
+        failureGate = gate
         failureObserver = PlayerFailureObserver(item: item, player: newPlayer) {
-            onPlaybackFailure?()
+            gate.fire()
         }
         stallWatcher = PlayerStallWatcher(player: newPlayer) {
-            onPlaybackFailure?()
+            gate.fire()
         }
 
         player = newPlayer
@@ -225,5 +234,26 @@ private final class PlayerStallWatcher {
                 onStall()
             }
         }
+    }
+}
+
+/// Passes the first failure report through and drops the rest. Cancelled when
+/// the player is torn down, so a report still queued from a replaced player
+/// can't rebuild its successor.
+private final class PlayerFailureGate {
+    private var action: (() -> Void)?
+
+    init(_ action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    func fire() {
+        let action = self.action
+        self.action = nil
+        action?()
+    }
+
+    func cancel() {
+        action = nil
     }
 }
