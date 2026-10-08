@@ -337,6 +337,9 @@ final class BeachViewModel {
     @MainActor
     func selectCamera(_ id: String) {
         guard id != selectedCameraID else { return }
+        // A retry pending for the old cam would rebuild the new one's player.
+        videoRetryTask?.cancel()
+        videoRetryTask = nil
         selectedCameraID = id
         applySelectedCameraURL()
     }
@@ -349,9 +352,15 @@ final class BeachViewModel {
         }
     }
 
-    private static let videoRefreshMinInterval: TimeInterval = 30
+    /// Bounds how long the cam stays black after a dark feed comes back. A
+    /// refresh touches only our relay and roster endpoint, never YouTube.
+    private static let videoRefreshMinInterval: TimeInterval = 10
     private var lastVideoRefreshAttempt: Date?
     private var videoRefreshTask: Task<Void, Never>?
+    /// A failure inside the throttle window is deferred to the window's end,
+    /// never dropped — each player's observers fire once, so a dropped failure
+    /// left a dark cam black until the user switched cams (see TVViewModel).
+    private var videoRetryTask: Task<Void, Never>?
 
     /// Called by the player on playback failure. Re-fetches the camera roster to
     /// pick up the freshest cron-pushed HLS URL for the active camera. Preferred
@@ -360,9 +369,19 @@ final class BeachViewModel {
     /// the tvOS behavior, with a client-side throttle and single-flight gate.
     @MainActor
     func refreshVideoStream() {
-        if let last = lastVideoRefreshAttempt,
-           Date().timeIntervalSince(last) < Self.videoRefreshMinInterval {
-            return
+        if let last = lastVideoRefreshAttempt {
+            let wait = Self.videoRefreshMinInterval - Date().timeIntervalSince(last)
+            if wait > 0 {
+                if videoRetryTask == nil {
+                    videoRetryTask = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(wait))
+                        guard !Task.isCancelled else { return }
+                        videoRetryTask = nil
+                        refreshVideoStream()
+                    }
+                }
+                return
+            }
         }
         if videoRefreshTask != nil { return }
         lastVideoRefreshAttempt = Date()

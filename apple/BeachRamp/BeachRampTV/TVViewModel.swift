@@ -28,11 +28,20 @@ final class TVViewModel {
     }
 
     /// Min interval between client-driven refresh requests, regardless of how
-    /// many AVPlayer failures fire. Server has its own cooldown but we avoid
-    /// hammering it from the client too.
-    private static let videoRefreshMinInterval: TimeInterval = 30
+    /// many AVPlayer failures fire. A refresh touches only our own relay and
+    /// the roster endpoint (never YouTube — that's the restreamer's job), so
+    /// this is sized for quick recovery, not bot avoidance: it bounds how long
+    /// the band stays black after a dark cam's feed comes back.
+    private static let videoRefreshMinInterval: TimeInterval = 10
     private var lastVideoRefreshAttempt: Date?
     private var videoRefreshTask: Task<Void, Never>?
+    /// A failure that lands inside the throttle window is deferred to the
+    /// window's end, never dropped. Dropping it wedged the band for good: when
+    /// a cam goes dark, the rebuilt player fails again within seconds (the
+    /// relay path 404s until the restreamer reconnects), and each player's
+    /// observers fire only once — so a swallowed failure meant no retry ever,
+    /// and only switching cams (a new URL) brought the picture back.
+    private var videoRetryTask: Task<Void, Never>?
 
     /// Called by the player on playback failure. Re-fetches the camera roster
     /// to pick up the freshest cron-pushed HLS URL for the active camera, and
@@ -41,9 +50,19 @@ final class TVViewModel {
     /// on a residential IP is the real freshness mechanism.
     @MainActor
     func refreshVideoStream() {
-        if let last = lastVideoRefreshAttempt,
-           Date().timeIntervalSince(last) < Self.videoRefreshMinInterval {
-            return
+        if let last = lastVideoRefreshAttempt {
+            let wait = Self.videoRefreshMinInterval - Date().timeIntervalSince(last)
+            if wait > 0 {
+                if videoRetryTask == nil {
+                    videoRetryTask = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(wait))
+                        guard !Task.isCancelled else { return }
+                        videoRetryTask = nil
+                        refreshVideoStream()
+                    }
+                }
+                return
+            }
         }
         if videoRefreshTask != nil { return }
         lastVideoRefreshAttempt = Date()
@@ -153,6 +172,9 @@ final class TVViewModel {
     @MainActor
     func selectCamera(_ id: String) {
         guard id != selectedCameraID else { return }
+        // A retry pending for the old cam would rebuild the new one's player.
+        videoRetryTask?.cancel()
+        videoRetryTask = nil
         selectedCameraID = id
         applySelectedCameraURL()
     }
