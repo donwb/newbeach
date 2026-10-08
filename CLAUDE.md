@@ -486,8 +486,9 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 - Branch naming when you do branch: `feature/description`, `fix/description`
 - GitHub Actions for CI: lint, test, build
 - Docker build on merge to main
-- **The trade-off of pushing to main: it auto-deploys.** Nothing gates a bad commit but
-  you, so run the tests before pushing anything that touches `api/` or `web/`.
+- **The trade-off of pushing to main: it auto-deploys.** CI's vet/staticcheck/tests are
+  the only gate (2026-10-08) — they catch what they cover, nothing more — so run the
+  tests before pushing anything that touches `api/` or `web/`.
 
 ## Deployment
 
@@ -496,6 +497,15 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 - Website files served from filesystem via `WEB_DIR` env var (set to `/web` in Docker)
 - Migration SQL files are embedded into the Go binary via `go:embed`
 - Pushing to `main` triggers auto-deploy — never push broken code to main
+- **CI is the only deployer (2026-10-08).** The `deploy` job runs `doctl apps
+  create-deployment` after `lint-test-build` passes; App Platform's own
+  `deploy_on_push` is **off**, in `.do/app.yaml` and the live spec. Before that, both
+  deployed on every push: untested code went live ahead of CI, and a CI deploy that
+  App Platform canceled as superseded left `doctl --wait` hanging 30 min into a failed
+  run. Don't re-enable it. If GitHub Actions is down, deploy by hand:
+  `doctl apps create-deployment <app-id>`. Editing `.do/app.yaml` does not change the
+  live app — apply spec changes from `doctl apps spec get` output, never by pushing the
+  repo file wholesale, since secrets set in the UI live only in the live spec.
 - If you change environment variables, update both `.do/app.yaml` and this doc
 
 ## Environment Variables

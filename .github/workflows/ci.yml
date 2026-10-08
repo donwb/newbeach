@@ -58,6 +58,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint-test-build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # A newer push's deploy supersedes an older one; cancel the older job rather
+    # than let `doctl --wait` sit on a canceled deployment until it times out.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v4

@@ -38,7 +38,9 @@ services:
     github:
       repo: donwb/newbeach
       branch: main
-      deploy_on_push: true
+      # CI (.github/workflows/ci.yml) is the only deployer, after tests pass.
+      # Auto-deploy raced CI's deploy and shipped untested commits.
+      deploy_on_push: false
     dockerfile_path: api/Dockerfile
     source_dir: /
     http_port: 8080
