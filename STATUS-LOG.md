@@ -3,6 +3,7 @@
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
 ## 2026-10-09
+- 2026-10-09: 1.4 (45) uploaded to TestFlight, iOS + tvOS, tag flight/build-45. It carries the black-cam auto-switch below (Don: the Apple TV is where long viewing happens, so the web player is skipped). Not submitted for review.
 - 2026-10-09: Black cams switch themselves (65bca58). Don: when a cam (NSB) goes black it never gets back to video, but flipping to Ponce and returning a few minutes later works — "can you detect that it went black and do that switch for me?" iOS and tvOS players now read their own picture every 2 s (`CamPictureSampler`: AVPlayerItemVideoOutput luma, AccuWeather badge rows skipped; no frame yet counts as black) and after 10 s of black change to the next cam in roster order (`CamDarkWatch`, BeachStatus, 8 tests). The clock runs per cam, not per player, so failure rebuilds can't keep resetting it. It skips cams the roster marks `online: false` (`Camera` now decodes it) and cams already left black this sweep, rests 2 min when every cam is black, and stands down after civil dusk. tvOS strip focus follows the switch. Verified on macOS: the live NSB stream read lit within 4 s and a generated black HLS stream read black. Daytime cams sample at mean luma ~130 (threshold: 97% of samples ≤ 24). Not flighted; web not covered yet.
 
 ## 2026-10-08
