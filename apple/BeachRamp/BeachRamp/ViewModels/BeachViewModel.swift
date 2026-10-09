@@ -341,7 +341,23 @@ final class BeachViewModel {
         videoRetryTask?.cancel()
         videoRetryTask = nil
         selectedCameraID = id
+        camDarkWatch.restart()
         applySelectedCameraURL()
+    }
+
+    /// Changes the channel when the picture stays black (`CamDarkWatch`):
+    /// a feed stuck black rarely recovers in place, but is usually fine a
+    /// few minutes later.
+    @ObservationIgnored private var camDarkWatch = CamDarkWatch()
+
+    /// A picture read from the player.
+    @MainActor
+    func notePicture(lit: Bool) {
+        guard let current = selectedCamera?.id else { return }
+        if let next = camDarkWatch.note(lit: lit, watching: current,
+                                        roster: cameras, at: Date()) {
+            selectCamera(next)
+        }
     }
 
     /// Point `videoStreamURL` at the selected camera's stream, if resolved.

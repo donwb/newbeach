@@ -262,7 +262,8 @@ struct BoardiPadView: View {
                 BeachCamView(
                     url: viewModel.videoStreamURL,
                     rebuildToken: viewModel.videoStreamGeneration,
-                    onPlaybackFailure: { viewModel.refreshVideoStream() }
+                    onPlaybackFailure: { viewModel.refreshVideoStream() },
+                    onPictureSample: { viewModel.notePicture(lit: $0) }
                 )
             }
         }
@@ -316,7 +317,8 @@ struct BoardiPadView: View {
                 BeachCamView(
                     url: viewModel.videoStreamURL,
                     rebuildToken: viewModel.videoStreamGeneration,
-                    onPlaybackFailure: { viewModel.refreshVideoStream() }
+                    onPlaybackFailure: { viewModel.refreshVideoStream() },
+                    onPictureSample: { viewModel.notePicture(lit: $0) }
                 )
                 .padding(.top, 10)
                 .onTapGesture { viewModel.camPresented = true }

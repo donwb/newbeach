@@ -143,7 +143,14 @@ struct ContentView: View {
         }
         .onChange(of: viewModel.selectedCameraID) { _, id in
             // Initial focus: the cam strip, once the roster names a cam.
-            if focus == nil, let id { focus = .cam(id) }
+            // After that, focus on the strip follows the channel when the
+            // dark watch changes it, so the next flip starts from the cam
+            // on screen. Focus elsewhere (a surface) is left alone.
+            guard let id else { return }
+            switch focus {
+            case nil, .cam: focus = .cam(id)
+            default: break
+            }
         }
         .onChange(of: verdictModel.headline) { old, new in
             if old != new { verdictFlashToken &+= 1 }
@@ -170,7 +177,8 @@ struct ContentView: View {
                 rebuildToken: viewModel.videoStreamGeneration,
                 isPlaying: $viewModel.isVideoPlaying,
                 selectedOffline: selectedCamOffline,
-                onPlaybackFailure: { viewModel.refreshVideoStream() }
+                onPlaybackFailure: { viewModel.refreshVideoStream() },
+                onPictureSample: { viewModel.notePicture(lit: $0) }
             )
 
             bottomArea

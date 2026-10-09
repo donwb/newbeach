@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import BeachStatus
 
 /// Bare panoramic HLS beach-cam player surface. Owners provide all chrome
 /// (the landscape view's scrims, the iPad rail's frame). Adapted from the
@@ -12,6 +13,9 @@ struct BeachCamView: View {
     let rebuildToken: Int
     /// Called when AVPlayer reports a playback failure; owner re-resolves the URL.
     var onPlaybackFailure: (() -> Void)? = nil
+    /// Every two seconds: lit (true) or black (false); the owner's
+    /// `CamDarkWatch` decides when to switch cams.
+    var onPictureSample: ((Bool) -> Void)? = nil
     /// `.fit` shows the whole 1280×270 panorama; `.fill` crops to the frame
     /// (the landscape cam view).
     var contentMode: ContentMode = .fit
@@ -22,6 +26,7 @@ struct BeachCamView: View {
     @State private var failureObserver: BeachCamFailureObserver?
     @State private var stallWatcher: BeachCamStallWatcher?
     @State private var failureGate: BeachCamFailureGate?
+    @State private var pictureSampler: CamPictureSampler?
 
     var body: some View {
         Group {
@@ -49,6 +54,7 @@ struct BeachCamView: View {
         .onDisappear {
             failureGate?.cancel()
             stallWatcher = nil
+            pictureSampler = nil
             failureObserver = nil
             player?.pause()
             player = nil
@@ -66,6 +72,7 @@ struct BeachCamView: View {
     private func setupPlayer(url override: URL? = nil) {
         failureGate?.cancel()
         stallWatcher = nil
+        pictureSampler = nil
         failureObserver = nil
         if let oldPlayer = player {
             oldPlayer.pause()
@@ -88,6 +95,10 @@ struct BeachCamView: View {
         }
         stallWatcher = BeachCamStallWatcher(player: newPlayer) {
             gate.fire()
+        }
+
+        pictureSampler = CamPictureSampler(item: item) { lit in
+            onPictureSample?(lit)
         }
 
         player = newPlayer

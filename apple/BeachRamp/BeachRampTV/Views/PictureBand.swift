@@ -26,6 +26,8 @@ struct PictureBand: View {
     /// True when the roster's selected cam has no resolved stream.
     let selectedOffline: Bool
     let onPlaybackFailure: () -> Void
+    /// Lit/black picture reads for the cam-switching dark watch.
+    var onPictureSample: (Bool) -> Void = { _ in }
 
     var body: some View {
         Color.black
@@ -35,7 +37,8 @@ struct PictureBand: View {
                         url: streamURL,
                         rebuildToken: rebuildToken,
                         isPlaying: $isPlaying,
-                        onPlaybackFailure: onPlaybackFailure
+                        onPlaybackFailure: onPlaybackFailure,
+                        onPictureSample: onPictureSample
                     )
                     .frame(height: Self.fullFrameHeight)
                     .offset(y: -Self.badgeCropPt)

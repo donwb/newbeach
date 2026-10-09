@@ -107,6 +107,14 @@ restreamer flaky?" question that prompted all this.
 3. Is the relay itself up? `ssh root@68.183.149.152 systemctl status mediamtx caddy`
    and `journalctl -u mediamtx -n 50`.
 
+The iOS and tvOS players don't wait on any of this (2026-10-09): they read their own
+picture every 2s (`CamPictureSampler`, BeachStatus) and after 10s of black change to
+the next cam in roster order (`CamDarkWatch`). A black cam rarely recovers in place but
+is usually fine a few minutes later. The watch skips cams the roster marks
+`online: false` and cams already left black in the same sweep. When every cam is black
+it stays put for 2 min before another sweep, and it does nothing after civil dusk,
+because a dark beach at night is not a dead feed. Web doesn't do this yet.
+
 **Restart everything on the Studio:**
 `launchctl kickstart -k gui/$(id -u)/com.donwb.cam-restreamer`
 

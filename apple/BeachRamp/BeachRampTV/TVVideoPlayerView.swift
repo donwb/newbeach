@@ -23,11 +23,16 @@ struct TVVideoPlayerView: View {
     /// Called when AVPlayer reports a playback failure. The owner should ask
     /// the API to re-resolve the stream URL and update `url`.
     var onPlaybackFailure: (() -> Void)? = nil
+    /// Every two seconds: is the picture lit (true) or black (false)? The
+    /// owner's `CamDarkWatch` decides when black has lasted long enough to
+    /// switch cams.
+    var onPictureSample: ((Bool) -> Void)? = nil
 
     @State private var player: AVPlayer?
     @State private var failureObserver: PlayerFailureObserver?
     @State private var stallWatcher: PlayerStallWatcher?
     @State private var failureGate: PlayerFailureGate?
+    @State private var pictureSampler: CamPictureSampler?
 
     var body: some View {
         ZStack {
@@ -45,6 +50,7 @@ struct TVVideoPlayerView: View {
         .onDisappear {
             failureGate?.cancel()
             stallWatcher = nil
+            pictureSampler = nil
             failureObserver = nil
             player?.pause()
             player = nil
@@ -74,6 +80,7 @@ struct TVVideoPlayerView: View {
         // but a wedged AVPlayer can keep retrying segment loads in the meantime.
         failureGate?.cancel()
         stallWatcher = nil
+        pictureSampler = nil
         failureObserver = nil
         if let oldPlayer = player {
             oldPlayer.pause()
@@ -96,6 +103,10 @@ struct TVVideoPlayerView: View {
         }
         stallWatcher = PlayerStallWatcher(player: newPlayer) {
             gate.fire()
+        }
+
+        pictureSampler = CamPictureSampler(item: item) { lit in
+            onPictureSample?(lit)
         }
 
         player = newPlayer

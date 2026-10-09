@@ -21,7 +21,8 @@ struct LiveCamFullscreenView: View {
             BeachCamView(
                 url: viewModel.videoStreamURL,
                 rebuildToken: viewModel.videoStreamGeneration,
-                onPlaybackFailure: { viewModel.refreshVideoStream() }
+                onPlaybackFailure: { viewModel.refreshVideoStream() },
+                onPictureSample: { viewModel.notePicture(lit: $0) }
             )
             .ignoresSafeArea()
 

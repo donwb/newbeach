@@ -6,12 +6,18 @@ public struct Camera: Codable, Identifiable, Hashable, Sendable {
     public let name: String
     public let location: String
     public let streamURL: String
+    /// The relay's last health read for this cam; nil when the server has
+    /// never observed it. The URL is permanent now, so this is what says a
+    /// cam is dark.
+    public let online: Bool?
 
-    public init(id: String, name: String, location: String, streamURL: String) {
+    public init(id: String, name: String, location: String, streamURL: String,
+                online: Bool? = nil) {
         self.id = id
         self.name = name
         self.location = location
         self.streamURL = streamURL
+        self.online = online
     }
 
     enum CodingKeys: String, CodingKey {
@@ -19,6 +25,7 @@ public struct Camera: Codable, Identifiable, Hashable, Sendable {
         case name
         case location
         case streamURL = "stream_url"
+        case online
     }
 
     /// The stream URL as a `URL`, or `nil` if not yet resolved (empty string,
