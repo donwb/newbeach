@@ -46,7 +46,8 @@ Key properties:
   die after the DVR window; ios/tv/web_safari return no formats at all (as of
   yt-dlp 2026.07.04).
 - **Self-healing.** Each camera runs in its own supervised loop: a watchdog
-  restarts the pipeline if ffmpeg's progress file goes stale (>60s), YouTube's
+  restarts the pipeline if ffmpeg's progress file goes stale or its frame count
+  freezes (>45s), or if the relay stops serving it for three 15s probes, YouTube's
   ~6h URL expiry just triggers a restart (30s retry after any session that
   streamed), and the whole roster re-fetches + restarts every 6h (picks up
   roster changes). launchd restarts the supervisor itself if it dies. A camera

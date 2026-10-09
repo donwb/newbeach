@@ -66,12 +66,13 @@ LOG_DIR="${LOG_DIR:-$HOME/Library/Logs/cam-restreamer}"
 # whether a publish is actually reaching viewers (see the half-open check).
 RELAY_HLS_BASE="${RELAY_HLS_BASE:-https://cams.donwb.com}"
 
-STALL_SECS=60        # restart a pipeline if ffmpeg makes no progress this long
+STALL_SECS=45        # restart if ffmpeg goes quiet or its frame count freezes this long
+                     # (above the 10–30s home→relay RTMP stalls it must ride out)
 RETRY_STREAMED=30    # retry after a stream that was up and dropped
 RETRY_SECS=120       # base delay for resolve-failure backoff + roster retries
 RETRY_MAX=1800       # backoff cap for streams that fail to resolve at all
 ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
-RELAY_CHECK_TICKS=4  # relay liveness probe every N watchdog ticks (~60s)
+RELAY_CHECK_TICKS=1  # relay liveness probe every N watchdog ticks (15s; our relay, never YouTube)
 RELAY_DEAD_CHECKS=3  # consecutive probe misses before declaring half-open
 LOG_MAX_MB=64        # copy-truncate a camera log past this size (keeps one .1)
 
@@ -157,14 +158,32 @@ stream_one() {
         # present): if it goes missing RELAY_DEAD_CHECKS probes in a row
         # while the local pipeline looks healthy, the publish is dead in a
         # way only the relay can see — restart the pipeline.
-        local ticks=0 relay_misses=0
+        # Two stall signals. The progress file going stale catches a hung
+        # ffmpeg; a frozen frame count catches the commoner case — the input
+        # stops but ffmpeg keeps rewriting progress with the same frame=
+        # (2026-10-08: nsb sat at one frame number with a seconds-old file
+        # until the relay probe caught it minutes later).
+        local ticks=0 relay_misses=0 last_frame="" frame_at
+        frame_at=$(date +%s)
         while kill -0 "$pid" 2>/dev/null; do
             sleep 15
             rotate_log "$log_f"
             if [ -f "$prog" ]; then
-                local age=$(( $(date +%s) - $(stat -f %m "$prog") ))
+                local now age frame frozen
+                now=$(date +%s)
+                age=$(( now - $(stat -f %m "$prog") ))
+                frame=$(tail -n 40 "$prog" | sed -n 's/^frame=//p' | tail -1)
+                if [ -n "$frame" ] && [ "$frame" != "$last_frame" ]; then
+                    last_frame="$frame"
+                    frame_at=$now
+                fi
+                frozen=$(( now - frame_at ))
                 if [ "$age" -gt "$STALL_SECS" ]; then
                     log "[$id] stalled (${age}s without progress), restarting" >> "$log_f"
+                    break
+                fi
+                if [ -n "$last_frame" ] && [ "$frozen" -gt "$STALL_SECS" ]; then
+                    log "[$id] stalled (frame count frozen ${frozen}s), restarting" >> "$log_f"
                     break
                 fi
             fi
