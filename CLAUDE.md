@@ -122,7 +122,8 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   need `simctl io <dev> screenshot --display=<uuid>` (`simctl io <dev> enumerate`: the
   outer screen is 1398×2034 px, the inner 2007×2853). Use a dedicated sim
   ("iPhone Duo (Beach)"), not the shared "iPhone Duo" other repos drive. Cross-app
-  playbook (toolchain, sim gotchas, measured geometry, audit checklist): `docs/IPHONE-DUO.md`.
+  playbook (toolchain, sim gotchas, measured geometry, audit checklist) lives with the
+  release tool: `~/dev/flight/IPHONE-DUO.md`.
 
 ## Database
 
