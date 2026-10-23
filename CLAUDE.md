@@ -104,6 +104,24 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
 - **Hostname tripwire** (`apple/scripts/flight-preflight.sh`): flight refuses (with a
   confirm) if `APIClient.swift` still points at the `ondigitalocean.app` hostname
   instead of `beach.donwb.com`.
+- **iOS flights need Xcode 27.1+ (iPhone Duo, 2026-10-23).** A binary linked against an
+  older SDK runs on the Duo in compatibility mode (black status strip, not edge-to-edge),
+  so iOS ships from the 27.1 release Xcode. On the Studio it sits beside 26.3 as
+  `/Applications/Xcode copy.app` with `xcode-select` left on 26.3 — flight calls plain
+  `xcodebuild`, so point it there per run:
+  `DEVELOPER_DIR="/Applications/Xcode copy.app/Contents/Developer" make flight ARGS="--only ios --yes"`.
+  The fold code (`Views/Board/FoldSeam.swift`) is gated on
+  `canImport(SwiftUICore, _version: 8.0.85)` so 26.3 still builds (compiled out).
+- **iPhone Duo layout.** Closed (466×678, compact) gets the iPhone board; open as a book
+  (951×669 incl. an 84pt system strip, regular) gets the iPad landscape board with both
+  splits on the hinge at x=475 (`FoldSeam`: the `.division` reserved region, else the
+  screen midline once `onHingeChange` reports open); rotated open (669×951) gets the iPad
+  portrait column. The iPad ramp detail panel clamps to the screen. Verify with
+  `--layout-probe` (DEBUG; logs size classes, insets, reserved regions, hinge). Poses can
+  only be changed in Xcode's Device Hub — `simctl` has no fold control — and screenshots
+  need `simctl io <dev> screenshot --display=<uuid>` (`simctl io <dev> enumerate`: the
+  outer screen is 1398×2034 px, the inner 2007×2853). Use a dedicated sim
+  ("iPhone Duo (Beach)"), not the shared "iPhone Duo" other repos drive.
 
 ## Database
 

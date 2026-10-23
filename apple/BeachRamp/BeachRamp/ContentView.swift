@@ -42,6 +42,9 @@ struct ContentView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            #if DEBUG
+            .layoutProbeIfRequested()
+            #endif
             .navigationDestination(for: Ramp.self) { ramp in
                 RampDetailView(viewModel: viewModel, ramp: ramp)
             }

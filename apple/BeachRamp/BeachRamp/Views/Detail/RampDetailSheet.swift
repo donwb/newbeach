@@ -1,7 +1,7 @@
 import SwiftUI
 import BeachStatus
 
-/// The iPad ramp detail: a 760×762 panel over the dimmed board — a sheet in
+/// The iPad ramp detail: a 760×762 panel (smaller on an iPhone Duo) over the dimmed board — a sheet in
 /// spirit, drawn by hand so the 2px ink border and zero radius survive.
 /// The board stays visible behind it because comparing this ramp against the
 /// others is the point.
@@ -12,25 +12,32 @@ struct RampDetailSheet: View {
     @Environment(\.ground) private var ground
 
     var body: some View {
-        ZStack {
-            Color(red: 6 / 255, green: 20 / 255, blue: 32 / 255).opacity(0.52)
-                .ignoresSafeArea()
-                .onTapGesture { dismiss() }
+        GeometryReader { geo in
+            ZStack {
+                Color(red: 6 / 255, green: 20 / 255, blue: 32 / 255).opacity(0.52)
+                    .ignoresSafeArea()
+                    .onTapGesture { dismiss() }
 
-            panel
-                .frame(width: 760, height: 762)
-                .background {
-                    ZStack {
-                        ground.skyGradient
-                        ground.veil
-                        // At night the veil vanishes; keep the panel legible
-                        // over the dim with a deep ground.
-                        if !ground.isDay {
-                            Color(red: 4 / 255, green: 24 / 255, blue: 34 / 255).opacity(0.85)
+                // 760×762 is the iPad design; the iPhone Duo's open screen
+                // (951×669 / 669×951) is smaller in one axis or the other, so
+                // the panel shrinks to fit and its content scrolls.
+                panel
+                    .frame(width: min(760, geo.size.width - 32),
+                           height: min(762, geo.size.height - 32))
+                    .background {
+                        ZStack {
+                            ground.skyGradient
+                            ground.veil
+                            // At night the veil vanishes; keep the panel legible
+                            // over the dim with a deep ground.
+                            if !ground.isDay {
+                                Color(red: 4 / 255, green: 24 / 255, blue: 34 / 255).opacity(0.85)
+                            }
                         }
                     }
-                }
-                .overlay(Rectangle().strokeBorder(ground.tokens.rule, lineWidth: 2))
+                    .overlay(Rectangle().strokeBorder(ground.tokens.rule, lineWidth: 2))
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
         .task(id: ramp.accessID) {
             await viewModel.loadDetail(for: ramp)

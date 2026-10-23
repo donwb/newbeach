@@ -2,12 +2,14 @@ import SwiftUI
 import BeachStatus
 
 /// The iPad board: one wide page, not a split view — there is no hierarchy
-/// here. Landscape keeps a 372pt conditions rail; portrait dissolves it into
+/// here. Landscape keeps a 372pt conditions rail (on the iPhone Duo, the
+/// right-hand page — see FoldSeam); portrait dissolves it into
 /// the flow. Ramp detail presents as a centered panel over the dimmed board.
 struct BoardiPadView: View {
     @Bindable var viewModel: BeachViewModel
     @Environment(\.ground) private var ground
     @State private var detailRamp: Ramp?
+    @State private var hingeOpen = false
 
     var body: some View {
         GeometryReader { geo in
@@ -15,12 +17,14 @@ struct BoardiPadView: View {
             // window (simulator panels can't rotate the device).
             let isLandscape = geo.size.width > geo.size.height
                 || ProcessInfo.processInfo.arguments.contains("--force-wide")
+            // The Duo's book pose: both landscape splits sit on the hinge.
+            let seam = isLandscape ? FoldSeam.verticalSeam(in: geo, hingeOpen: hingeOpen) : nil
             ZStack {
                 ScrollView {
                     VStack(spacing: 0) {
-                        skyBand(isLandscape: isLandscape)
+                        skyBand(isLandscape: isLandscape, seam: seam)
                         if isLandscape {
-                            landscapeBody
+                            landscapeBody(seam: seam)
                         } else {
                             portraitBody
                         }
@@ -35,13 +39,16 @@ struct BoardiPadView: View {
                 }
             }
         }
+        .trackingHinge($hingeOpen)
     }
 
     private var pagePadding: CGFloat { 34 }
+    /// Gap between the landscape columns; on the Duo it straddles the hinge.
+    private var columnGap: CGFloat { 34 }
 
     // MARK: - Sky band
 
-    private func skyBand(isLandscape: Bool) -> some View {
+    private func skyBand(isLandscape: Bool, seam: CGFloat?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 HStack(spacing: 8) {
@@ -73,12 +80,15 @@ struct BoardiPadView: View {
                 .padding(.top, 14)
 
             if isLandscape {
-                // 1.55fr / 1fr: headline left, stat cells right.
+                // 1.55fr / 1fr: headline left, stat cells right — or, on
+                // the Duo, headline on the left page and stats on the right.
                 GeometryReader { geo in
-                    let gap: CGFloat = 34
+                    let gap = columnGap
+                    let headlineWidth = seam.map { $0 - pagePadding - gap / 2 }
+                        ?? (geo.size.width - gap) * 0.608
                     HStack(alignment: .top, spacing: gap) {
                         VerdictView(verdict: viewModel.verdict(), headlineSize: 52, sublineSize: 18)
-                            .frame(width: (geo.size.width - gap) * 0.608, alignment: .leading)
+                            .frame(width: headlineWidth, alignment: .leading)
                         skyStatCells
                             .frame(maxWidth: .infinity)
                     }
@@ -149,6 +159,10 @@ struct BoardiPadView: View {
                 .font(.archivo(26, weight: .extraBold))
                 .monospacedDigit()
                 .foregroundStyle(.white)
+                // The Duo's right-hand page fits three cells at ~95pt each:
+                // "72° · 77°" shrinks rather than wrapping.
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             if let detail {
                 Text(detail)
                     .font(.archivo(12))
@@ -181,22 +195,27 @@ struct BoardiPadView: View {
 
     // MARK: - Landscape
 
-    private var landscapeBody: some View {
+    /// Ramps left, conditions rail right. On the Duo the left page holds
+    /// the ramps (two columns — the page is ~420pt) and the rail fills the
+    /// right page instead of its usual 372pt.
+    private func landscapeBody(seam: CGFloat?) -> some View {
         let t = ground.tokens
-        return HStack(alignment: .top, spacing: 34) {
+        return HStack(alignment: .top, spacing: columnGap) {
             VStack(alignment: .leading, spacing: 0) {
                 filterRow
-                rampGrid(columns: 3, minHeight: 152)
+                rampGrid(columns: seam == nil ? 3 : 2, minHeight: seam == nil ? 152 : 116)
                     .padding(.top, 14)
                 Rectangle().fill(t.rule).frame(height: 2)
                     .padding(.top, 24)
                 RecentChangesList(entries: viewModel.recentActivity)
                     .padding(.top, 12)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(width: seam.map { $0 - pagePadding - columnGap / 2 }, alignment: .topLeading)
+            .frame(maxWidth: seam == nil ? .infinity : nil, alignment: .topLeading)
 
             conditionsRail
-                .frame(width: 372)
+                .frame(width: seam == nil ? 372 : nil)
+                .frame(maxWidth: seam == nil ? nil : .infinity)
         }
         .padding(.horizontal, pagePadding)
         .padding(.top, 22)
