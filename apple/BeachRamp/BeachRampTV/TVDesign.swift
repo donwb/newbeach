@@ -136,6 +136,18 @@ func tvStatusWord(_ raw: String) -> String {
     }
 }
 
+/// The ledger's Now column is narrow (`RampRowLayout.now`), so the long
+/// closure words get a compact form there; the detail surface's event log
+/// keeps `tvStatusWord`. "Closed — high tide" truncated to "Closed — hig…"
+/// on every tide closure (caught in the 2026-11-12 gallery reshoot).
+func tvLedgerWord(_ raw: String) -> String {
+    switch raw.uppercased().trimmingCharacters(in: .whitespaces) {
+    case "CLOSED FOR HIGH TIDE": "Closed — tide"
+    case "CLOSED - AT CAPACITY": "At capacity"
+    default: tvStatusWord(raw)
+    }
+}
+
 // MARK: - Tide wave
 
 /// Today's Eastern day plus what the tvOS tide waves draw on it: today's

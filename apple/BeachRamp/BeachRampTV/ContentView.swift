@@ -384,7 +384,7 @@ struct ContentView: View {
             return TVRampRowModel(
                 id: ramp.accessID,
                 name: ramp.rampDisplayName,
-                nowLabel: overnight ? "Closed" : tvStatusWord(ramp.accessStatus),
+                nowLabel: overnight ? "Closed" : tvLedgerWord(ramp.accessStatus),
                 isClosed: overnight || ramp.category == .closed,
                 nextLabel: next
             )

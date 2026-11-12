@@ -4,8 +4,8 @@ import BeachStatus
 /// Shared column layout for the ledger's three-column rows, so the header
 /// labels and the rows can never drift apart.
 enum RampRowLayout {
-    static let name: CGFloat = 340
-    static let now: CGFloat = 195
+    static let name: CGFloat = 320
+    static let now: CGFloat = 215
     static let gap: CGFloat = 20
 }
 
@@ -149,6 +149,7 @@ struct RampsBox: View {
                 Text(row.nowLabel)
                     .tv(26, row.isClosed ? .bold : .semiBold)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .foregroundStyle(row.isClosed ? TVInk.closed : TVInk.type)
                     .frame(width: RampRowLayout.now, alignment: .leading)
                 Text(row.nextLabel ?? "—")

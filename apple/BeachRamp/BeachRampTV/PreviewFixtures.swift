@@ -180,9 +180,9 @@ enum PreviewFixtures {
     /// Twelve Daytona rows with two closures sorted to the top — exercises
     /// the windowed list, the scroll thumb, and the "12 · 7 below" header.
     static let daytonaRows: [TVRampRowModel] = [
-        TVRampRowModel(id: "DB-1", name: "Harvey Ave", nowLabel: "Closed — high tide",
+        TVRampRowModel(id: "DB-1", name: "Harvey Ave", nowLabel: "Closed — tide",
                        isClosed: true, nextLabel: "often back open around 5:30pm"),
-        TVRampRowModel(id: "DB-2", name: "Van Ave", nowLabel: "Closed — high tide",
+        TVRampRowModel(id: "DB-2", name: "Van Ave", nowLabel: "Closed — tide",
                        isClosed: true, nextLabel: "often back open around 5:30pm"),
     ] + (3...12).map { i in
         TVRampRowModel(id: "DB-\(i)", name: ["Main St", "Seabreeze Blvd", "Auditorium Blvd",
