@@ -10,6 +10,10 @@ Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO
   4. Midday reopen quote = peak + learned lag + 30 min. The county reopens ~50 min after the peak, and the symmetric mirror ran 1.4h late. Error 1.83 → 1.20h.
   5. Evening reach floored at 9pm ET, for the ~5pm winter close. Missed 1pm calls 10/27+ went 22 → 0.
   Regression floors in `TestBacktestKingTideFall`; harness `assess_test.go` (build tag `assess`) + `scripts/predict-assess.py`. Left unfitted: November "possible" highs held 55/57 ramp-mornings (post-storm beach?). A recency-window threshold was tried and was neutral.
+- 2026-11-12: v8 live (3593142, CI deploy green). Don asked whether the prediction wording needed tweaks. Two lines named the wrong high tide, fixed in e515c36 (deployed, green):
+  1. The city at-risk clause used the next high on the chart, so at 10am off-season it said "two more could shut on the ~11pm high". It now names the high the ramp rows use, and "could still shut as the tide drops" once that high has passed, without "any time now".
+  2. A pre-open hold resting on high water alone named the afternoon high ("the ~4pm high tide could keep it closed until ~6pm", 10/19 to 10/21). It now says "high water could keep it closed" with no reopen time, since those days split from all-day to open by 10am.
+  Left as is: "Closed until morning" at 6:30am, and four-clause evening-high details.
 
 ## 2026-10-23
 - 2026-10-23: Don: "we need to flight a build that's ready for the iPhone Duo" (Apple's foldable, on sale today). The Studio only had Xcode 26.3 (iOS 26.2 SDK), and Refrain's 9/21 test found that a pre-27.1 binary runs on the Duo in compatibility mode, not full-screen. Don installed Xcode 27.1 (27A9275) beside 26.3 as `/Applications/Xcode copy.app`, and `xcode-select` stays on 26.3. The 27.1 simulator runtime was installed but hidden by a stale CoreSimulatorService. Restarting it also briefly shut down the shared "iPhone Duo" simulator that a fanontheside-apple session was using, so Beach now uses its own "iPhone Duo (Beach)".
