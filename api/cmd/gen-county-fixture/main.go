@@ -29,7 +29,7 @@ type fixtureEvent struct {
 
 func main() {
 	ctx := context.Background()
-	end := time.Date(2026, 9, 27, 4, 0, 0, 0, time.UTC) // midnight ET, 9/27
+	end := time.Date(2026, 11, 12, 5, 0, 0, 0, time.UTC) // midnight ET, 11/12
 
 	var ramps []models.RampStatusWithSince
 	getJSON(apiBase+"/api/v2/ramps", &ramps)
@@ -51,7 +51,7 @@ func main() {
 	write("internal/predict/testdata/history_county.json", out)
 
 	preds, err := noaa.NewClient(station, nil).FetchTidePredictionsRange(ctx,
-		time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC), time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC))
+		time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC), time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		fail("hilo: %v", err)
 	}

@@ -276,10 +276,33 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   open ~3–4.5h past the peak while the mirror said ~1h (9/24–26). `highWaterReopen`: anomaly
   ≥ `surgeReopenFt` (0.9) → reopen no earlier than peak + 3.5h. Walk-forward over every
   May–Sep closure: error 1.38 → 1.30h, "said open >30 min too early" 12% → 10% (Sep 24–26:
-  50% → 25%); ordinary days untouched. Which ramps stay shut all day is not predictable yet —
-  a "stayed closed yesterday" rule produced ~100 false all-day calls and was dropped. Inside a
+  50% → 25%); ordinary days untouched. Which ramps stay shut all day is not predictable from
+  yesterday — a "stayed closed yesterday" rule produced ~100 false all-day calls and was dropped
+  (storm water and far-from-any-high closures do predict it — see the fall review below). Inside a
   tide episode "CLOSED - CLEARED FOR TURTLES" is not a reopen (`closureEvents` skips it: the
   county flips to it and back, or passes through it on the way to OPEN).
+- **Fall review (2026-11-12, params v8) — King Tide season graded end to end.** Peak calls
+  held up (1 miss in ~1,550 graded ramp-peaks, Sep 15–Nov 11); the *served story* was wrong on the days people asked.
+  Five changes, each walk-forward measured (numbers in the code comments; regression floors in
+  `TestBacktestKingTideFall`): (1) **plain `CLOSED` standing at open + 2h quarantines that
+  ramp-day** like the stuck turtle status — whole-beach shutdowns and ramps out of service for
+  weeks (DBS-067, DBS-076, DB-051) were ~600 ramp-days labeled "stayed open" through 3 ft
+  highs, faking false alarms and inflating thresholds/the open-yesterday prior ("likely"
+  precision 0.86 → 0.99 for the fall); (2) **pre-open hold**: a *likely* high up to 4h after
+  the open (`likelyHoldReach`), or water ≥ 0.8 ft over normal at dawn (`highWaterHoldFt`),
+  warns "could keep it closed" — fall held-at-open mornings caught 288 → 516 of 596 at 0.89
+  precision; (3) **"may stay closed for the day"** on storm water (≥ 1.2 ft, or ≥ 0.9 ft with
+  ≥ 5 ft seas — essentially one nor'easter, 10/25–28, so the bars sit above 9/25) and for any
+  closure posted with no high within 4h (296/324 ran to the close) — reopens promised but never
+  delivered 240 → 80; (4) **midday reopen = peak + learned lag + 30 min** (`lagReopen`, never
+  later than the falling-limb mirror): the county closes ~2h ahead but reopens ~50 min after,
+  so the symmetric mirror ran 1.4h late — error 1.83 → 1.20h; (5) **evening reach floored at
+  9pm ET** (`eveningReachClockHour`): off-season the beach clears at a ~5pm sunset and the
+  county still closes ahead of 8–8:45pm highs. Tools: `assess_test.go` (build tag `assess`)
+  + `scripts/predict-assess.py`; fixtures now run through 11/11 and the levels generator
+  extends rather than rebuilds. **Open, deliberately unfitted:** November "possible" highs
+  held 55/57 ramp-mornings (post-storm beach? only 11 days of evidence; a 45–60-day threshold
+  window was neutral overall); summer pre-open "possible" flags are ~8% precise.
 - **The end-of-day close is learned, not posted.** The county clears the beach before the
   posted time — turtle-season 7pm has been running ~6:30 — so the trainer learns the
   median offset from history into `day_close_offset_min` and `buildSchedule` applies it

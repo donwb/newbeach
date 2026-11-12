@@ -84,12 +84,23 @@ func findExclusions(historyByRamp map[string][]models.StatusEvent, now time.Time
 	return x
 }
 
-// staleDaysForRamp finds a ramp's stale ET days. Two signatures, both "a
+// staleDaysForRamp finds a ramp's stale ET days. Three signatures, all "a
 // blocking status still standing at open + staleOpenGrace":
 //
 //   - The overnight turtle status never flipped at the morning open (the
 //     observed 2026-08-26 failure) — every day it stands past the grace
 //     deadline is stale.
+//   - Plain CLOSED never lifted at the morning open: the ramp didn't open
+//     for driving that day at all — a whole-beach shutdown (6/27–29 and
+//     8/10/2026; 10/26 and the days after the nor'easter, when ramps sat in
+//     CLOSED from the night before straight through 3.2 ft highs) or a ramp
+//     out of service for weeks (DBS-067 3/10–4/30 and 10/19–11/11, DBS-076
+//     most of October, DB-051). Such a day says nothing about the tide, but
+//     unquarantined it labels every high it sat through "stayed open" —
+//     ~600 ramp-days through 11/11, graded as false alarms and trained as
+//     evidence that raised thresholds and the open-yesterday prior. A
+//     midday CLOSED (the county shutting the beach after the open) leaves
+//     its own day alone: the deadline already passed.
 //   - A CLOSED FOR HIGH TIDE episode spanning past the NEXT day's open — the
 //     county forgot to reopen. Day one keeps its real closure; the later
 //     days are stale. This also bounds labelPeaks' otherwise unbounded
@@ -98,7 +109,7 @@ func staleDaysForRamp(events []models.StatusEvent, now time.Time) map[string]boo
 	days := make(map[string]bool)
 
 	for i, e := range events {
-		if e.AccessStatus != turtleClearedStatus {
+		if e.AccessStatus != turtleClearedStatus && e.AccessStatus != dayCloseStatus {
 			continue
 		}
 		end := now
@@ -135,6 +146,15 @@ func markStaleDays(days map[string]bool, start, end, keep time.Time) {
 	d := time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, eastern)
 	for ; d.Before(end); d = d.AddDate(0, 0, 1) {
 		if d.Format("2006-01-02") == keepDay {
+			continue
+		}
+		// Every deadline lands between ~8:40 (the earliest off-season
+		// sunrise, late April / early November, + grace) and 10:00
+		// (turtle-season 8am + grace) ET, so an interval that misses
+		// 8:15–10:30am entirely — the nightly CLOSED lifted at a ~7am
+		// sunrise open, most of all — can't contain one. Skips the solar
+		// computation postedHours runs off-season.
+		if !start.Before(d.Add(10*time.Hour+30*time.Minute)) || !end.After(d.Add(8*time.Hour+15*time.Minute)) {
 			continue
 		}
 		opens, _, ok := postedHours(d)

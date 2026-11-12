@@ -4,7 +4,7 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-10-23
+last_verified: 2026-11-12
 summary: All platforms live; iOS 1.4 (46) on TestFlight — first build on Xcode 27.1, iPhone Duo-ready (launch day 10/23); tvOS 1.4 (45) on TestFlight; 1.4 not yet submitted; Ormond-by-the-Sea cam flapping
 versions:
   ios: 1.2 (28) live since 2026-09-02
@@ -22,6 +22,7 @@ dispatches:
 ---
 
 ## Top open items
+000. **Watch the fall prediction review (params v8, 11/12) in prod.** Check `GET /api/v2/admin/prediction/scorecard` across the next week or two and the pre-open copy on high-tide mornings. The open question is November: highs the model calls "possible" have held 55/57 ramp-mornings since 11/9, maybe because the beach is narrower after the storms. If December keeps doing that, revisit the recency-window threshold (tried 11/12, neutral overall). Re-run the assessment with `scripts/predict-assess.py` (CLAUDE.md, Prediction → fall review).
 00. **Check 1.4 (46) on a real iPhone Duo.** Built on Xcode 27.1 (the Duo SDK), checked in all three poses on the 27.1 simulator. Open as a book, both board splits should sit on the hinge and the ramp detail panel should fit the screen. Closed, it's the iPhone board beside the system strip. Rotated open, it's one scrolling column. The trailing system strip shows only the clock and status: Beach has no `TabView`, so there's no tab rail to put there (expected). iOS now flights from `/Applications/Xcode copy.app` via `DEVELOPER_DIR` (CLAUDE.md, Apple Releases). tvOS is still on 45, so if 1.4 goes out for both platforms, flight tvOS from the same Xcode first or submit tvOS on 45.
 0. **Watch the black-cam auto-switch on the Apple TV, 1.4 (45).** After 10 s of black picture (daytime only) the board should change to the next cam, and strip focus should follow. Built and unit-tested; not yet seen against a real county blackout.
 1. **Check the watch app and the cam fix on 1.4 (45).** The watch app and its Smart Stack widget are back in the iOS archive (confirmed in `Watch/`); confirm it installs from the iPhone Watch app. On the Apple TV, a cam that goes dark should now come back on its own within ~10 s of the feed returning, without switching cams.
@@ -43,6 +44,7 @@ dispatches:
 - **The bundle ID is permanently frozen at `com.donwb.BeachRampTV`** for every platform. This was accepted deliberately and users never see it.
 
 ## Recently shipped
+- 2026-11-12: Fall prediction review (params v8, server-side). King Tide season was graded end to end, including what was actually served, and five fixes went in. Days a ramp never opened no longer count as "stayed open" (fall "likely" precision 0.86 → 0.99). The pre-open warning now covers likely highs up to 4h out and high-water mornings (288 → 516 of 596 held mornings caught). "May stay closed for the day" now shows on storm water and on closures far from any high (reopens promised but never delivered 240 → 80). Midday reopen quotes use the learned lag (error 1.83 → 1.20h). The evening reach runs to 9pm for the winter 5pm close.
 - 2026-10-23: iPhone Duo-ready iOS layout (c098e13), flighted as 1.4 (46), iOS only, the first build on Xcode 27.1. On the book pose the board splits on the hinge, the ramp detail panel fits the screen, and a debug `--layout-probe` covers pose walks.
 - 2026-10-08: 1.4 (44) on TestFlight for iOS + tvOS. The watch app and its four-ramp Smart Stack widget ship again (inside the iOS build). Cams that go dark now recover on their own on Apple TV and iOS (aac127a, 879b322), and the restreamer no longer hangs a camera when a pipeline breaks.
 - 2026-10-01: Widget push (iOS 26) live end to end — ingester flips → coalesced APNs `content-changed` pushes → Home Screen widgets reload in seconds. Verified on device with 1.4 (42): 4 sent, 0 failed.

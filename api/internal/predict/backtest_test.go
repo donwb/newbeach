@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -458,4 +459,161 @@ func TestBacktestSurgeCounty(t *testing.T) {
 	require.NotNil(t, params.Waves)
 	assert.Greater(t, params.Waves.RoughDropFt, 0.0, "county-wide, surge must not absorb the rough-water drop")
 	t.Logf("surge: %+v  waves: %+v  persistence: %+v", *params.Surge, *params.Waves, params.Persistence)
+}
+
+// statusAt is a ramp's status (and since when) at t, from its ascending
+// history.
+func statusAt(events []models.StatusEvent, t time.Time) (string, time.Time, bool) {
+	i := sort.Search(len(events), func(i int) bool { return events[i].RecordedAt.After(t) })
+	if i == 0 {
+		return "", time.Time{}, false
+	}
+	return events[i-1].AccessStatus, events[i-1].RecordedAt, true
+}
+
+// latestWave is the newest buoy observation at or before t — what the
+// live outlook would have read.
+func latestWave(waves []models.WaveSample, t time.Time) *models.WaveSample {
+	i := sort.Search(len(waves), func(i int) bool { return waves[i].Time.After(t) })
+	if i == 0 {
+		return nil
+	}
+	w := waves[i-1]
+	return &w
+}
+
+// fallTally grades what the outlook would have served, Sep 15–Nov 11 2026.
+type fallTally struct {
+	held, caught, flagged             int // pre-open "could keep it closed" vs shut at the open
+	dayRight, dayWrong, promisedNever int // reopen quotes for ramps closed right now
+	timed                             int
+	timedAbsH                         float64
+}
+
+// servedFall replays the King Tide season the way production served it:
+// params retrained each Monday on the history before it, the outlook built
+// 90 minutes before each open (was the ramp held shut at the open?), and
+// every tide closure's reopen quote served 20 minutes after posting (did it
+// reopen mid-day, run to the close, or come in on time?). Ramp-days the
+// staleness quarantine removes are skipped.
+func servedFall(t *testing.T, history map[string][]models.StatusEvent, hilo []models.TidePrediction, waves []models.WaveSample, levels []models.WaterLevelSample, from, to time.Time) fallTally {
+	t.Helper()
+	sortWaveSamples(waves)
+	ids := make([]string, 0, len(history))
+	for id := range history {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	excl := findExclusions(history, to, nil)
+
+	var ft fallTally
+	var params Params
+	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
+		if d.Equal(from) || d.Weekday() == time.Monday {
+			params = Train(history, hilo, waves, levels, d, nil)
+		}
+		_, sched := buildSchedule(d.Add(5*time.Hour), params)
+		require.NotNil(t, sched.OpensAt)
+		dayEnd := d.AddDate(0, 0, 1)
+
+		now := sched.OpensAt.Add(-90 * time.Minute)
+		var ramps []models.RampStatusWithSince
+		for i, id := range ids {
+			if st, since, ok := statusAt(history[id], now); ok && !excl.excluded(id, d) {
+				s := since
+				ramps = append(ramps, models.RampStatusWithSince{RampStatus: models.RampStatus{ID: int64(i + 1), AccessID: id, AccessStatus: st}, StatusSince: &s})
+			}
+		}
+		water, _ := params.withSurge(hilo, levels, now)
+		prior := priorDayFacts(now, history, water, params.hardOpen(), nil)
+		for _, ro := range BuildOutlook(now, ramps, params, hilo, latestWave(waves, now), levels, prior).Ramps {
+			st, _, _ := statusAt(history[ro.AccessID], sched.OpensAt.Add(20*time.Minute))
+			held := st == tideClosedStatus
+			if held {
+				ft.held++
+			}
+			if ro.openLate != nil {
+				ft.flagged++
+				if held {
+					ft.caught++
+				}
+			}
+		}
+
+		for _, id := range ids {
+			for _, c := range closureEvents(history[id]) {
+				if c.closedAt.Before(d) || !c.closedAt.Before(dayEnd) || !c.closedAt.Before(*sched.ClosesAt) || c.closedAt.In(eastern).Hour() < 5 {
+					continue
+				}
+				now := c.closedAt.Add(20 * time.Minute)
+				_, s := buildSchedule(now, params)
+				water, surge := params.withSurge(hilo, levels, now)
+				var fresh *models.WaveSample
+				if w := latestWave(waves, now); w != nil && now.Sub(w.Time) <= maxWaveAge {
+					fresh = w
+				}
+				rp, _ := effectiveParams(id, nil, params)
+				est := servedReopen(water, c.closedAt, now, surge, stormWater(surge, fresh), s, rp)
+				if est.IsZero() {
+					continue
+				}
+				var next string
+				for _, e := range history[id] {
+					if e.RecordedAt.Equal(c.reopenedAt) {
+						next = e.AccessStatus
+						break
+					}
+				}
+				ranToClose := c.reopenedAt.IsZero() || next == dayCloseStatus || !c.reopenedAt.Before(s.ClosesAt.Add(-20*time.Minute))
+				switch saidDay := est.After(*s.ClosesAt); {
+				case saidDay && ranToClose:
+					ft.dayRight++
+				case saidDay:
+					ft.dayWrong++
+				case ranToClose:
+					ft.promisedNever++
+				default:
+					ft.timed++
+					ft.timedAbsH += est.Sub(c.reopenedAt).Abs().Hours()
+				}
+			}
+		}
+	}
+	return ft
+}
+
+// King Tide season, 2026-09-15 → 11-11, county-wide on the production
+// station: the fall review (2026-11-12) found the peak calls fine but the
+// served story wrong on exactly the days people asked — mornings the county
+// never opened with no warning, and reopen times quoted on days the beach
+// stayed shut. Measured with this replay before → after the review:
+// pre-open held mornings caught 288 → 516 of 596 at 0.89 precision;
+// reopens promised but never delivered 240 → 80 (for 24 more wrong "may
+// stay closed for the day"); quoted reopen error on the rest 1.37 → 1.07h.
+// Peaks: "likely" precision 0.86 → 0.99 once days the ramp never opened
+// stopped counting as "stayed open" (the last week of October, 0.70 →
+// 0.97), at an unchanged miss count. Floors sit below the measured run.
+func TestBacktestKingTideFall(t *testing.T) {
+	history := loadHistoryFile(t, "testdata/history_county.json")
+	hilo := loadHiloFile(t, "testdata/hilo_8721164.json")
+	waves := loadWavesFixture(t)
+	levels := loadLevelsFixture(t)
+	from := time.Date(2026, 9, 15, 0, 0, 0, 0, eastern)
+	to := time.Date(2026, 11, 12, 0, 0, 0, 0, eastern)
+
+	ft := servedFall(t, history, hilo, waves, levels, from, to)
+	t.Logf("pre-open: held %d caught %d flagged %d", ft.held, ft.caught, ft.flagged)
+	t.Logf("reopen: for-the-day right %d wrong %d, promised-never %d, timed %d mean |err| %.2fh",
+		ft.dayRight, ft.dayWrong, ft.promisedNever, ft.timed, ft.timedAbsH/float64(ft.timed))
+
+	peaks, _ := walkForward(history, hilo, waves, levels, from, to)
+	t.Logf("peaks: %s precision %.3f", peaks["all"], peaks["all"].precision())
+
+	assert.GreaterOrEqual(t, ft.caught, 480, "most mornings the county never opened should have been warned")
+	assert.GreaterOrEqual(t, float64(ft.caught)/float64(ft.flagged), 0.85, "a pre-open warning should usually come true")
+	assert.LessOrEqual(t, ft.promisedNever, 100, "reopen times quoted on days the beach stayed shut")
+	assert.LessOrEqual(t, ft.dayWrong, 45, "'may stay closed for the day' on days it reopened")
+	assert.LessOrEqual(t, ft.timedAbsH/float64(ft.timed), 1.2, "quoted reopen error, hours")
+	assert.LessOrEqual(t, peaks["all"].misses, 5)
+	assert.GreaterOrEqual(t, peaks["all"].precision(), 0.95)
 }

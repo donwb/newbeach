@@ -207,11 +207,11 @@ func cityOvernightText(now time.Time, season string, sched Schedule, agg *cityAg
 		opens := "around " + fmtClock(roundNearest30(*sched.OpensAt))
 		switch {
 		case agg.openLate == agg.rampCount && agg.rampCount > 1:
-			detail = "Opens " + opens + ", but the morning high tide could keep any of them closed past it"
+			detail = "Opens " + opens + ", but the high tide could keep any of them closed past it"
 		case agg.openLate == 1 && agg.rampCount == 1:
-			detail = "Opens " + opens + ", but the morning high tide could keep it closed past it"
+			detail = "Opens " + opens + ", but the high tide could keep it closed past it"
 		default:
-			detail = "Opens " + opens + ", but the morning high tide could keep " + countWord(agg.openLate) + " of them closed past it"
+			detail = "Opens " + opens + ", but the high tide could keep " + countWord(agg.openLate) + " of them closed past it"
 		}
 	}
 	return headline, detail

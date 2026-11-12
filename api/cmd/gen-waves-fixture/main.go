@@ -27,7 +27,7 @@ func main() {
 	client := conditions.NewNDBCClient("41113")
 
 	start := time.Date(2026, 3, 9, 0, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 9, 27, 4, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 11, 12, 5, 0, 0, 0, time.UTC)
 
 	var existing []models.WaveSample
 	if raw, err := os.ReadFile("internal/predict/testdata/waves.json"); err == nil {
@@ -41,13 +41,21 @@ func main() {
 	}
 
 	var all []models.WaveSample
-	for m := start.Month(); m <= time.August; m++ {
+	// Months the realtime window (45 days) doesn't reach come from the
+	// monthly archives; the newest months may not be archived yet, which is
+	// fine as long as the realtime window covers them.
+	realtimeFrom := time.Now().AddDate(0, 0, -44)
+	for m := start.Month(); m <= end.Month(); m++ {
 		samples, found, err := client.FetchArchiveMonth(ctx, 2026, m)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v: %v\n", m, err)
 			os.Exit(1)
 		}
 		if !found {
+			if time.Date(2026, m+1, 1, 0, 0, 0, 0, time.UTC).After(realtimeFrom) {
+				fmt.Fprintf(os.Stderr, "%v: no archive yet (realtime covers it)\n", m)
+				continue
+			}
 			fmt.Fprintf(os.Stderr, "%v: no archive\n", m)
 			os.Exit(1)
 		}

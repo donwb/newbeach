@@ -474,7 +474,7 @@ func TestBuildOutlookOpenLate(t *testing.T) {
 	}
 	out := BuildOutlook(et(16, 6, 30), two, testParams(), preds, nil, nil, nil)
 	require.Len(t, out.Cities, 1)
-	assert.Equal(t, "Opens around 8am, but the morning high tide could keep any of them closed past it", out.Cities[0].Detail)
+	assert.Equal(t, "Opens around 8am, but the high tide could keep any of them closed past it", out.Cities[0].Detail)
 
 	// A high just before the open is quoted like a closure posted after
 	// its peak, so the number holds when the county posts it.
@@ -499,4 +499,138 @@ func TestPostedAtOpenReopen(t *testing.T) {
 	assert.Equal(t, fallback, postedAtOpenReopen(fallback, water, et(16, 11, 0), opens), "mid-day postings keep their estimate")
 	rising := []models.TidePrediction{h(et(16, 9, 5), 3.0)}
 	assert.Equal(t, fallback, postedAtOpenReopen(fallback, rising, et(16, 8, 2), opens), "peak still ahead: the mirror stands")
+}
+
+// A "likely" high holds the open from hours out — the county posts the
+// closure at the open, not a lead before the peak. A "possible" high keeps
+// the lead rule.
+func TestBuildOutlookOpenLateLikelyReach(t *testing.T) {
+	preds := []models.TidePrediction{
+		{Time: et(16, 5, 10), Type: "L", Height: ptrF(0.1)},
+		h(et(16, 11, 30), 3.0), // 3.5h after the 8am open
+		{Time: et(16, 17, 45), Type: "L", Height: ptrF(0.3)},
+	}
+	likely := BuildOutlook(et(16, 6, 30), []models.RampStatusWithSince{ramp(1, "NS-141", "CLOSED")}, testParams(), preds, nil, nil, nil).Ramps[0]
+	require.NotNil(t, likely.openLate, "NS-141 (2.1 ft) is likely at 3.0 ft: the open may be held")
+	assert.Equal(t, "Opens around 8am, but the ~11:30am high tide could keep it closed until ~1:30pm", likely.Detail)
+
+	possible := BuildOutlook(et(16, 6, 30), []models.RampStatusWithSince{ramp(2, "NS-106", "CLOSED")}, testParams(), preds, nil, nil, nil).Ramps[0]
+	assert.Nil(t, possible.openLate, "NS-106 (3.25 ft) is only possible, and its lead starts after the open")
+
+	far := []models.TidePrediction{h(et(16, 12, 30), 3.0), {Time: et(16, 18, 45), Type: "L", Height: ptrF(0.3)}}
+	assert.Nil(t, BuildOutlook(et(16, 6, 30), []models.RampStatusWithSince{ramp(1, "NS-141", "CLOSED")}, testParams(), far, nil, nil, nil).Ramps[0].openLate,
+		"past likelyHoldReach the open goes ahead")
+}
+
+func TestHeldAtOpen(t *testing.T) {
+	opens := et(16, 8, 0)
+	rp := RampParams{LeadMin: 90}
+	tests := []struct {
+		name string
+		peak time.Time
+		risk string
+		want bool
+	}{
+		{"high an hour before the open is gone", et(16, 7, 0), RiskLikely, false},
+		{"possible, lead starts before the open", et(16, 9, 15), RiskPossible, true},
+		{"possible, lead starts after the open", et(16, 9, 45), RiskPossible, false},
+		{"likely, 4h out", et(16, 12, 0), RiskLikely, true},
+		{"likely, past the reach", et(16, 12, 15), RiskLikely, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, heldAtOpen(h(tt.peak, 3.0), tt.risk, rp, opens))
+		})
+	}
+}
+
+func TestHighWaterAndStormWater(t *testing.T) {
+	seas := func(ft float64) *models.WaveSample { return &models.WaveSample{HeightFt: ft} }
+	assert.False(t, highWaterHold(nil))
+	assert.False(t, highWaterHold(&SurgeContext{AnomalyFt: 0.79}))
+	assert.True(t, highWaterHold(&SurgeContext{AnomalyFt: 0.8}))
+
+	tests := []struct {
+		name  string
+		surge *SurgeContext
+		wave  *models.WaveSample
+		want  bool
+	}{
+		{"no gauge", nil, seas(7), false},
+		{"10/25: +1.4 ft", &SurgeContext{AnomalyFt: 1.41}, nil, true},
+		{"10/28: +1.0 ft, 5.6 ft seas", &SurgeContext{AnomalyFt: 0.97}, seas(5.6), true},
+		{"9/25: +1.18 ft, 4.9 ft seas — most ramps reopened", &SurgeContext{AnomalyFt: 1.18}, seas(4.9), false},
+		{"high water, no buoy", &SurgeContext{AnomalyFt: 1.0}, nil, false},
+		{"big seas, ordinary water", &SurgeContext{AnomalyFt: 0.3}, seas(6.5), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, stormWater(tt.surge, tt.wave))
+		})
+	}
+}
+
+// Reopen quotes for a ramp closed right now.
+func TestServedReopen(t *testing.T) {
+	_, sched := buildSchedule(et(16, 6, 0), testParams()) // 8am–7pm
+	rp := testParams().Ramps["NS-106"]                    // lag 53
+	water := []models.TidePrediction{
+		{Time: et(16, 6, 50), Type: "L", Height: ptrF(0.2)},
+		h(et(16, 13, 0), 3.0),
+		{Time: et(16, 19, 10), Type: "L", Height: ptrF(0.2)},
+	}
+
+	t.Run("midday closure ahead of the high: peak + lag + pad", func(t *testing.T) {
+		mirror := reopenEstimate(water, et(16, 11, 0), et(16, 11, 20))
+		require.True(t, mirror.After(et(16, 14, 45)), "the mirror sits ~2h past the peak")
+		got := servedReopen(water, et(16, 11, 0), et(16, 11, 20), nil, false, sched, rp)
+		assert.Equal(t, et(16, 13, 0).Add(53*time.Minute+reopenPad), got)
+	})
+	t.Run("a lag quote the clock has passed falls back to the mirror", func(t *testing.T) {
+		got := servedReopen(water, et(16, 11, 0), et(16, 14, 40), nil, false, sched, rp)
+		assert.Equal(t, reopenEstimate(water, et(16, 11, 0), et(16, 14, 40)), got)
+	})
+	t.Run("closure at the open keeps the mirror", func(t *testing.T) {
+		morning := []models.TidePrediction{
+			{Time: et(16, 3, 50), Type: "L", Height: ptrF(0.2)},
+			h(et(16, 10, 0), 3.0),
+			{Time: et(16, 16, 10), Type: "L", Height: ptrF(0.2)},
+		}
+		got := servedReopen(morning, et(16, 8, 2), et(16, 8, 22), nil, false, sched, rp)
+		assert.Equal(t, reopenEstimate(morning, et(16, 8, 2), et(16, 8, 22)), got)
+		assert.True(t, got.Before(*sched.ClosesAt))
+	})
+	t.Run("storm water: for the day", func(t *testing.T) {
+		got := servedReopen(water, et(16, 11, 0), et(16, 11, 20), &SurgeContext{AnomalyFt: 1.3}, true, sched, rp)
+		assert.True(t, got.After(*sched.ClosesAt))
+		_, detail, r := closedNowText(got, sched)
+		assert.Equal(t, "may stay closed for the day", r.Label)
+		assert.Contains(t, detail, "may stay closed for the day")
+	})
+	t.Run("no high anywhere near the closure: for the day", func(t *testing.T) {
+		// 10/19 shape: posted at the open, the overnight high long gone and
+		// the next one late afternoon.
+		far := []models.TidePrediction{
+			h(et(16, 3, 30), 3.0),
+			{Time: et(16, 9, 45), Type: "L", Height: ptrF(0.4)},
+			h(et(16, 16, 10), 2.9),
+		}
+		got := servedReopen(far, et(16, 8, 0), et(16, 8, 20), nil, false, sched, rp)
+		assert.True(t, got.After(*sched.ClosesAt), "low tide + 90 min would have said ~11:15am")
+	})
+}
+
+// The evening reach runs to at least 9pm ET: off-season the beach clears at
+// a ~5pm sunset, and the county still closes ahead of an 8–8:45pm high.
+func TestServePeakInPlayClockFloor(t *testing.T) {
+	novClose := time.Date(2026, 11, 8, 16, 50, 0, 0, eastern)
+	at := func(h, m int) models.TidePrediction {
+		return models.TidePrediction{Time: time.Date(2026, 11, 8, h, m, 0, 0, eastern), Type: "H", Height: ptrF(2.2)}
+	}
+	assert.True(t, servePeakInPlay(at(20, 44), novClose, 0), "11/9: 10 of 21 ramps closed for a 8:44pm high")
+	assert.False(t, servePeakInPlay(at(21, 25), novClose, 0), "11/10: a 9:25pm high closed none")
+
+	// Turtle season is unchanged: the 6:30 close + eveningReach is 9pm.
+	assert.True(t, servePeakInPlay(h(et(16, 20, 59), 2.8), et(16, 18, 30), 0))
+	assert.False(t, servePeakInPlay(h(et(16, 21, 1), 2.8), et(16, 18, 30), 0))
 }

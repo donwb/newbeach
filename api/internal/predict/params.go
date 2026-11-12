@@ -13,8 +13,9 @@ const SettingsKey = "prediction_params"
 // version is treated as stale, so bumping this forces a retrain on deploy.
 // v4 added the county-wide wave regime params (Waves); v5 the persistence
 // prior (Persistence); v6 quarantines stale county-data days from labeling;
-// v7 learns thresholds on surge-adjusted water heights (Surge).
-const paramsVersion = 7
+// v7 learns thresholds on surge-adjusted water heights (Surge); v8 also
+// quarantines days a ramp never opened (plain CLOSED past the open).
+const paramsVersion = 8
 
 // RampParams captures one ramp's learned tide-closure behavior.
 type RampParams struct {

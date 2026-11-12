@@ -105,6 +105,81 @@ func TestStaleDaysOutOfTurtleSeason(t *testing.T) {
 	assert.True(t, staleDaysForRamp(events, dec(16, 0, 0))["2026-12-15"])
 }
 
+func TestStaleDaysPlainClosedNeverLifted(t *testing.T) {
+	nov := func(day, hour, min int) time.Time {
+		return time.Date(2026, 11, day, hour, min, 0, 0, eastern)
+	}
+	tests := []struct {
+		name   string
+		events []models.StatusEvent
+		now    time.Time
+		stale  []string
+		fresh  []string
+	}{
+		{
+			name: "nightly close lifted at the sunrise open",
+			events: statusEvents(
+				ev("OPEN", nov(1, 7, 0)), ev(dayCloseStatus, nov(1, 17, 0)),
+				ev("OPEN", nov(2, 6, 50)), ev(dayCloseStatus, nov(2, 17, 0)),
+				ev("OPEN", nov(3, 6, 52)),
+			),
+			now:   nov(4, 0, 0),
+			fresh: []string{"2026-11-01", "2026-11-02", "2026-11-03"},
+		},
+		{
+			// The 10/25–10/26 shape: the county shuts the beach at midday and
+			// leaves it shut through the next day. The midday day keeps its
+			// evidence (its tide closure was real); the next day never opened.
+			name: "midday shutdown standing through the next day",
+			events: statusEvents(
+				ev("OPEN", nov(1, 7, 0)), ev(tideClosedStatus, nov(2, 7, 0)),
+				ev(dayCloseStatus, nov(2, 12, 43)),
+				ev(tideClosedStatus, nov(4, 7, 0)),
+			),
+			now:   nov(5, 0, 0),
+			stale: []string{"2026-11-03"},
+			fresh: []string{"2026-11-02"},
+		},
+		{
+			name: "ramp out of service for days",
+			events: statusEvents(
+				ev("OPEN", nov(1, 7, 0)), ev(dayCloseStatus, nov(1, 17, 0)),
+				ev("OPEN", nov(6, 6, 55)),
+			),
+			now:   nov(7, 0, 0),
+			stale: []string{"2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05"},
+			fresh: []string{"2026-11-01", "2026-11-06"},
+		},
+		{
+			name: "a late open inside the grace is a real call",
+			events: statusEvents(
+				ev(dayCloseStatus, nov(1, 17, 0)), ev("OPEN", nov(2, 8, 30)),
+			),
+			now:   nov(3, 0, 0),
+			fresh: []string{"2026-11-02"},
+		},
+		{
+			name: "still standing this morning: not stale until the deadline passes",
+			events: statusEvents(
+				ev(dayCloseStatus, nov(1, 17, 0)),
+			),
+			now:   nov(2, 8, 0),
+			fresh: []string{"2026-11-02"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			days := staleDaysForRamp(tt.events, tt.now)
+			for _, d := range tt.stale {
+				assert.True(t, days[d], "%s should be stale", d)
+			}
+			for _, d := range tt.fresh {
+				assert.False(t, days[d], "%s should keep its evidence", d)
+			}
+		})
+	}
+}
+
 func TestParseExcludedDays(t *testing.T) {
 	assert.Nil(t, ParseExcludedDays(""))
 	assert.Nil(t, ParseExcludedDays("not json"))
