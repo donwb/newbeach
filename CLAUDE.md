@@ -298,7 +298,7 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   later than the falling-limb mirror): the county closes ~2h ahead but reopens ~50 min after,
   so the symmetric mirror ran 1.4h late — error 1.83 → 1.20h; (5) **evening reach floored at
   9pm ET** (`eveningReachClockHour`): off-season the beach clears at a ~5pm sunset and the
-  county still closes ahead of 8–8:45pm highs. Tools: `assess_test.go` (build tag `assess`)
+  county still closes ahead of 8–8:45pm highs. Copy follow-ups: a pre-open hold on the water alone (the day's high hours off) says "high water could keep it closed" with no reopen time — it had named the ~4pm high at dawn on 10/19–21; the city at-risk clause names the high the ramp rows hang on ("could still shut as the tide drops" past it), never just the next high on the chart ("the ~11pm high" at 10am off-season). Tools: `assess_test.go` (build tag `assess`)
   + `scripts/predict-assess.py`; fixtures now run through 11/11 and the levels generator
   extends rather than rebuilds. **Open, deliberately unfitted:** November "possible" highs
   held 55/57 ramp-mornings (post-storm beach? only 11 days of evidence; a 45–60-day threshold

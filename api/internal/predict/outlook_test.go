@@ -522,6 +522,21 @@ func TestBuildOutlookOpenLateLikelyReach(t *testing.T) {
 		"past likelyHoldReach the open goes ahead")
 }
 
+// A hold resting on the water alone (the day's high is hours off) blames
+// the water, not that high, and quotes no reopen time — 10/19–10/21/2026
+// served "the ~4pm high tide could keep it closed until ~6pm" at dawn.
+func TestOpenLateWaterText(t *testing.T) {
+	opens, closes := et(19, 8, 0), et(19, 18, 30)
+	sched := Schedule{OpensAt: &opens, ClosesAt: &closes}
+	d, r := openLateWaterText("turtle", sched, et(19, 13, 0))
+	assert.Equal(t, "Opens around 8am, but high water could keep it closed", d)
+	assert.Equal(t, "may open late for high water", r.Label)
+
+	d, r = openLateWaterText("off", sched, closes.Add(time.Minute))
+	assert.Equal(t, "Opens at sunrise, around 8am, but high water could keep it closed for the day", d)
+	assert.Equal(t, "may stay closed for the day", r.Label)
+}
+
 func TestHeldAtOpen(t *testing.T) {
 	opens := et(16, 8, 0)
 	rp := RampParams{LeadMin: 90}

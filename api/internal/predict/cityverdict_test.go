@@ -277,3 +277,56 @@ func allOpenVariants(n int) []string {
 	}
 	return out
 }
+
+// Past the high, ramps still at risk ride out the falling tide; the city
+// line must not hang them on the next high on the chart — after the beach
+// clears (2026-11-12: "could shut on the ~11pm high" at 10am).
+func TestCityVerdictAtRiskPastPeak(t *testing.T) {
+	ramps := []models.RampStatusWithSince{
+		cityRamp(1, "NS-141", "OPEN", "NEW SMYRNA BEACH", nil),
+		cityRamp(2, "NS-106", "OPEN", "NEW SMYRNA BEACH", nil),
+	}
+	preds := []models.TidePrediction{
+		h(et(1, 10, 30), 2.7),
+		{Time: et(1, 16, 40), Type: "L", Height: ptrF(0.3)},
+		h(et(1, 22, 50), 2.6),
+	}
+	now := et(1, 11, 0)
+	out := BuildOutlook(now, ramps, Params{Default: DefaultParams}, preds, nil, nil, nil)
+	require.Equal(t, RiskPossible, out.Ramps[0].Risk, "still in the lag after the peak")
+	cv := verdictFor(t, out, "NEW SMYRNA BEACH")
+	assert.Equal(t, "Any of them could still shut as the tide drops", cv.Detail)
+}
+
+func TestCityAggNotePeak(t *testing.T) {
+	now := et(1, 12, 0)
+	at := func(hh int) *time.Time { t := et(1, hh, 0); return &t }
+	tests := []struct {
+		name  string
+		peaks []*time.Time
+		want  *time.Time
+	}{
+		{"none", []*time.Time{nil}, nil},
+		{"earliest ahead wins", []*time.Time{at(20), at(14)}, at(14)},
+		{"ahead beats passed", []*time.Time{at(10), at(19)}, at(19)},
+		{"ahead is not displaced by passed", []*time.Time{at(19), at(10)}, at(19)},
+		{"all passed", []*time.Time{at(10)}, at(10)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agg := &cityAgg{}
+			for _, p := range tt.peaks {
+				agg.notePeak(now, p)
+			}
+			assert.Equal(t, tt.want, agg.riskPeak)
+		})
+	}
+}
+
+// A hold resting on the high water alone blames the water in the city line too.
+func TestCityOvernightHighWater(t *testing.T) {
+	opens, closes := et(19, 8, 0), et(19, 18, 30)
+	sched := Schedule{OpensAt: &opens, ClosesAt: &closes, OpensLabel: "around 8am", ClosesLabel: "around 6:30pm"}
+	_, detail := cityOvernightText(et(19, 6, 30), "turtle", sched, &cityAgg{rampCount: 3, openLate: 3, openLateWater: true})
+	assert.Equal(t, "Opens around 8am, but high water could keep any of them closed past it", detail)
+}

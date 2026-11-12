@@ -110,6 +110,15 @@ type RampOutlook struct {
 	// openLate is the reopen time quoted when a high tide around the
 	// morning open may hold the ramp shut past it. Not serialized.
 	openLate *time.Time
+
+	// openLateWater marks an openLate hold that rests on the water anomaly
+	// alone — the day's riskiest high is hours past the open, so the copy
+	// blames the high water, not that high. Not serialized.
+	openLateWater bool
+
+	// riskPeakAt is the high this ramp's tide risk hangs on, so the city
+	// line names the same high the ramp rows do. Not serialized.
+	riskPeakAt *time.Time
 }
 
 // Schedule is the driving-hours frame for the day: fixed clock hours in
@@ -857,12 +866,18 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			ro.Risk = RiskClosedNow
 			ro.Reason = ReasonOvernight
 			ro.Headline, ro.Detail, ro.Reopen = beforeOpenText(season, sched)
-			if riskPeak != nil && riskRank(risk) >= 1 && (heldAtOpen(*riskPeak, risk, rp, *sched.OpensAt) || highWaterHold(surge)) {
+			tideHold := riskPeak != nil && riskRank(risk) >= 1 && heldAtOpen(*riskPeak, risk, rp, *sched.OpensAt)
+			if riskPeak != nil && riskRank(risk) >= 1 && (tideHold || highWaterHold(surge)) {
 				until := forTheDay(highWaterReopen(openLateUntil(*riskPeak, rp, *sched.OpensAt), water, *sched.OpensAt, surge), storm, sched)
 				if until.After(sched.OpensAt.Add(15 * time.Minute)) {
 					ro.openLate = &until
 					ro.Window = closureWindow(*riskPeak, rp, sched)
-					ro.Detail, ro.Reopen = openLateText(season, sched, *riskPeak, until)
+					if tideHold {
+						ro.Detail, ro.Reopen = openLateText(season, sched, *riskPeak, until)
+					} else {
+						ro.openLateWater = true
+						ro.Detail, ro.Reopen = openLateWaterText(season, sched, until)
+					}
 				}
 			}
 			out.Ramps = append(out.Ramps, ro)
@@ -898,6 +913,8 @@ func BuildOutlook(now time.Time, ramps []models.RampStatusWithSince, params Para
 			ro.Window = closureWindow(*riskPeak, rp, sched)
 			qc := quotedCloseAt(risk, *riskPeak, rp, sched.ClosesAt)
 			ro.quotedClose = &qc
+			pt := riskPeak.Time
+			ro.riskPeakAt = &pt
 			ro.Headline, ro.Detail, ro.Short = tideText(now, risk, *riskPeak, rp, sched, laterPeakRisky, ro.Yesterday)
 		case sched.ClosesAt != nil:
 			// No tide story, so the next scheduled thing is the day ending.

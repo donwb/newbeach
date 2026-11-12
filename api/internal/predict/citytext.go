@@ -44,12 +44,35 @@ func joinNames(names []string) string {
 	}
 }
 
-// peakPhrase names the tide peak the at-risk clause hangs on.
-func peakPhrase(tide TideContext) string {
-	if tide.NextPeakAt == nil {
-		return "the next high tide"
+// notePeak folds one at-risk ramp's risk peak into the city's: the
+// earliest high still ahead, else (every at-risk ramp riding out a high
+// that has passed) any of those.
+func (a *cityAgg) notePeak(now time.Time, p *time.Time) {
+	if p == nil {
+		return
 	}
-	return "the ~" + fmtClock(roundNearest30(*tide.NextPeakAt)) + " high"
+	if cur := a.riskPeak; cur != nil && !(p.After(now) && (!cur.After(now) || p.Before(*cur))) {
+		return
+	}
+	t := *p
+	a.riskPeak = &t
+}
+
+// shutPhrase is the at-risk clause's verb phrase, naming the high the ramp
+// rows hang their risk on — not simply the next high on the chart, which
+// past the morning high is the one after the beach clears ("could shut on
+// the ~11pm high" at 10am, 2026-11-12).
+func shutPhrase(now time.Time, agg *cityAgg, tide TideContext) string {
+	switch {
+	case agg.riskPeak != nil && !agg.riskPeak.After(now):
+		return "could still shut as the tide drops"
+	case agg.riskPeak != nil:
+		return "could shut on the ~" + fmtClock(roundNearest30(*agg.riskPeak)) + " high"
+	case tide.NextPeakAt != nil:
+		return "could shut on the ~" + fmtClock(roundNearest30(*tide.NextPeakAt)) + " high"
+	default:
+		return "could shut on the next high tide"
+	}
 }
 
 // cityAllOpenText: every ramp open, driving day in full swing.
@@ -61,20 +84,23 @@ func cityAllOpenText(now time.Time, agg *cityAgg, sched Schedule, tide TideConte
 		return headline, lead + " · open for driving until " + sched.ClosesLabel
 	}
 
-	peak := peakPhrase(tide)
+	shut := shutPhrase(now, agg, tide)
 	switch {
 	case agg.atRisk == agg.rampCount && agg.rampCount > 1:
-		detail = "Any of them could shut on " + peak
+		detail = "Any of them " + shut
 	case agg.atRisk == 1:
-		detail = "One could shut on " + peak
+		detail = "One " + shut
 	default:
-		detail = capFirst(countWord(agg.atRisk)) + " could shut on " + peak
+		detail = capFirst(countWord(agg.atRisk)) + " " + shut
 	}
 	// "first around" quotes the earliest time any ramp's own line quotes,
 	// so the city never promises an hour the ramp rows don't. When that is
 	// the peak itself the sentence already said it — don't repeat it.
-	if agg.atRisk > 1 && agg.earliestClose != nil {
-		atPeak := tide.NextPeakAt != nil && agg.earliestClose.Equal(roundNearest30(*tide.NextPeakAt))
+	// Past the high the ramp rows say the odds fall with the water, so
+	// "any time now" would contradict them.
+	pastPeak := agg.riskPeak != nil && !agg.riskPeak.After(now)
+	if agg.atRisk > 1 && agg.earliestClose != nil && !pastPeak {
+		atPeak := agg.riskPeak != nil && agg.earliestClose.Equal(roundNearest30(*agg.riskPeak))
 		switch {
 		case !agg.earliestClose.After(now):
 			detail += " · could go any time now"
@@ -86,7 +112,7 @@ func cityAllOpenText(now time.Time, agg *cityAgg, sched Schedule, tide TideConte
 }
 
 // citySomeClosedText: at least one ramp is not plain open right now.
-func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headline, detail string) {
+func citySomeClosedText(now time.Time, agg *cityAgg, sched Schedule, tide TideContext) (headline, detail string) {
 	var closed, limited []notOpenRamp
 	for _, r := range agg.notOpen {
 		if r.category == "closed" {
@@ -146,7 +172,7 @@ func citySomeClosedText(agg *cityAgg, sched Schedule, tide TideContext) (headlin
 	}
 	switch {
 	case agg.atRisk > 0:
-		clauses = append(clauses, countWord(agg.atRisk)+" more could shut on "+peakPhrase(tide))
+		clauses = append(clauses, countWord(agg.atRisk)+" more "+shutPhrase(now, agg, tide))
 	case agg.openCount > 0:
 		clauses = append(clauses, "the rest look clear until "+sched.ClosesLabel)
 	case len(closed) == 0:
@@ -205,13 +231,17 @@ func cityOvernightText(now time.Time, season string, sched Schedule, agg *cityAg
 	// city never promises it outright.
 	if agg.openLate > 0 {
 		opens := "around " + fmtClock(roundNearest30(*sched.OpensAt))
+		cause := "the high tide"
+		if agg.openLateWater {
+			cause = "high water"
+		}
 		switch {
 		case agg.openLate == agg.rampCount && agg.rampCount > 1:
-			detail = "Opens " + opens + ", but the high tide could keep any of them closed past it"
+			detail = "Opens " + opens + ", but " + cause + " could keep any of them closed past it"
 		case agg.openLate == 1 && agg.rampCount == 1:
-			detail = "Opens " + opens + ", but the high tide could keep it closed past it"
+			detail = "Opens " + opens + ", but " + cause + " could keep it closed past it"
 		default:
-			detail = "Opens " + opens + ", but the high tide could keep " + countWord(agg.openLate) + " of them closed past it"
+			detail = "Opens " + opens + ", but " + cause + " could keep " + countWord(agg.openLate) + " of them closed past it"
 		}
 	}
 	return headline, detail

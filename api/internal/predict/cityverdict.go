@@ -51,6 +51,8 @@ type cityAgg struct {
 	atRisk        int        // open ramps the tide could still close today
 	earliestClose *time.Time // earliest close time any at-risk ramp's copy quotes
 	openLate      int        // ramps a high tide may hold shut past the morning open
+	openLateWater bool       // some of those holds rest on the high water alone
+	riskPeak      *time.Time // the high the at-risk clause names (see shutPhrase)
 }
 
 // buildCityVerdicts groups the built outlook by city and writes each city's
@@ -71,6 +73,7 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 		agg.rampCount++
 		if outlooks[i].openLate != nil {
 			agg.openLate++
+			agg.openLateWater = agg.openLateWater || outlooks[i].openLateWater
 		}
 
 		cat := models.StatusToCategory(ramps[i].AccessStatus)
@@ -88,6 +91,7 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 		ro := &outlooks[i]
 		if cat == "open" && ro.Reason == ReasonHighTide && riskRank(ro.Risk) >= 1 {
 			agg.atRisk++
+			agg.notePeak(now, ro.riskPeakAt)
 			if ro.quotedClose != nil {
 				if agg.earliestClose == nil || ro.quotedClose.Before(*agg.earliestClose) {
 					t := *ro.quotedClose
@@ -121,7 +125,7 @@ func buildCityVerdicts(now time.Time, ramps []models.RampStatusWithSince, outloo
 			cv.Headline, cv.Detail = cityOvernightText(now, season, sched, agg)
 		case len(agg.notOpen) > 0:
 			cv.State = CityStateSomeClosed
-			cv.Headline, cv.Detail = citySomeClosedText(agg, sched, tide)
+			cv.Headline, cv.Detail = citySomeClosedText(now, agg, sched, tide)
 		case golden:
 			cv.State = CityStateGolden
 			cv.Headline, cv.Detail = cityGoldenText(now, agg, season, sched)

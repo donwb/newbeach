@@ -94,6 +94,24 @@ func openLateText(season string, sched Schedule, peak models.TidePrediction, unt
 	return detail, &Reopen{Label: "may open late, ~" + back + ", for the tide"}
 }
 
+// openLateWaterText is the pre-open copy when the water anomaly alone may
+// hold the ramp shut past the open — the day's riskiest high is hours away,
+// so naming it would blame the wrong tide. No reopen time: on the 2026
+// high-water mornings this fired (10/19–10/21, highs at 4–6pm) the same
+// call ran to the close on one day and lifted by 10am on another. Storm
+// water still says "for the day".
+func openLateWaterText(season string, sched Schedule, until time.Time) (detail string, r *Reopen) {
+	opens := fmtClock(roundNearest30(*sched.OpensAt))
+	lead := "Opens around " + opens
+	if season != "turtle" {
+		lead = "Opens at sunrise, around " + opens
+	}
+	if sched.ClosesAt != nil && !until.Before(*sched.ClosesAt) {
+		return lead + ", but high water could keep it closed for the day", &Reopen{Label: "may stay closed for the day"}
+	}
+	return lead + ", but high water could keep it closed", &Reopen{Label: "may open late for high water"}
+}
+
 // endOfDayText is the copy for the day's close — the county clearing the
 // beach at dark, which has nothing to do with the tide. The posted time is
 // itself soft (they often start early), so it stays hedged like every other
