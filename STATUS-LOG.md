@@ -2,6 +2,9 @@
 
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
+## 2026-11-13
+- 2026-11-13: Don: "flight tvOS 47" (to carry the 63c8c15 ledger fix). The archive built from Xcode 27.1, but the upload was refused: `403 FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`, "A required agreement is missing or has expired." Version.xcconfig is at 47, left uncommitted until the upload lands. Retry after Don accepts the agreement: `DEVELOPER_DIR="/Applications/Xcode copy.app/Contents/Developer" make flight ARGS="--no-bump --only tvos --yes"`.
+
 ## 2026-11-12
 - 2026-11-12: Fall prediction review. Don: "it's been a while since we have assessed our ability to predict… King Tide season really made for a rough October." Refreshed the county fixtures through 11/11 (the levels and waves generators now extend rather than rebuild; NOAA had revised 133 old residuals) and graded every day May 1–Nov 11 with a nightly-retrain walk-forward, including what was actually *served* (pre-open, 9am, 1pm, and the reopen quote 20 min after each closure). Peak calls held up (1 miss in ~1,550 fall ramp-peaks). The served story did not: ramps the county never opened with no warning, and reopen times quoted on days the beach stayed shut (10/18–10/28). Five changes, params v8, server-side only:
   1. Plain `CLOSED` still posted at open + 2h quarantines that ramp-day. This covered ~600 ramp-days, from whole-beach shutdowns and DBS-067/DBS-076/DB-051 being out for weeks, that were labeled "stayed open". Fall "likely" precision 0.86 → 0.99; last week of October 0.70 → 0.97.

@@ -4,7 +4,7 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-11-12
+last_verified: 2026-11-13
 summary: All platforms live (iOS 1.2, tvOS 1.3); 1.4 (46) on TestFlight for both, built on Xcode 27.1 (iOS iPhone Duo-ready); a tvOS ledger truncation fix is on main but not in tvOS 46; 1.4 not yet submitted; Ormond-by-the-Sea cam flapping
 versions:
   ios: 1.2 (28) live since 2026-09-02
@@ -16,6 +16,7 @@ versions:
 review: none
 next_dates: []
 blockers:
+  - App Store Connect agreement missing or expired (403 FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED on the tvOS 1.4 (47) upload, 2026-11-13); blocks uploads for every app on the account until the Account Holder accepts it in App Store Connect → Business [Don]
   - Ormond-by-the-Sea cam flapping online/offline every ~30 s (relay hook, seen 2026-10-01 23:08Z onward); viewers see it as offline [restreamer/relay]
 dispatches:
   - 2026-09-26-newbeach-status-schema-2.md: done 2026-09-26
