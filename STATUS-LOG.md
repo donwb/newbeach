@@ -2,6 +2,9 @@
 
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
+## 2026-11-15
+- 2026-11-15: Don accepted the pending agreement; the first retry minutes later was still refused (same 403), the next one went through. tvOS 1.4 (47) uploaded to TestFlight from Xcode 27.1 with the 63c8c15 ledger fix, so the build matches the reshot Apple TV gallery. iOS stays on 1.4 (46). Agreement blocker cleared.
+
 ## 2026-11-13
 - 2026-11-13: Don: "flight tvOS 47" (to carry the 63c8c15 ledger fix). The archive built from Xcode 27.1, but the upload was refused: `403 FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`, "A required agreement is missing or has expired." Version.xcconfig is at 47, left uncommitted until the upload lands. Retry after Don accepts the agreement: `DEVELOPER_DIR="/Applications/Xcode copy.app/Contents/Developer" make flight ARGS="--no-bump --only tvos --yes"`.
 

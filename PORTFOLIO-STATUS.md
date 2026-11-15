@@ -4,19 +4,18 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-11-13
-summary: All platforms live (iOS 1.2, tvOS 1.3); 1.4 (46) on TestFlight for both, built on Xcode 27.1 (iOS iPhone Duo-ready); a tvOS ledger truncation fix is on main but not in tvOS 46; 1.4 not yet submitted; Ormond-by-the-Sea cam flapping
+last_verified: 2026-11-15
+summary: All platforms live (iOS 1.2, tvOS 1.3); 1.4 on TestFlight, iOS (46) and tvOS (47), both built on Xcode 27.1 (iOS iPhone Duo-ready, tvOS carries the ledger truncation fix); 1.4 not yet submitted; Ormond-by-the-Sea cam flapping
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
   tvos: 1.3 (30) live since 2026-09-17
-  testflight: 1.4 (46) iOS testflight since 2026-10-23 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46); 1.4 (46) tvOS testflight since 2026-11-12 (Xcode 27.1, --no-bump; lacks the 63c8c15 ledger fix)
+  testflight: 1.4 (46) iOS testflight since 2026-10-23 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46); 1.4 (47) tvOS testflight since 2026-11-15 (Xcode 27.1, carries the 63c8c15 ledger fix)
   watchos: 1.4 (46) testflight since 2026-10-23, embedded in the iOS build with its Smart Stack widget
   web: live
 review: none
 next_dates: []
 blockers:
-  - App Store Connect agreement missing or expired (403 FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED on the tvOS 1.4 (47) upload, 2026-11-13); blocks uploads for every app on the account until the Account Holder accepts it in App Store Connect → Business [Don]
   - Ormond-by-the-Sea cam flapping online/offline every ~30 s (relay hook, seen 2026-10-01 23:08Z onward); viewers see it as offline [restreamer/relay]
 dispatches:
   - 2026-09-26-newbeach-status-schema-2.md: done 2026-09-26
@@ -24,7 +23,7 @@ dispatches:
 
 ## Top open items
 000. **Watch the fall prediction review (params v8, 11/12) in prod.** Check `GET /api/v2/admin/prediction/scorecard` across the next week or two and the pre-open copy on high-tide mornings. The open question is November: highs the model calls "possible" have held 55/57 ramp-mornings since 11/9, maybe because the beach is narrower after the storms. If December keeps doing that, revisit the recency-window threshold (tried 11/12, neutral overall). Re-run the assessment with `scripts/predict-assess.py` (CLAUDE.md, Prediction → fall review).
-00. **Check 1.4 (46) on a real iPhone Duo.** Built on Xcode 27.1 (the Duo SDK), checked in all three poses on the 27.1 simulator. Open as a book, both board splits should sit on the hinge and the ramp detail panel should fit the screen. Closed, it's the iPhone board beside the system strip. Rotated open, it's one scrolling column. The trailing system strip shows only the clock and status: Beach has no `TabView`, so there's no tab rail to put there (expected). iOS now flights from `/Applications/Xcode copy.app` via `DEVELOPER_DIR` (CLAUDE.md, Apple Releases). tvOS 1.4 (46) flighted 2026-11-12 from the same Xcode. **Decide before submitting tvOS:** 46 truncates tide closures in the ledger ("Closed — hig…"); the fix (63c8c15) and the reshot gallery that shows it are on main, so flighting tvOS 47 makes the build match the screenshots.
+00. **Check 1.4 (46) on a real iPhone Duo.** Built on Xcode 27.1 (the Duo SDK), checked in all three poses on the 27.1 simulator. Open as a book, both board splits should sit on the hinge and the ramp detail panel should fit the screen. Closed, it's the iPhone board beside the system strip. Rotated open, it's one scrolling column. The trailing system strip shows only the clock and status: Beach has no `TabView`, so there's no tab rail to put there (expected). iOS now flights from `/Applications/Xcode copy.app` via `DEVELOPER_DIR` (CLAUDE.md, Apple Releases). tvOS is on 1.4 (47), flighted 2026-11-15 from the same Xcode with the ledger truncation fix, matching the reshot gallery. Submit iOS 46 + tvOS 47.
 0. **Watch the black-cam auto-switch on the Apple TV, 1.4 (45).** After 10 s of black picture (daytime only) the board should change to the next cam, and strip focus should follow. Built and unit-tested; not yet seen against a real county blackout.
 1. **Check the watch app and the cam fix on 1.4 (45).** The watch app and its Smart Stack widget are back in the iOS archive (confirmed in `Watch/`); confirm it installs from the iPhone Watch app. On the Apple TV, a cam that goes dark should now come back on its own within ~10 s of the feed returning, without switching cams.
 2. **Submit 1.4 (45) for review** when Don wants it public (iOS + tvOS, uploaded 2026-10-09, tag `flight/build-45`). It carries the black-cam auto-switch, the watch app + widget, the dark-cam auto-recovery, Ask (typed, the mic, four Siri shortcuts, the widget Ask button), widget push + the quarter-hourly refresh plan, the tvOS tide-wave captions and tomorrow overlay, and the tvOS idle-reset fix. What's New for both platforms is drafted in `docs/APP-STORE-LISTING.md` (§1.4). Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`.
