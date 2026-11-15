@@ -5,7 +5,7 @@ repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
 last_verified: 2026-11-15
-summary: All platforms live (iOS 1.2, tvOS 1.3); 1.4 on TestFlight, iOS (46) and tvOS (47), both built on Xcode 27.1 (iOS iPhone Duo-ready, tvOS carries the ledger truncation fix); 1.4 not yet submitted; Ormond-by-the-Sea cam flapping
+summary: All platforms live (iOS 1.2, tvOS 1.3); 1.4 in App Review since 2026-11-15, iOS (46) and tvOS (47), both built on Xcode 27.1 (iOS iPhone Duo-ready, tvOS carries the ledger truncation fix); Ormond-by-the-Sea cam flapping
 versions:
   ios: 1.2 (28) live since 2026-09-02
   ipados: 1.2 (28) live since 2026-09-02
@@ -13,7 +13,7 @@ versions:
   testflight: 1.4 (46) iOS testflight since 2026-10-23 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46); 1.4 (47) tvOS testflight since 2026-11-15 (Xcode 27.1, carries the 63c8c15 ledger fix)
   watchos: 1.4 (46) testflight since 2026-10-23, embedded in the iOS build with its Smart Stack widget
   web: live
-review: none
+review: 1.4 submitted 2026-11-15, waiting for review (iOS build 46, tvOS build 47)
 next_dates: []
 blockers:
   - Ormond-by-the-Sea cam flapping online/offline every ~30 s (relay hook, seen 2026-10-01 23:08Z onward); viewers see it as offline [restreamer/relay]
@@ -26,7 +26,7 @@ dispatches:
 00. **Check 1.4 (46) on a real iPhone Duo.** Built on Xcode 27.1 (the Duo SDK), checked in all three poses on the 27.1 simulator. Open as a book, both board splits should sit on the hinge and the ramp detail panel should fit the screen. Closed, it's the iPhone board beside the system strip. Rotated open, it's one scrolling column. The trailing system strip shows only the clock and status: Beach has no `TabView`, so there's no tab rail to put there (expected). iOS now flights from `/Applications/Xcode copy.app` via `DEVELOPER_DIR` (CLAUDE.md, Apple Releases). tvOS is on 1.4 (47), flighted 2026-11-15 from the same Xcode with the ledger truncation fix, matching the reshot gallery. Submit iOS 46 + tvOS 47.
 0. **Watch the black-cam auto-switch on the Apple TV, 1.4 (45).** After 10 s of black picture (daytime only) the board should change to the next cam, and strip focus should follow. Built and unit-tested; not yet seen against a real county blackout.
 1. **Check the watch app and the cam fix on 1.4 (45).** The watch app and its Smart Stack widget are back in the iOS archive (confirmed in `Watch/`); confirm it installs from the iPhone Watch app. On the Apple TV, a cam that goes dark should now come back on its own within ~10 s of the feed returning, without switching cams.
-2. **Submit 1.4 (45) for review** when Don wants it public (iOS + tvOS, uploaded 2026-10-09, tag `flight/build-45`). It carries the black-cam auto-switch, the watch app + widget, the dark-cam auto-recovery, Ask (typed, the mic, four Siri shortcuts, the widget Ask button), widget push + the quarter-hourly refresh plan, the tvOS tide-wave captions and tomorrow overlay, and the tvOS idle-reset fix. What's New for both platforms is drafted in `docs/APP-STORE-LISTING.md` (§1.4). Update reviews on this record have cleared in under a day. Authority: `apple/BeachRamp/Config/Version.xcconfig`.
+2. **1.4 is in App Review (submitted 2026-11-15)**: iOS build 46, tvOS build 47, release after approval. What's New and review notes are in `docs/APP-STORE-LISTING.md` (§1.4). Watch for a rejection over Ask: it is locked behind a key, and the review notes say so (it's a limited preview on a paid model service). If Review asks for access, decide whether to give them a review-only `CHAT_API_KEY` in the review notes.
 3. **Watch the first real county flip reach the Home Screen.** Widget push verified on device 10/1 via the admin trigger (4 sent, 0 failed); the live trace is `ramp status changed` → `widget push` in `doctl apps logs`. Then the day-to-day question: does Siri stay a coin flip while the widget mic and in-app mic hold up?
 4. **Ormond-by-the-Sea cam is flapping** (see blockers). Check the restreamer job on the Studio (`make restreamer-status`) and the relay's health hook before assuming the county side.
 5. **tvOS gallery reshot 2026-11-12 (done).** The surf line now fits and `04-ask.png` is new; the reshoot also caught the ledger truncation above. Previously: **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off right above "Every ramp open". f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`, which now also captures `04-ask.png`) should come out clean. Reshoot before the 1.4 tvOS submission. Authority: `docs/APP-STORE-LISTING.md`.

@@ -556,9 +556,10 @@ if 18 didn't complete.
 
 ---
 
-## Version metadata — iOS / iPadOS 1.4 (build 42, drafted 2026-10-01)
+## Version metadata — iOS / iPadOS 1.4 (build 46, submitted 2026-11-15)
 
-**Ready to submit once Don is happy with Ask on his phone.** iOS 1.2 (28) is live
+**Submitted 2026-11-15 with build 46** (Xcode 27.1, iPhone Duo-ready). What's New updated
+from the 10/1 draft: the watch app, iPhone Duo, and the fall prediction work. Original note: iOS 1.2 (28) is live
 (released 2026-09-02); 1.3 was tvOS-only. 1.4 (42) is on TestFlight (tag
 `flight/build-42`) and is the build to attach — it supersedes builds 31–41, which
 were iterations of the same work. Everything since 1.2 rides in it: Ask (typed and
@@ -575,7 +576,9 @@ Ask the board a question — and hear the answer.
 • Ask from your Home Screen — the medium and large widgets have a mic. One tap opens the app already listening.
 • Siri — "Hey Siri, is the beach open in New Smyrna Beach with Beach Info", "which beach day is best with Beach Info", or "Beach Info question" for anything else.
 • Widgets that keep up — on iOS 26 the widget reloads the moment the county changes a ramp, and on every iOS it now refreshes every fifteen minutes through the driving day instead of hourly.
-• A sharper tide read — the outlook now warns ahead of evening high tides, reads the water that actually arrives (not just the moon's prediction), and knows when a morning high will hold a ramp shut past the 8am open.
+• Apple Watch — a new watch app with your city's ramps, and a Smart Stack widget showing four of them at a glance.
+• Ready for iPhone Duo — open it like a book and the board spreads across both pages.
+• A sharper tide read — the outlook now warns ahead of evening high tides, reads the water that actually arrives (not just the moon's prediction), knows when a morning high or high water will hold a ramp shut past the open, and says so when a closure may last the day.
 
 Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected — Ask sends only the question you type or say.
 ```
@@ -596,9 +599,11 @@ microphone and speech permission strings are in the build.
 
 ---
 
-## Version metadata — tvOS 1.4 (build 42, drafted 2026-10-01)
+## Version metadata — tvOS 1.4 (build 47, submitted 2026-11-15)
 
-**Ready to submit after the gallery reshoot** (open item: the lead shot's surf
+**Submitted 2026-11-15 with build 47**, gallery reshot 2026-11-12 (four shots, adds
+`04-ask.png`). What's New updated from the 10/1 draft: the dark-cam switch and the fall
+prediction work. Original note: **Ready to submit after the gallery reshoot** (open item: the lead shot's surf
 headline truncation; `apple/scripts/screenshots.sh tv` now also captures the Ask
 surface as `04-ask.png`). tvOS 1.3 (30) is live (released 2026-09-17); 1.4 (42) is
 the build to attach.
@@ -611,7 +616,8 @@ Ask the board — and today's tide, caption by caption.
 • Ask — press "Ask ›" in the header, pick a suggested question or dictate your own with the remote, and read the outlook's answer in its own words.
 • The tide wave now captions each high and low with its time, and draws tomorrow's curve as a dashed line on the same scale.
 • The board stays on the camera you chose — after ten idle minutes it no longer snaps back to New Smyrna.
-• A sharper tide read — the outlook warns ahead of evening high tides and reads the water that actually arrives.
+• A camera that goes dark no longer leaves you watching black: the board moves on to the next live cam, and a feed that drops briefly comes back on its own.
+• A sharper tide read — the outlook warns ahead of evening high tides, reads the water that actually arrives, and says so when a closure may last the day.
 
 Ramp status still comes straight from the county's feed, refreshed every minute. Free, no account, nothing collected.
 ```

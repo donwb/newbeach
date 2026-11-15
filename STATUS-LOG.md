@@ -4,6 +4,7 @@ Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO
 
 ## 2026-11-15
 - 2026-11-15: Don accepted the pending agreement; the first retry minutes later was still refused (same 403), the next one went through. tvOS 1.4 (47) uploaded to TestFlight from Xcode 27.1 with the 63c8c15 ledger fix, so the build matches the reshot Apple TV gallery. iOS stays on 1.4 (46). Agreement blocker cleared.
+- 2026-11-15: Don: "go ahead and submit." Submitted 1.4 for App Review through the App Store Connect API (signing reused from `~/dev/flight/testers.py`): created the iOS and tvOS 1.4 versions, attached iOS build 46 and tvOS build 47, release after approval. What's New updated from the 10/1 drafts (iOS: watch app, iPhone Duo, fall tide work; tvOS: dark-cam switch, fall tide work). Review notes: the 1.2 notes plus a paragraph saying Ask is a key-locked preview. tvOS gallery replaced with the four 11/12 shots; iPhone, iPad and watch shots carried over from 1.2. Both versions WAITING_FOR_REVIEW at 22:12Z.
 
 ## 2026-11-13
 - 2026-11-13: Don: "flight tvOS 47" (to carry the 63c8c15 ledger fix). The archive built from Xcode 27.1, but the upload was refused: `403 FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`, "A required agreement is missing or has expired." Version.xcconfig is at 47, left uncommitted until the upload lands. Retry after Don accepts the agreement: `DEVELOPER_DIR="/Applications/Xcode copy.app/Contents/Developer" make flight ARGS="--no-bump --only tvos --yes"`.
