@@ -556,7 +556,7 @@ if 18 didn't complete.
 
 ---
 
-## Version metadata — iOS / iPadOS 1.4 (build 46, submitted 2026-11-15)
+## Version metadata — iOS / iPadOS 1.4 (build 46, submitted 2026-11-15, live 2026-11-17)
 
 **Submitted 2026-11-15 with build 46** (Xcode 27.1, iPhone Duo-ready). What's New updated
 from the 10/1 draft: the watch app, iPhone Duo, and the fall prediction work. Original note: iOS 1.2 (28) is live
@@ -599,7 +599,7 @@ microphone and speech permission strings are in the build.
 
 ---
 
-## Version metadata — tvOS 1.4 (build 47, submitted 2026-11-15)
+## Version metadata — tvOS 1.4 (build 47, submitted 2026-11-15, live 2026-11-17)
 
 **Submitted 2026-11-15 with build 47**, gallery reshot 2026-11-12 (four shots, adds
 `04-ask.png`). What's New updated from the 10/1 draft: the dark-cam switch and the fall

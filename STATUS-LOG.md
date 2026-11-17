@@ -2,6 +2,9 @@
 
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
+## 2026-11-17
+- 2026-11-17: Don: "the apps are approved and in the store." Confirmed through the ASC API: iOS 1.4 and tvOS 1.4 both READY_FOR_SALE / READY_FOR_DISTRIBUTION. iOS, iPadOS and watchOS move from 1.2 (28) to 1.4 (46); tvOS from 1.3 (30) to 1.4 (47). Review did not ask for an Ask key.
+
 ## 2026-11-15
 - 2026-11-15: Don accepted the pending agreement; the first retry minutes later was still refused (same 403), the next one went through. tvOS 1.4 (47) uploaded to TestFlight from Xcode 27.1 with the 63c8c15 ledger fix, so the build matches the reshot Apple TV gallery. iOS stays on 1.4 (46). Agreement blocker cleared.
 - 2026-11-15: Don: "go ahead and submit." Submitted 1.4 for App Review through the App Store Connect API (signing reused from `~/dev/flight/testers.py`): created the iOS and tvOS 1.4 versions, attached iOS build 46 and tvOS build 47, release after approval. What's New updated from the 10/1 drafts (iOS: watch app, iPhone Duo, fall tide work; tvOS: dark-cam switch, fall tide work). Review notes: the 1.2 notes plus a paragraph saying Ask is a key-locked preview. tvOS gallery replaced with the four 11/12 shots; iPhone, iPad and watch shots carried over from 1.2. Both versions WAITING_FOR_REVIEW at 22:12Z.
