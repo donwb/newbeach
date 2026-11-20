@@ -141,6 +141,26 @@ Fallback if the provider path ever breaks: `YTDLP_COOKIES=/path/to/cookies.txt`
 in `~/.cam-restreamer.env` (Netscape cookies.txt from a signed-in browser;
 prefer a throwaway account — heavy automated use can flag it).
 
+**`brew upgrade yt-dlp` silently uninstalls the PO-token plugin.** The plugin
+lives in brew's yt-dlp virtualenv (`/opt/homebrew/opt/yt-dlp/libexec`), and an
+upgrade rebuilds that venv from scratch — the server on :4416 keeps running, so
+nothing looks wrong. Check with `yt-dlp -v --simulate <url> 2>&1 | grep "PO Token
+Providers"`: `none` means the plugin is gone. After every yt-dlp upgrade,
+reinstall it at the server's version (`curl -s http://127.0.0.1:4416/ping`
+reports it):
+`/opt/homebrew/opt/yt-dlp/libexec/bin/python -m pip install bgutil-ytdlp-pot-provider==<ver>`,
+then kickstart the restreamer. (Hit 2026-11-20.)
+
+**Segments 403 on every client even with a PO token** (2026-11-20, unresolved at
+time of writing): yt-dlp resolves, the token is retrieved ("Retrieved a gvs PO
+Token for mweb client" in `-v`), the manifest loads, and every media segment
+returns 403 — all five cams, all player clients (mweb/android_vr 403;
+web/web_safari/ios "No video formats found"; tv "page needs to be reloaded").
+Upgrading yt-dlp (→ 2026.10.26) and bgutil (→ 2.0.2) did not fix it. Suspected
+IP-level flagging after a night of retries; the restreamer's backoff caps at
+30 min, so waiting is cheap. Next steps if it doesn't clear: the cookies
+fallback above, then a yt-dlp nightly.
+
 **A camera's YouTube video ID changed** (stream restarted under a new ID — this is
 what "Ormond Beach offline" looks like): update the roster row's `youtube_url`
 (`POST /api/v2/admin/cameras/<id>/stream` only sets hls_url; youtube_url is a DB
