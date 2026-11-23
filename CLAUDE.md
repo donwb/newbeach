@@ -505,6 +505,11 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
   default), kickstarts the job, and tails the log. `make restreamer-status` shows launchd
   state plus cam endpoint health; `make restreamer-diff` shows whether the deployed copy has
   drifted. The targets refuse to run on any machine where the launchd job isn't loaded.
+- **IPv4 only, end to end (2026-11-23):** yt-dlp resolves with `-4` (IPv6 resolves are
+  bot-walled) and the googlevideo URLs are locked to that address, but yt-dlp's downloader
+  ffmpeg has no IPv4-only switch and will connect over IPv6 if the Studio has a global v6
+  address. Some cams then 403 while others stream. IPv6 is off on the Studio's Wi-Fi for
+  this reason; don't turn it back on. Diagnosis in `docs/CAM-RELAY.md`.
 - **Quiet hours (2026-11-23):** the restreamer pulls no video 11pm–6am local
   (`QUIET_HOURS` in `~/.cam-restreamer.env`, default `23-6`, empty = 24h). Every cam
   reads offline overnight and clients show the `still_url` still. That's by design, not an outage.
