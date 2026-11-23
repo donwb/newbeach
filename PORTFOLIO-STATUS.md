@@ -5,12 +5,12 @@ repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
 last_verified: 2026-11-23
-summary: All platforms live on 1.4 (iOS 46, tvOS 47); tvOS 1.4.1 (48) on TestFlight with the cam still fallback; cams were dark 11/20–11/23 (YouTube blocked the home IP) and are being brought back on a new Wire3 IP
+summary: All platforms live on 1.4 (iOS 46, tvOS 47); iOS + tvOS 1.4.1 (49) on TestFlight with cam stills and a LIVE/STILL indicator (web live with both); cams were dark 11/20–11/23 (YouTube blocked the home IP) and are being brought back on a new Wire3 IP
 versions:
   ios: 1.4 (46) live since 2026-11-17 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46)
   ipados: 1.4 (46) live since 2026-11-17
   tvos: 1.4 (47) live since 2026-11-17 (Xcode 27.1, carries the 63c8c15 ledger fix)
-  testflight: tvOS 1.4.1 (48) uploaded 2026-11-23 (Xcode 26.3; cam still fallback, cb29ed0)
+  testflight: iOS + tvOS 1.4.1 (49) uploaded 2026-11-23 (Xcode 27.1; cam stills on both, LIVE/STILL indicator, night-tolerant still rule; tag flight/build-49)
   watchos: 1.4 (46) live since 2026-11-17, embedded in the iOS build with its Smart Stack widget
   web: live
 review: none (1.4 approved and READY_FOR_SALE on both platforms, confirmed 2026-11-17)
