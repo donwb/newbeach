@@ -425,8 +425,9 @@ The site is served at `https://beach.donwb.com` (custom domain declared in `.do/
   the live city verdict) and `city_outlook_at` (the replay for every ramp in a city,
   `BuildCityOutlookAt`) exist alongside the per-ramp tool; the client sends the board's
   selected city as `context.city` and suggestions are written for it. Web: `web/js/ask.js`
-  (key in `localStorage`, first-run prompt) — the place to try new question shapes before
-  touching native placement.
+  (key in `localStorage`, first-run prompt). **Off the web board since 2026-11-23** (Don): the
+  module stays in the repo, unmounted and out of the service-worker precache; re-adding it is
+  the import + `ask.mount`/`unmount` in `views/board.js` and the `ask-section` element.
   **Spoken questions (2026-09-29):** the common shapes — city now, city at a time, best day —
   are answered by the pattern router (`chat/route.go`, replies in `chat/quick.go`; ramps named outright too, via the roster) from engine copy with **no model call** (`model: "quick"`;
   conservative router, falls through on any doubt, first turns only); `voice: true` runs
