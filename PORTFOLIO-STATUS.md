@@ -10,7 +10,7 @@ versions:
   ios: 1.4 (46) live since 2026-11-17 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46)
   ipados: 1.4 (46) live since 2026-11-17
   tvos: 1.4 (47) live since 2026-11-17 (Xcode 27.1, carries the 63c8c15 ledger fix)
-  testflight: iOS + tvOS 1.4.1 (49) uploaded 2026-11-23 (Xcode 27.1; cam stills on both, LIVE/STILL indicator, night-tolerant still rule; tag flight/build-49)
+  testflight: iOS 1.4.1 (49) and tvOS 1.4.1 (50) uploaded 2026-11-23 (Xcode 27.1; cam stills, LIVE/STILL indicator; tvOS 50 adds the one-line "Watching live/stills" strip label)
   watchos: 1.4 (46) live since 2026-11-17, embedded in the iOS build with its Smart Stack widget
   web: live
 review: none (1.4 approved and READY_FOR_SALE on both platforms, confirmed 2026-11-17)
