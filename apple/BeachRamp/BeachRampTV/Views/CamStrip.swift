@@ -30,17 +30,21 @@ struct CamStrip: View {
         selectedCamera.map { !$0.hasLiveVideo } ?? false
     }
 
-    private var watchingLabel: String {
+    /// "Watching live" / "Watching stills" / plain "Watching". Only the mode
+    /// word takes color: LIVE in sand (the strip's live color, as in the
+    /// "live ›" pointer; red stays closed-only), STILLS in full white, both
+    /// standing out from the muted "Watching".
+    private var watchingLabel: Text {
         switch CamMode.of(selectedCamera, stillDead: selectedStillDark) {
-        case .live: "Watching live"
-        case .still: "Watching stills"
-        case .offline: "Watching"
+        case .live: Text("Watching ") + Text("live").foregroundStyle(TVInk.sand)
+        case .still: Text("Watching ") + Text("stills").foregroundStyle(TVInk.type)
+        case .offline: Text("Watching")
         }
     }
 
     var body: some View {
         HStack(alignment: .center, spacing: 34) {
-            Text(watchingLabel)
+            watchingLabel
                 .tvLabel()
                 .fixedSize()
                 .accessibilityIdentifier("camStrip.watching")
