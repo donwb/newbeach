@@ -5,7 +5,7 @@ repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
 last_verified: 2026-11-23
-summary: All platforms live on 1.4 (iOS 46, tvOS 47); iOS + tvOS 1.4.1 (49) on TestFlight with cam stills and a LIVE/STILL indicator (web live with both); cams were dark 11/20–11/23 (YouTube blocked the home IP) and are being brought back on a new Wire3 IP
+summary: All platforms live on 1.4 (iOS 46, tvOS 47); iOS + tvOS 1.4.1 (49) on TestFlight with cam stills and a LIVE/STILL indicator (web live with both); four of five cams live again since 2026-11-23 (new Wire3 IP + IPv6 off on the Studio)
 versions:
   ios: 1.4 (46) live since 2026-11-17 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46)
   ipados: 1.4 (46) live since 2026-11-17
@@ -16,7 +16,7 @@ versions:
 review: none (1.4 approved and READY_FOR_SALE on both platforms, confirmed 2026-11-17)
 next_dates: []
 blockers:
-  - Live cams depend on YouTube serving the home IP; segments 403'd on 38.59.7.224 from 2026-11-20 until Wire3 rotated it to 38.59.35.233 (2026-11-23). Stills fallback covers the gap on tvOS 1.4.1 and the API [restreamer]
+  - Ormond-by-the-Sea cam: county feed frozen upstream (black thumbnail, frames freeze within a minute); restreamer now backs off instead of re-resolving every ~90 s [county]
 dispatches:
   - 2026-09-26-newbeach-status-schema-2.md: done 2026-09-26
 ---

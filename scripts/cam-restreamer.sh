@@ -78,6 +78,7 @@ RELAY_HLS_BASE="${RELAY_HLS_BASE:-https://cams.donwb.com}"
 STALL_SECS=45        # restart if ffmpeg goes quiet or its frame count freezes this long
                      # (above the 10–30s home→relay RTMP stalls it must ride out)
 RETRY_STREAMED=30    # retry after a stream that was up and dropped
+MIN_STREAMED_SECS=180 # a stream shorter than this that dies counts as a failure (backs off)
 RETRY_SECS=120       # base delay for resolve-failure backoff + roster retries
 RETRY_MAX=1800       # backoff cap for streams that fail to resolve at all
 ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
@@ -170,6 +171,8 @@ stream_one() {
     while true; do
         rotate_log "$log_f"
         log "[$id] starting pipeline ($yt)" >> "$log_f"
+        local started
+        started=$(date +%s)
         rm -f "$prog"
         # -4: YouTube bot-walls live-stream resolves from this connection's
         # IPv6 egress (2026-09-04: every player client walled, PO tokens and
@@ -258,7 +261,11 @@ stream_one() {
         # the exponential backoff never engages (this is how ormond-beach spent
         # days re-resolving every 2 minutes). Streamed-then-dropped gets a flat
         # fast retry; never-streamed doubles its delay up to RETRY_MAX.
-        if [ -s "$prog" ]; then
+        # "Streamed" also needs MIN_STREAMED_SECS of runtime: a county feed
+        # frozen upstream connects, sends a frame or two, then stalls, and
+        # with the flat retry that re-resolved it with YouTube every ~90s
+        # (Ormond-By-The-Sea, 2026-11-23; also its online/offline flapping).
+        if [ -s "$prog" ] && [ $(( $(date +%s) - started )) -ge "$MIN_STREAMED_SECS" ]; then
             delay="$RETRY_STREAMED"
         else
             delay=$(( delay * 2 ))

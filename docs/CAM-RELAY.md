@@ -179,6 +179,22 @@ happens again: confirm with a one-cam pull from a different network, ask Wire3
 for a new IPv4, and the stills fallback covers viewers meanwhile. The quiet hours
 above came out of this.
 
+**Some cams 403 on segments while others stream, from the same IP** (2026-11-23):
+check for **IPv6**. yt-dlp resolves over IPv4 (`-4`, because YouTube bot-walls
+IPv6 resolves), and the googlevideo URLs are locked to that IPv4 address
+(`/ip/<v4>/` in the URL). But yt-dlp's internal downloader ffmpeg has no
+IPv4-only option and connects over IPv6 whenever the edge host has an AAAA
+record and the Studio has a global v6 address. The segment then arrives from
+the wrong address and gets a 302/403. Whether a given cam works depends on
+which edge it lands on, so it looks random. Diagnose with
+`ffmpeg -loglevel verbose -i "$(yt-dlp -4 --extractor-args youtube:player_client=mweb -f 'best[protocol^=m3u8]' -g <url>)"`:
+the `Starting connection attempt to 2607:…` lines give it away. A
+`curl -4` fetch of the same segment returns 200, so plain-curl tests
+mislead. **Fix: IPv6 off on the Studio's active interface** (Wi-Fi, en1):
+`sudo networksetup -setv6off Wi-Fi` (undo: `-setv6automatic`). Done
+2026-11-23; all five cams streamed within two minutes. If IPv6 comes back
+(macOS update, interface change, new network service), this comes back.
+
 **A camera's YouTube video ID changed** (stream restarted under a new ID — this is
 what "Ormond Beach offline" looks like): update the roster row's `youtube_url`
 (`POST /api/v2/admin/cameras/<id>/stream` only sets hls_url; youtube_url is a DB
