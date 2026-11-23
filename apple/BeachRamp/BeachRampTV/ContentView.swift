@@ -219,7 +219,6 @@ struct ContentView: View {
                 CamStrip(
                     cameras: viewModel.cameras,
                     selectedID: viewModel.selectedCameraID,
-                    offlineSince: viewModel.cameraOfflineSince,
                     selectedStillDark: viewModel.camStill.isDark,
                     focus: $focus
                 )

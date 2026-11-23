@@ -5,19 +5,18 @@ import BeachStatus
 /// flat — a switcher, not a stepper, so a user checking three beaches a day
 /// jumps instead of cycling. Active cam wears the 4pt sand underline; focus
 /// moves switch the stream live (the channel-flip pattern — no Select
-/// needed). The active cam says what the band is showing (`CamMode`): a sand
-/// dot and "live" for real video, or "still photo" when the band is showing
-/// the YouTube thumbnail, not motion. Any cam with only a still reads "still
-/// photo"; a cam with neither is struck through with an "offline since"
-/// sub-label. (The indicator lives here, not on the band, which takes no
-/// overlays; sand, not red, because red means closed.) When the
+/// needed). The leading label says what the band is showing for the active
+/// cam (`CamMode`): "Watching live" for real video, "Watching stills" when
+/// it's the YouTube thumbnail, not motion. That's the only indicator; the
+/// names stay one line so the row lines up (2026-11-23: per-name sub-labels
+/// knocked the names out of alignment on the TV). The indicator lives here,
+/// not on the band, which takes no overlays. A cam with no live video and no
+/// still is struck through. When the
 /// *selected* cam has no live video, the nearest live neighbor is named in
 /// sand with a chevron pointing the way.
 struct CamStrip: View {
     let cameras: [Camera]
     let selectedID: String?
-    /// When each offline camera was first seen dark, keyed by id.
-    let offlineSince: [String: Date]
     /// The selected cam's still read black (a dead camera, not just a dead
     /// relay) — it's offline outright, still or no still.
     var selectedStillDark: Bool = false
@@ -31,11 +30,20 @@ struct CamStrip: View {
         selectedCamera.map { !$0.hasLiveVideo } ?? false
     }
 
+    private var watchingLabel: String {
+        switch CamMode.of(selectedCamera, stillDead: selectedStillDark) {
+        case .live: "Watching live"
+        case .still: "Watching stills"
+        case .offline: "Watching"
+        }
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 34) {
-            Text("Watching")
+            Text(watchingLabel)
                 .tvLabel()
                 .fixedSize()
+                .accessibilityIdentifier("camStrip.watching")
 
             HStack(alignment: .center, spacing: 34) {
                 ForEach(cameras) { camera in
@@ -48,7 +56,6 @@ struct CamStrip: View {
                             camera: camera,
                             isActive: camera.id == selectedCamera?.id,
                             isFocused: focus.wrappedValue == .cam(camera.id),
-                            offlineSince: offlineSince[camera.id],
                             mode: CamMode.of(camera, stillDead: camera.id == selectedCamera?.id && selectedStillDark),
                             liveNeighborHint: liveNeighborHint(for: camera)
                         )
@@ -92,14 +99,13 @@ struct CamStrip: View {
     }
 }
 
-/// One cam name. Active = 28/extraBold + 4pt sand underline; inactive = 26
-/// at 50%; focus brightens. All state nests under the name itself so the
-/// strip never disagrees with what the remote does.
+/// One cam name, always a single line. Active = 28/extraBold + 4pt sand
+/// underline; inactive = 26 at 50%; focus brightens; no live video and no
+/// still = struck through.
 private struct CamStripName: View {
     let camera: Camera
     let isActive: Bool
     let isFocused: Bool
-    let offlineSince: Date?
     /// What this cam would show (a dead still is only known for the selected
     /// cam; others read `.still` until watched).
     let mode: CamMode
@@ -109,24 +115,7 @@ private struct CamStripName: View {
     private var isOffline: Bool { mode == .offline }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            nameLine
-            if isActive && mode == .live && liveNeighborHint == nil {
-                HStack(spacing: 8) {
-                    Circle().fill(TVInk.sand).frame(width: 10, height: 10)
-                    Text("live")
-                        .tv(22)
-                        .foregroundStyle(TVInk.type.opacity(0.85))
-                }
-                .lineLimit(1)
-                .accessibilityElement(children: .combine)
-            } else if let subLabel {
-                Text(subLabel)
-                    .tv(22)
-                    .foregroundStyle(TVInk.inactive)
-                    .lineLimit(1)
-            }
-        }
+        nameLine
     }
 
     @ViewBuilder private var nameLine: some View {
@@ -155,13 +144,6 @@ private struct CamStripName: View {
                 .lineLimit(1)
         }
     }
-
-    private var subLabel: String? {
-        if mode == .still { return "still photo" }
-        guard isOffline else { return nil }
-        guard let offlineSince else { return "offline right now" }
-        return "offline since \(SinceFormatter.string(from: offlineSince))"
-    }
 }
 
 #if DEBUG
@@ -172,7 +154,6 @@ private struct CamStripName: View {
     CamStrip(
         cameras: PreviewFixtures.cameras,
         selectedID: "nsb",
-        offlineSince: ["ormond-by-the-sea": PreviewFixtures.at(12, 48)],
         focus: $focus
     )
     .background(TVSky.previewNoon)
@@ -182,7 +163,6 @@ private struct CamStripName: View {
     CamStrip(
         cameras: PreviewFixtures.cameras,
         selectedID: "ponce-inlet",
-        offlineSince: ["ormond-by-the-sea": PreviewFixtures.at(12, 48)],
         focus: $focus
     )
     .background(TVSky.previewNoon)

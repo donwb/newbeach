@@ -87,7 +87,7 @@ enum PreviewFixtures {
     static let cameras: [Camera] = [
         Camera(id: "nsb", name: "New Smyrna Beach", location: "New Smyrna Beach",
                streamURL: "https://cams.donwb.com/nsb/index.m3u8"),
-        // Relay dark, still fallback available: the strip's "still photo" case.
+        // Relay dark, still fallback available: "Watching stills" when selected.
         Camera(id: "ponce-inlet", name: "Ponce Inlet", location: "Ponce Inlet",
                streamURL: "https://cams.donwb.com/ponce-inlet/index.m3u8", online: false,
                stillURL: "https://i.ytimg.com/vi/ZCozdEGwkDI/maxresdefault_live.jpg"),

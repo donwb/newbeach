@@ -81,7 +81,6 @@ final class TVViewModel {
             do {
                 let roster = try await api.fetchCameras()
                 cameras = roster.cameras
-                updateCameraHealth()
                 if let url = selectedCamera?.url, url != videoStreamURL {
                     videoStreamURL = url
                 }
@@ -150,10 +149,6 @@ final class TVViewModel {
     /// Live camera roster (south-to-north), backing the cam caption strip.
     /// The strip renders roster order directly — fixed geographic order.
     var cameras: [Camera] = []
-    /// When each currently-offline camera was first seen dark, keyed by id —
-    /// the caption strip's "offline since 12:48 PM" sub-labels. Cleared the
-    /// moment a camera's stream URL comes back.
-    var cameraOfflineSince: [String: Date] = [:]
     /// Keeps the selected cam's still fallback fresh (`CamStill`). It loads
     /// even while video plays: the band shows it underneath, so a cam switch
     /// or a stall reveals the beach instead of a black field.
@@ -487,26 +482,11 @@ final class TVViewModel {
         do {
             let roster = try await api.fetchCameras()
             cameras = roster.cameras
-            updateCameraHealth()
             if selectedCameraID == nil {
                 selectedCameraID = roster.defaultID
             }
             applySelectedCameraURL()
         } catch { /* non-critical — keep current/fallback stream */ }
-    }
-
-    /// Stamp newly-dark cameras and clear recovered ones. First-seen time is
-    /// the best "offline since" this client can honestly claim.
-    private func updateCameraHealth() {
-        for camera in cameras {
-            if !camera.hasLiveVideo {
-                if cameraOfflineSince[camera.id] == nil {
-                    cameraOfflineSince[camera.id] = Date()
-                }
-            } else {
-                cameraOfflineSince[camera.id] = nil
-            }
-        }
     }
 
     // MARK: - Overnight
