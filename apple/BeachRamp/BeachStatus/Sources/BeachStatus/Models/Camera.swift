@@ -10,14 +10,19 @@ public struct Camera: Codable, Identifiable, Hashable, Sendable {
     /// never observed it. The URL is permanent now, so this is what says a
     /// cam is dark.
     public let online: Bool?
+    /// A periodically refreshed still of the same cam (YouTube's live
+    /// thumbnail, see `CamStill`) for when the stream is dark. Nil from older
+    /// servers or cams with no derivable still.
+    public let stillURL: String?
 
     public init(id: String, name: String, location: String, streamURL: String,
-                online: Bool? = nil) {
+                online: Bool? = nil, stillURL: String? = nil) {
         self.id = id
         self.name = name
         self.location = location
         self.streamURL = streamURL
         self.online = online
+        self.stillURL = stillURL
     }
 
     enum CodingKeys: String, CodingKey {
@@ -26,12 +31,26 @@ public struct Camera: Codable, Identifiable, Hashable, Sendable {
         case location
         case streamURL = "stream_url"
         case online
+        case stillURL = "still_url"
     }
 
     /// The stream URL as a `URL`, or `nil` if not yet resolved (empty string,
     /// e.g. a camera the home cron hasn't populated yet).
     public var url: URL? {
         streamURL.isEmpty ? nil : URL(string: streamURL)
+    }
+
+    /// True when there's live video worth trying: a resolved stream the relay
+    /// hasn't reported dark. The relay URLs are permanent, so `online` is
+    /// what actually says a cam is down.
+    public var hasLiveVideo: Bool {
+        url != nil && online != false
+    }
+
+    /// The still fallback as a `URL`, if the server sent one.
+    public var stillImageURL: URL? {
+        guard let stillURL, !stillURL.isEmpty else { return nil }
+        return URL(string: stillURL)
     }
 }
 

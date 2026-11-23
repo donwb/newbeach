@@ -127,6 +127,9 @@ services:
       - key: CAM_HEALTH_ENABLED
         scope: RUN_AND_BUILD_TIME
         value: "true"
+      # CAM_STILL_URL_TEMPLATE is unset: /api/v2/cameras derives each cam's
+      # still_url fallback from YouTube's live thumbnail. Set it to a template
+      # with {id} to change the source, or "off" to drop still_url.
       # Shared secret the relay droplet presents on POST /api/v2/hooks/camera-health.
       # Set the real value in the platform UI (matches the key baked into
       # /opt/mediamtx/health-hook.sh on the droplet). Placeholder here.

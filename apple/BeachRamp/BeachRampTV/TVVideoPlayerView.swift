@@ -41,7 +41,9 @@ struct TVVideoPlayerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
-                Color(boardHex: 0x05080C)
+                // Clear, not a dark fill: PictureBand lays the cam's still
+                // underneath, and a player between URLs should reveal it.
+                Color.clear
             }
         }
         .onAppear {

@@ -125,4 +125,18 @@ func TestCameraDTOWireContract(t *testing.T) {
 		assert.Equal(t, false, m["online"])
 		assert.Equal(t, "2026-08-16T15:26:00Z", m["status_changed_at"])
 	})
+
+	t.Run("still url is additive", func(t *testing.T) {
+		withStill := base
+		withStill.StillURL = "https://i.ytimg.com/vi/550p9smwjPM/maxresdefault_live.jpg"
+
+		raw, err := json.Marshal(withStill)
+		require.NoError(t, err)
+
+		var m map[string]interface{}
+		require.NoError(t, json.Unmarshal(raw, &m))
+
+		assert.Len(t, m, 5)
+		assert.Equal(t, withStill.StillURL, m["still_url"])
+	})
 }

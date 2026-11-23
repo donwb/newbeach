@@ -177,6 +177,7 @@ struct ContentView: View {
                 rebuildToken: viewModel.videoStreamGeneration,
                 isPlaying: $viewModel.isVideoPlaying,
                 selectedOffline: selectedCamOffline,
+                stillImage: viewModel.camStill.image,
                 onPlaybackFailure: { viewModel.refreshVideoStream() },
                 onPictureSample: { viewModel.notePicture(lit: $0) }
             )
@@ -219,6 +220,7 @@ struct ContentView: View {
                     cameras: viewModel.cameras,
                     selectedID: viewModel.selectedCameraID,
                     offlineSince: viewModel.cameraOfflineSince,
+                    selectedStillDark: viewModel.camStill.isDark,
                     focus: $focus
                 )
                 LedgerView(
@@ -324,7 +326,7 @@ struct ContentView: View {
     // MARK: - Display models
 
     private var selectedCamOffline: Bool {
-        viewModel.selectedCamera.map { $0.url == nil } ?? false
+        viewModel.selectedCamera.map { !$0.hasLiveVideo } ?? false
     }
 
     private var staleMinutes: Int? {

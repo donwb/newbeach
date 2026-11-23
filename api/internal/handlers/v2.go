@@ -223,10 +223,14 @@ func HandleV2Config(pool *pgxpool.Pool) echo.HandlerFunc {
 // StatusChangedAt are pointers so cameras with no observed health omit the
 // fields entirely — existing clients decode the pre-health JSON unchanged.
 type cameraDTO struct {
-	ID              string     `json:"id"`
-	Name            string     `json:"name"`
-	Location        string     `json:"location"`
-	StreamURL       string     `json:"stream_url"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Location  string `json:"location"`
+	StreamURL string `json:"stream_url"`
+	// StillURL is a periodically refreshed still frame of the same cam
+	// (YouTube's live thumbnail, see camstill.go) for clients to show when
+	// the relay stream is dark. Omitted when it can't be derived.
+	StillURL        string     `json:"still_url,omitempty"`
 	Online          *bool      `json:"online,omitempty"`
 	StatusChangedAt *time.Time `json:"status_changed_at,omitempty"`
 }
@@ -235,9 +239,12 @@ type cameraDTO struct {
 // switcher). Exposes only what a player needs — the rotating HLS stream URL
 // per camera, ordered south-to-north — plus the default camera id. Cameras
 // with observed relay health additionally carry online/status_changed_at
-// (strictly additive; cameras never observed omit both fields).
+// (strictly additive; cameras never observed omit both fields), and every
+// camera with a recognizable YouTube URL carries a still_url fallback frame
+// (CAM_STILL_URL_TEMPLATE overrides the source; "off" omits it).
 // GET /api/v2/cameras
 func HandleV2Cameras(pool *pgxpool.Pool) echo.HandlerFunc {
+	stillTemplate := os.Getenv("CAM_STILL_URL_TEMPLATE")
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
@@ -262,6 +269,7 @@ func HandleV2Cameras(pool *pgxpool.Pool) echo.HandlerFunc {
 				Name:      cam.Name,
 				Location:  cam.Location,
 				StreamURL: cam.HLSURL,
+				StillURL:  camStillURL(cam.YouTubeURL, stillTemplate),
 			}
 			if h, ok := health[cam.ID]; ok {
 				online := h.Online

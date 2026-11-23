@@ -1,4 +1,5 @@
 #if DEBUG
+import CoreGraphics
 import Foundation
 import BeachStatus
 
@@ -86,8 +87,10 @@ enum PreviewFixtures {
     static let cameras: [Camera] = [
         Camera(id: "nsb", name: "New Smyrna Beach", location: "New Smyrna Beach",
                streamURL: "https://cams.donwb.com/nsb/index.m3u8"),
+        // Relay dark, still fallback available: the strip's "still photo" case.
         Camera(id: "ponce-inlet", name: "Ponce Inlet", location: "Ponce Inlet",
-               streamURL: "https://cams.donwb.com/ponce-inlet/index.m3u8"),
+               streamURL: "https://cams.donwb.com/ponce-inlet/index.m3u8", online: false,
+               stillURL: "https://i.ytimg.com/vi/ZCozdEGwkDI/maxresdefault_live.jpg"),
         Camera(id: "dunlawton", name: "Dunlawton", location: "Daytona Beach Shores",
                streamURL: "https://cams.donwb.com/dunlawton/index.m3u8"),
         Camera(id: "ormond-beach", name: "Ormond Beach", location: "Ormond Beach",
@@ -95,6 +98,23 @@ enum PreviewFixtures {
         Camera(id: "ormond-by-the-sea", name: "Ormond-By-The-Sea", location: "Ormond-By-The-Sea",
                streamURL: ""),
     ]
+
+    /// A stand-in cam still for previews: a 1280×270 panorama-shaped
+    /// sky-over-sand gradient (the real one comes from `CamStillLoader`).
+    static let camStill: CGImage = {
+        let width = 1280, height = 270
+        let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        let colors = [CGColor(red: 0.62, green: 0.74, blue: 0.86, alpha: 1),   // sky
+                      CGColor(red: 0.42, green: 0.56, blue: 0.66, alpha: 1),   // water
+                      CGColor(red: 0.80, green: 0.74, blue: 0.62, alpha: 1)]   // sand
+        let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                  colors: colors as CFArray, locations: [0, 0.45, 1])!
+        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: CGFloat(height)),
+                                   end: .zero, options: [])
+        return context.makeImage()!
+    }()
 
     static let activity: [ActivityEntry] = [
         ActivityEntry(id: 4, accessID: "NSB-2", accessStatus: "CLOSED FOR HIGH TIDE",

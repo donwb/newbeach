@@ -580,6 +580,7 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 | `CONDITIONS_ENABLED` | Conditions logger | Set `false` to disable snapshotting |
 | `CAM_HEALTH_INTERVAL` | Cam health poller | Seconds between relay stream probes (default: 60) |
 | `CAM_HEALTH_ENABLED` | Cam health poller | Set `false` to disable the reconcile poller |
+| `CAM_STILL_URL_TEMPLATE` | API | Source for each camera's `still_url` fallback frame, `{id}` = YouTube video ID (default: YouTube's live thumbnail, `i.ytimg.com/vi/{id}/maxresdefault_live.jpg`); `off` drops `still_url` |
 | `CAM_HOOK_KEY` | API | Shared secret for relay hooks (`/api/v2/hooks/*`); matches the key in the droplet's `/opt/mediamtx/health-hook.sh` |
 | `WEB_DIR` | API | Path to web static files (auto-detected in dev, `/web` in Docker) |
 | `ADMIN_API_KEY` | API | Secret key for admin endpoints (`/api/v2/admin/*`) |

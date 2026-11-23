@@ -5,14 +5,19 @@ import BeachStatus
 /// flat — a switcher, not a stepper, so a user checking three beaches a day
 /// jumps instead of cycling. Active cam wears the 4pt sand underline; focus
 /// moves switch the stream live (the channel-flip pattern — no Select
-/// needed). Offline cams are struck through with an "offline since"
-/// sub-label, and when the *selected* cam is dark the nearest live neighbor
-/// is named in sand with a chevron pointing the way.
+/// needed). A cam with no live video but a still fallback reads "still
+/// photo" (the band is showing its YouTube thumbnail, not motion); a cam with
+/// neither is struck through with an "offline since" sub-label. When the
+/// *selected* cam has no live video, the nearest live neighbor is named in
+/// sand with a chevron pointing the way.
 struct CamStrip: View {
     let cameras: [Camera]
     let selectedID: String?
     /// When each offline camera was first seen dark, keyed by id.
     let offlineSince: [String: Date]
+    /// The selected cam's still read black (a dead camera, not just a dead
+    /// relay) — it's offline outright, still or no still.
+    var selectedStillDark: Bool = false
     let focus: FocusState<RootFocus?>.Binding
 
     private var selectedCamera: Camera? {
@@ -20,7 +25,7 @@ struct CamStrip: View {
     }
 
     private var selectedOffline: Bool {
-        selectedCamera.map { $0.url == nil } ?? false
+        selectedCamera.map { !$0.hasLiveVideo } ?? false
     }
 
     var body: some View {
@@ -41,6 +46,7 @@ struct CamStrip: View {
                             isActive: camera.id == selectedCamera?.id,
                             isFocused: focus.wrappedValue == .cam(camera.id),
                             offlineSince: offlineSince[camera.id],
+                            stillDark: camera.id == selectedCamera?.id && selectedStillDark,
                             liveNeighborHint: liveNeighborHint(for: camera)
                         )
                     }
@@ -68,13 +74,13 @@ struct CamStrip: View {
     /// When the selected cam is dark, its nearest live neighbor gets the
     /// pointer. Order is geographic, so the neighbor may be either direction.
     private func liveNeighborHint(for camera: Camera) -> String? {
-        guard selectedOffline, camera.url != nil,
+        guard selectedOffline, camera.hasLiveVideo,
               let selected = selectedCamera,
               let selectedIdx = cameras.firstIndex(where: { $0.id == selected.id }),
               let camIdx = cameras.firstIndex(where: { $0.id == camera.id })
         else { return nil }
 
-        let liveIndices = cameras.indices.filter { cameras[$0].url != nil }
+        let liveIndices = cameras.indices.filter { cameras[$0].hasLiveVideo }
         guard let nearest = liveIndices.min(by: {
             abs($0 - selectedIdx) < abs($1 - selectedIdx)
         }), nearest == camIdx else { return nil }
@@ -91,10 +97,20 @@ private struct CamStripName: View {
     let isActive: Bool
     let isFocused: Bool
     let offlineSince: Date?
+    /// This cam's still read black (only known for the selected cam).
+    let stillDark: Bool
     /// "live ›" / "‹ live" when this cam is the offline-recovery target.
     let liveNeighborHint: String?
 
-    private var isOffline: Bool { camera.url == nil }
+    /// No live video and no picture to stand in for it.
+    private var isOffline: Bool {
+        !camera.hasLiveVideo && (camera.stillImageURL == nil || stillDark)
+    }
+
+    /// No live video, but the band can show a still.
+    private var isStillOnly: Bool {
+        !camera.hasLiveVideo && !isOffline
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -136,6 +152,7 @@ private struct CamStripName: View {
     }
 
     private var subLabel: String? {
+        if isStillOnly { return "still photo" }
         guard isOffline else { return nil }
         guard let offlineSince else { return "offline right now" }
         return "offline since \(SinceFormatter.string(from: offlineSince))"
@@ -143,11 +160,23 @@ private struct CamStripName: View {
 }
 
 #if DEBUG
+// Fixtures: Ponce Inlet is relay-dark with a still ("still photo"),
+// Ormond-By-The-Sea has neither (struck through).
 #Preview("Strip", traits: .fixedLayout(width: 1920, height: 56)) {
     @Previewable @FocusState var focus: RootFocus?
     CamStrip(
         cameras: PreviewFixtures.cameras,
         selectedID: "nsb",
+        offlineSince: ["ormond-by-the-sea": PreviewFixtures.at(12, 48)],
+        focus: $focus
+    )
+    .background(TVSky.previewNoon)
+}
+#Preview("Watching a still", traits: .fixedLayout(width: 1920, height: 56)) {
+    @Previewable @FocusState var focus: RootFocus?
+    CamStrip(
+        cameras: PreviewFixtures.cameras,
+        selectedID: "ponce-inlet",
         offlineSince: ["ormond-by-the-sea": PreviewFixtures.at(12, 48)],
         focus: $focus
     )

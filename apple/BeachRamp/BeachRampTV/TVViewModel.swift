@@ -154,6 +154,10 @@ final class TVViewModel {
     /// the caption strip's "offline since 12:48 PM" sub-labels. Cleared the
     /// moment a camera's stream URL comes back.
     var cameraOfflineSince: [String: Date] = [:]
+    /// Keeps the selected cam's still fallback fresh (`CamStill`). It loads
+    /// even while video plays: the band shows it underneath, so a cam switch
+    /// or a stall reveals the beach instead of a black field.
+    let camStill = CamStillLoader()
     /// The currently selected camera id. Nil until the roster loads, then set
     /// to the roster's default.
     var selectedCameraID: String?
@@ -204,6 +208,7 @@ final class TVViewModel {
         if let url = selectedCamera?.url, url != videoStreamURL {
             videoStreamURL = url
         }
+        camStill.show(selectedCamera?.stillImageURL)
     }
 
     var isLoading = false
@@ -494,7 +499,7 @@ final class TVViewModel {
     /// the best "offline since" this client can honestly claim.
     private func updateCameraHealth() {
         for camera in cameras {
-            if camera.url == nil {
+            if !camera.hasLiveVideo {
                 if cameraOfflineSince[camera.id] == nil {
                     cameraOfflineSince[camera.id] = Date()
                 }
