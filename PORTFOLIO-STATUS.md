@@ -4,19 +4,19 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-11-17
-summary: All platforms live on 1.4 (iOS 46, tvOS 47; approved and released by 2026-11-17), both built on Xcode 27.1 (iOS iPhone Duo-ready with the watch app back, tvOS with the ledger truncation fix); Ormond-by-the-Sea cam flapping
+last_verified: 2026-11-23
+summary: All platforms live on 1.4 (iOS 46, tvOS 47); tvOS 1.4.1 (48) on TestFlight with the cam still fallback; cams were dark 11/20–11/23 (YouTube blocked the home IP) and are being brought back on a new Wire3 IP
 versions:
   ios: 1.4 (46) live since 2026-11-17 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46)
   ipados: 1.4 (46) live since 2026-11-17
   tvos: 1.4 (47) live since 2026-11-17 (Xcode 27.1, carries the 63c8c15 ledger fix)
-  testflight: none newer than the store
+  testflight: tvOS 1.4.1 (48) uploaded 2026-11-23 (Xcode 26.3; cam still fallback, cb29ed0)
   watchos: 1.4 (46) live since 2026-11-17, embedded in the iOS build with its Smart Stack widget
   web: live
 review: none (1.4 approved and READY_FOR_SALE on both platforms, confirmed 2026-11-17)
 next_dates: []
 blockers:
-  - Ormond-by-the-Sea cam flapping online/offline every ~30 s (relay hook, seen 2026-10-01 23:08Z onward); viewers see it as offline [restreamer/relay]
+  - Live cams depend on YouTube serving the home IP; segments 403'd on 38.59.7.224 from 2026-11-20 until Wire3 rotated it to 38.59.35.233 (2026-11-23). Stills fallback covers the gap on tvOS 1.4.1 and the API [restreamer]
 dispatches:
   - 2026-09-26-newbeach-status-schema-2.md: done 2026-09-26
 ---
