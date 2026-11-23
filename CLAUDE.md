@@ -504,6 +504,9 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
   default), kickstarts the job, and tails the log. `make restreamer-status` shows launchd
   state plus cam endpoint health; `make restreamer-diff` shows whether the deployed copy has
   drifted. The targets refuse to run on any machine where the launchd job isn't loaded.
+- **Quiet hours (2026-11-23):** the restreamer pulls no video 11pm–6am local
+  (`QUIET_HOURS` in `~/.cam-restreamer.env`, default `23-6`, empty = 24h). Every cam
+  reads offline overnight and clients show the `still_url` still. That's by design, not an outage.
 - **Retired:** `scripts/update-stream-url.sh` (the URL-push cron). Remove its crontab entry wherever the restreamer gets installed.
 
 ## Tidbyt (Retired)

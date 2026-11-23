@@ -48,6 +48,15 @@
 #                   YouTube bot-checks anonymous yt-dlp resolves ("Sign in to
 #                   confirm you're not a bot"), so without cookies a dropped
 #                   pipeline can never re-resolve its stream.
+#   QUIET_HOURS     local-time window with no live video, "START-END" in whole
+#                   hours (default 23-6; empty = stream around the clock).
+#                   Every pipeline stops and nothing touches YouTube; the
+#                   relay goes dark, the API's health poller marks the cams
+#                   offline, and clients fall back to the still (`still_url`).
+#                   Why: 2026-11-20 YouTube refused media to the home IP for
+#                   days. Seven fewer hours of five round-the-clock pulls is
+#                   less of the pattern that got it blocked, and nobody needs
+#                   live video of a dark beach at 3am.
 #
 # Runs under launchd: see scripts/com.donwb.cam-restreamer.plist
 
@@ -75,10 +84,42 @@ ROSTER_REFRESH=21600 # full roster re-fetch + clean restart (6h)
 RELAY_CHECK_TICKS=1  # relay liveness probe every N watchdog ticks (15s; our relay, never YouTube)
 RELAY_DEAD_CHECKS=3  # consecutive probe misses before declaring half-open
 LOG_MAX_MB=64        # copy-truncate a camera log past this size (keeps one .1)
+QUIET_HOURS="${QUIET_HOURS-23-6}"  # no live video in this local window (see header)
+QUIET_TICK=60        # how often the running loop checks for the window opening
 
 mkdir -p "$LOG_DIR"
 
 log() { echo "$(date '+%F %T') $*"; }
+
+# Quiet window bounds (whole local hours). START == END, or an empty/garbled
+# QUIET_HOURS, disables it.
+QUIET_START="" QUIET_END=""
+if [[ "$QUIET_HOURS" =~ ^([0-9]{1,2})-([0-9]{1,2})$ ]]; then
+    QUIET_START=$(( 10#${BASH_REMATCH[1]} % 24 ))
+    QUIET_END=$(( 10#${BASH_REMATCH[2]} % 24 ))
+    [ "$QUIET_START" -eq "$QUIET_END" ] && QUIET_START="" QUIET_END=""
+elif [ -n "$QUIET_HOURS" ]; then
+    log "WARNING: QUIET_HOURS=$QUIET_HOURS isn't START-END hours, streaming around the clock"
+fi
+
+# True inside the quiet window (handles windows that wrap midnight).
+in_quiet_hours() {
+    [ -n "$QUIET_START" ] || return 1
+    local h=$(( 10#$(date +%H) ))
+    if [ "$QUIET_START" -lt "$QUIET_END" ]; then
+        [ "$h" -ge "$QUIET_START" ] && [ "$h" -lt "$QUIET_END" ]
+    else
+        [ "$h" -ge "$QUIET_START" ] || [ "$h" -lt "$QUIET_END" ]
+    fi
+}
+
+# Seconds from now until the quiet window closes (QUIET_END:00 local).
+secs_until_quiet_end() {
+    local h m sec now
+    h=$(( 10#$(date +%H) )); m=$(( 10#$(date +%M) )); sec=$(( 10#$(date +%S) ))
+    now=$(( h * 3600 + m * 60 + sec ))
+    echo $(( (QUIET_END * 3600 - now + 86400) % 86400 ))
+}
 
 # Copy-truncate $1 once it passes LOG_MAX_MB. Runs from the camera's own
 # stream_one, so no two rotations ever race on one file.
@@ -228,8 +269,16 @@ stream_one() {
     done
 }
 
+[ -n "$QUIET_START" ] && log "quiet hours ${QUIET_START}:00-${QUIET_END}:00 local (no live video; clients show stills)"
 log "fetching roster from $API_BASE"
 while true; do
+    if in_quiet_hours; then
+        wake=$(secs_until_quiet_end)
+        log "quiet hours: all pipelines stopped, resuming in ${wake}s"
+        sleep "$wake"
+        continue
+    fi
+
     ROSTER=$(curl -sf -H "X-Api-Key: $API_KEY" "$API_BASE/api/v2/admin/cameras") || {
         log "ERROR: roster fetch failed, retrying in ${RETRY_SECS}s"
         sleep "$RETRY_SECS"
@@ -252,9 +301,15 @@ while true; do
         continue
     fi
 
-    # Let everything run, then do a clean restart to pick up roster changes.
-    sleep "$ROSTER_REFRESH"
-    log "roster refresh: stopping all pipelines"
+    # Let everything run, then do a clean restart to pick up roster changes —
+    # or stop early when the quiet window opens (the loop top sleeps it out).
+    elapsed=0 reason="roster refresh"
+    while [ "$elapsed" -lt "$ROSTER_REFRESH" ]; do
+        sleep "$QUIET_TICK"
+        elapsed=$(( elapsed + QUIET_TICK ))
+        if in_quiet_hours; then reason="quiet hours"; break; fi
+    done
+    log "$reason: stopping all pipelines"
     for i in "${!PIDS[@]}"; do
         kill -TERM "${PIDS[$i]}" 2>/dev/null
         pkill -TERM -f "watch\?v=${VIDS[$i]}" 2>/dev/null

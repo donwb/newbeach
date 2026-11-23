@@ -54,6 +54,16 @@ Key properties:
   that fails to *resolve* at all (offline broadcast, bot-checked) backs off
   exponentially, 2 min doubling to a 30 min cap — hammering YouTube's player
   API every 2 min from one IP is what drew the Aug 2026 bot-wall.
+- **Quiet hours: no live video 11pm–6am local** (`QUIET_HOURS`, default `23-6`,
+  empty = around the clock; set it in `~/.cam-restreamer.env`). At 23:00 the
+  supervisor stops every pipeline (checked each minute) and sleeps until 06:00,
+  then fetches the roster and starts fresh. Nothing touches YouTube overnight. The
+  relay goes dark, the health poller marks each cam `online: false`, and clients
+  show the cam's still (`still_url`, YouTube's live thumbnail) instead of video.
+  Added 2026-11-23, after the 11/20 IP block: seven fewer hours of five
+  round-the-clock pulls, and overnight video of a dark beach was never worth
+  much. So **every cam reading offline between 11pm and 6am is expected**, not
+  an outage.
 
 ## Components & where things live
 
@@ -151,8 +161,8 @@ reports it):
 `/opt/homebrew/opt/yt-dlp/libexec/bin/python -m pip install bgutil-ytdlp-pot-provider==<ver>`,
 then kickstart the restreamer. (Hit 2026-11-20.)
 
-**Segments 403 on every client even with a PO token** (2026-11-20, unresolved at
-time of writing): yt-dlp resolves, the token is retrieved ("Retrieved a gvs PO
+**Segments 403 on every client even with a PO token** (2026-11-20; resolved
+2026-11-23 by a new home IP): yt-dlp resolves, the token is retrieved ("Retrieved a gvs PO
 Token for mweb client" in `-v`), the manifest loads, and every media segment
 returns 403 — all five cams, all player clients (mweb/android_vr 403;
 web/web_safari/ios "No video formats found"; tv "page needs to be reloaded").
@@ -160,6 +170,14 @@ Upgrading yt-dlp (→ 2026.10.26) and bgutil (→ 2.0.2) did not fix it. Suspect
 IP-level flagging after a night of retries; the restreamer's backoff caps at
 30 min, so waiting is cheap. Next steps if it doesn't clear: the cookies
 fallback above, then a yt-dlp nightly.
+*Outcome:* it was the IP. A cellular hotspot pulled segments fine with the
+same yt-dlp, and the block on 38.59.7.224 held all weekend at the 30-min backoff.
+Wire3 (the home ISP, DHCP) rotated the address to 38.59.35.233 on 2026-11-23,
+and four cams came straight back. Ormond-by-the-Sea kept 403ing on frozen
+segment numbers, which means its broadcast is dead upstream, not blocked. If it
+happens again: confirm with a one-cam pull from a different network, ask Wire3
+for a new IPv4, and the stills fallback covers viewers meanwhile. The quiet hours
+above came out of this.
 
 **A camera's YouTube video ID changed** (stream restarted under a new ID — this is
 what "Ormond Beach offline" looks like): update the roster row's `youtube_url`
