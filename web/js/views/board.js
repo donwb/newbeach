@@ -54,7 +54,7 @@ export function createBoardView(store) {
         <span class="brand-sub">Volusia County, FL</span>
         <div class="topbar-right">
           <a class="app-link" href="https://apps.apple.com/us/app/volusia-beach-info/id6761724123" rel="noopener">Get the app <span class="chev">›</span></a>
-          <span class="freshness" id="freshness"><span class="dot"></span><span id="freshness-text">Live</span></span>
+          <span class="freshness" id="freshness"><span class="dot"></span><span id="freshness-text">Live data</span></span>
           <span class="phase-name" id="phase-name"></span>
           <span class="clock tabular" id="board-clock"></span>
         </div>
@@ -273,7 +273,7 @@ export function createBoardView(store) {
       const minutes = Math.max(1, Math.round((s.dataAgeMs || 0) / 60_000));
       $('#freshness-text').textContent = `Stale · ${minutes} min`;
     } else {
-      $('#freshness-text').textContent = 'Live';
+      $('#freshness-text').textContent = 'Live data';
     }
     const station = s.config?.tide_station;
     $('#foot-sources').textContent = `NOAA ${station || ''} · NWS api.weather.gov · Volusia County feed`.replace('  ', ' ');
