@@ -9,7 +9,7 @@ import { forSun, dayness, groundState, cssRGB } from './sky.js';
 import { buildVerdict, nextExtreme, reopenEstimate, durationText, spelled } from './verdict.js';
 import { curvePoints, curveAnchors, heightAt } from './tide.js';
 import { clock, sinceString, prettyRampName, categoryFromStatus, easternMidnight, easternToUtc } from './format.js';
-import { pickCamera } from './cam.js';
+import { pickCamera, camSource, camSelectable, stillSrc } from './cam.js';
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -190,6 +190,35 @@ check('every cam dark still returns the default', pickCamera({
 }, null)?.id, 'nsb');
 check('empty roster is null', pickCamera({ default_id: 'nsb', cameras: [] }, null), null);
 check('missing roster is null', pickCamera(null, null), null);
+check('nothing live: the default with a still wins', pickCamera({
+  default_id: 'nsb',
+  cameras: [{ id: 'nsb', online: false, still_url: 'https://i.ytimg.com/vi/a/x.jpg' }, { id: 'p', online: false, still_url: 'https://i.ytimg.com/vi/b/x.jpg' }],
+}, null)?.id, 'nsb');
+check('nothing live: a still beats a default with nothing', pickCamera({
+  default_id: 'nsb',
+  cameras: [{ id: 'nsb', online: false }, { id: 'p', online: false, still_url: 'https://i.ytimg.com/vi/b/x.jpg' }],
+}, null)?.id, 'p');
+check('a live cam beats a still', pickCamera({
+  default_id: 'nsb',
+  cameras: [{ id: 'nsb', online: false, still_url: 'https://i.ytimg.com/vi/a/x.jpg' }, { id: 'p', online: true }],
+}, null)?.id, 'p');
+
+// --- cam source: a dark relay with a still shows the still, no HLS ---
+const STREAM = 'https://cams.donwb.com/nsb/index.m3u8';
+const STILL = 'https://i.ytimg.com/vi/550p9smwjPM/maxresdefault_live.jpg';
+check('live cam plays video', camSource({ stream_url: STREAM, still_url: STILL, online: true }), { url: STREAM, stillUrl: STILL });
+check('missing online flag plays video', camSource({ stream_url: STREAM, still_url: STILL }), { url: STREAM, stillUrl: STILL });
+check('dark cam with a still shows the still', camSource({ stream_url: STREAM, still_url: STILL, online: false }), { url: null, stillUrl: STILL });
+check('dark cam without a still keeps trying video', camSource({ stream_url: STREAM, online: false }), { url: STREAM, stillUrl: null });
+check('no stream, still only', camSource({ stream_url: '', still_url: STILL, online: true }), { url: null, stillUrl: STILL });
+check('no roster uses the legacy url', camSource(null, STREAM), { url: STREAM, stillUrl: null });
+check('nothing at all', camSource(undefined), { url: null, stillUrl: null });
+check('still-only chip is selectable', camSelectable({ stream_url: '', still_url: STILL }), true);
+check('empty chip is not', camSelectable({ stream_url: '' }), false);
+const minute = 1_795_000_020_000; // on a minute boundary (matches CamStillTests.swift)
+check('still cache-buster is minute-granular', stillSrc(STILL, minute), STILL + '?t=29916667');
+check('same minute, same url', stillSrc(STILL, minute + 30_000), stillSrc(STILL, minute));
+check('replaces an existing stamp', stillSrc(STILL + '?t=1', minute), STILL + '?t=29916667');
 
 if (failures) {
   console.error(`\n${failures} failure(s)`);

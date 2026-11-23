@@ -99,7 +99,7 @@ struct BoardiPhoneView: View {
                 .padding(.top, 14)
 
             if let camera = viewModel.selectedCamera {
-                CamRowView(cameraName: camera.name) {
+                CamRowView(cameraName: camera.name, mode: viewModel.camMode) {
                     viewModel.camPresented = true
                 }
                 .padding(.horizontal, 18)

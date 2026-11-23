@@ -5,9 +5,12 @@ import BeachStatus
 /// flat — a switcher, not a stepper, so a user checking three beaches a day
 /// jumps instead of cycling. Active cam wears the 4pt sand underline; focus
 /// moves switch the stream live (the channel-flip pattern — no Select
-/// needed). A cam with no live video but a still fallback reads "still
-/// photo" (the band is showing its YouTube thumbnail, not motion); a cam with
-/// neither is struck through with an "offline since" sub-label. When the
+/// needed). The active cam says what the band is showing (`CamMode`): a sand
+/// dot and "live" for real video, or "still photo" when the band is showing
+/// the YouTube thumbnail, not motion. Any cam with only a still reads "still
+/// photo"; a cam with neither is struck through with an "offline since"
+/// sub-label. (The indicator lives here, not on the band, which takes no
+/// overlays; sand, not red, because red means closed.) When the
 /// *selected* cam has no live video, the nearest live neighbor is named in
 /// sand with a chevron pointing the way.
 struct CamStrip: View {
@@ -46,7 +49,7 @@ struct CamStrip: View {
                             isActive: camera.id == selectedCamera?.id,
                             isFocused: focus.wrappedValue == .cam(camera.id),
                             offlineSince: offlineSince[camera.id],
-                            stillDark: camera.id == selectedCamera?.id && selectedStillDark,
+                            mode: CamMode.of(camera, stillDead: camera.id == selectedCamera?.id && selectedStillDark),
                             liveNeighborHint: liveNeighborHint(for: camera)
                         )
                     }
@@ -97,25 +100,27 @@ private struct CamStripName: View {
     let isActive: Bool
     let isFocused: Bool
     let offlineSince: Date?
-    /// This cam's still read black (only known for the selected cam).
-    let stillDark: Bool
+    /// What this cam would show (a dead still is only known for the selected
+    /// cam; others read `.still` until watched).
+    let mode: CamMode
     /// "live ›" / "‹ live" when this cam is the offline-recovery target.
     let liveNeighborHint: String?
 
-    /// No live video and no picture to stand in for it.
-    private var isOffline: Bool {
-        !camera.hasLiveVideo && (camera.stillImageURL == nil || stillDark)
-    }
-
-    /// No live video, but the band can show a still.
-    private var isStillOnly: Bool {
-        !camera.hasLiveVideo && !isOffline
-    }
+    private var isOffline: Bool { mode == .offline }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             nameLine
-            if let subLabel {
+            if isActive && mode == .live && liveNeighborHint == nil {
+                HStack(spacing: 8) {
+                    Circle().fill(TVInk.sand).frame(width: 10, height: 10)
+                    Text("live")
+                        .tv(22)
+                        .foregroundStyle(TVInk.type.opacity(0.85))
+                }
+                .lineLimit(1)
+                .accessibilityElement(children: .combine)
+            } else if let subLabel {
                 Text(subLabel)
                     .tv(22)
                     .foregroundStyle(TVInk.inactive)
@@ -152,7 +157,7 @@ private struct CamStripName: View {
     }
 
     private var subLabel: String? {
-        if isStillOnly { return "still photo" }
+        if mode == .still { return "still photo" }
         guard isOffline else { return nil }
         guard let offlineSince else { return "offline right now" }
         return "offline since \(SinceFormatter.string(from: offlineSince))"

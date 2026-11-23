@@ -3,7 +3,7 @@ import UIKit
 import BeachStatus
 
 /// The live cam as its own landscape surface. The panorama fills the frame;
-/// a top scrim carries the LIVE mark, cam name, the other cams, and close;
+/// a top scrim carries the LIVE / STILL mark, cam name, the other cams, and close;
 /// the bottom scrim carries the verdict and the clock. The cam is sugar —
 /// if the stream is dead the rest of the app is unaffected.
 struct LiveCamFullscreenView: View {
@@ -18,13 +18,8 @@ struct LiveCamFullscreenView: View {
             // Full-width letterbox: the whole 1280×270 panorama shows, with
             // deep-water bars above and below. Cropping the pano to fill the
             // frame threw away most of the beach.
-            BeachCamView(
-                url: viewModel.videoStreamURL,
-                rebuildToken: viewModel.videoStreamGeneration,
-                onPlaybackFailure: { viewModel.refreshVideoStream() },
-                onPictureSample: { viewModel.notePicture(lit: $0) }
-            )
-            .ignoresSafeArea()
+            CamSurfaceView(viewModel: viewModel)
+                .ignoresSafeArea()
 
             VStack {
                 topScrim
@@ -49,15 +44,7 @@ struct LiveCamFullscreenView: View {
 
     private var topScrim: some View {
         HStack(alignment: .center, spacing: 14) {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(Color(red: 0xE6 / 255, green: 0x3A / 255, blue: 0x2B / 255))
-                    .frame(width: 8, height: 8)
-                Text("LIVE")
-                    .font(.archivo(10, weight: .bold))
-                    .tracking(10 * ArchivoTracking.kicker)
-                    .foregroundStyle(.white.opacity(0.85))
-            }
+            CamModeBadge(mode: viewModel.camMode, tint: .white.opacity(0.85))
             Text(viewModel.selectedCamera?.name ?? "Beach cam")
                 .font(.archivo(22, weight: .extraBold))
                 .foregroundStyle(.white)

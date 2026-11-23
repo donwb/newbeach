@@ -323,6 +323,15 @@ final class BeachViewModel {
     /// Selected camera id; nil until the roster loads, then the roster default.
     var selectedCameraID: String?
 
+    /// Keeps the selected cam's still fallback fresh (`CamStill`): shown
+    /// whenever the relay has no live video for it.
+    let camStill = CamStillLoader()
+
+    /// What the cam surfaces show right now — drives the LIVE / STILL badge.
+    var camMode: CamMode {
+        CamMode.of(selectedCamera, stillDead: camStill.isDark)
+    }
+
     /// The selected camera, falling back to the first in the roster.
     var selectedCamera: Camera? {
         guard !cameras.isEmpty else { return nil }
@@ -360,12 +369,14 @@ final class BeachViewModel {
         }
     }
 
-    /// Point `videoStreamURL` at the selected camera's stream, if resolved.
+    /// Point `videoStreamURL` at the selected camera's stream, if resolved,
+    /// and keep its still loading.
     @MainActor
     private func applySelectedCameraURL() {
         if let url = selectedCamera?.url, url != videoStreamURL {
             videoStreamURL = url
         }
+        camStill.show(selectedCamera?.stillImageURL)
     }
 
     /// Bounds how long the cam stays black after a dark feed comes back. A
@@ -408,9 +419,7 @@ final class BeachViewModel {
             do {
                 let roster = try await api.fetchCameras()
                 cameras = roster.cameras
-                if let url = selectedCamera?.url, url != videoStreamURL {
-                    videoStreamURL = url
-                }
+                applySelectedCameraURL()
             } catch {
                 // Swallow — the home cron and next poll will catch up.
             }
@@ -424,6 +433,26 @@ final class BeachViewModel {
     init(api: APIClient = .shared) {
         self.api = api
     }
+
+    #if DEBUG
+    /// Previews: a two-cam roster whose selected cam is in `camMode`.
+    static func preview(camMode: CamMode) -> BeachViewModel {
+        let vm = BeachViewModel()
+        let still = "https://i.ytimg.com/vi/550p9smwjPM/maxresdefault_live.jpg"
+        vm.cameras = [
+            Camera(id: "nsb", name: "New Smyrna Beach", location: "NSB",
+                   streamURL: "https://cams.donwb.com/nsb/index.m3u8",
+                   online: camMode == .live, stillURL: still),
+            Camera(id: "dunlawton", name: "Dunlawton", location: "Daytona Beach Shores",
+                   streamURL: "https://cams.donwb.com/dunlawton/index.m3u8", online: true),
+        ]
+        vm.selectedCameraID = "nsb"
+        vm.camStill.preview(URL(string: still),
+                            image: camMode == .still ? CamStill.previewBand : nil,
+                            dark: camMode == .offline)
+        return vm
+    }
+    #endif
 
     /// Fetch all data from the API concurrently.
     @MainActor

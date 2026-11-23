@@ -3,9 +3,11 @@ import BeachStatus
 
 /// The row that opens the landscape cam view. A 1280×270 panorama does not
 /// fit a portrait column — the cam lives in its own landscape screen. This
-/// row should simply not appear when the camera roster is empty.
+/// row should simply not appear when the camera roster is empty. It says
+/// up front whether the cam is live video or the still fallback.
 struct CamRowView: View {
     let cameraName: String
+    var mode: CamMode = .live
     let action: () -> Void
     @Environment(\.ground) private var ground
 
@@ -14,10 +16,11 @@ struct CamRowView: View {
         Button(action: action) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Live cam · \(cameraName)")
+                    CamModeBadge(mode: mode, tint: t.ink2)
+                    Text("\(mode == .live ? "Live cam" : "Beach cam") · \(cameraName)")
                         .font(.archivo(17, weight: .extraBold))
                         .foregroundStyle(t.ink)
-                    Text("Turn the phone sideways to watch")
+                    Text(subtitle)
                         .font(.archivo(11))
                         .foregroundStyle(t.ink2)
                 }
@@ -30,7 +33,23 @@ struct CamRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressTintButtonStyle())
-        .accessibilityLabel("Live cam, \(cameraName). Opens full screen in landscape.")
+        .accessibilityLabel("\(accessibilityMode), \(cameraName). Opens full screen in landscape.")
+    }
+
+    private var subtitle: String {
+        switch mode {
+        case .live: "Turn the phone sideways to watch"
+        case .still: "A still photo for now, refreshed every few minutes"
+        case .offline: "Offline right now"
+        }
+    }
+
+    private var accessibilityMode: String {
+        switch mode {
+        case .live: "Live cam"
+        case .still: "Beach cam still photo"
+        case .offline: "Beach cam, offline"
+        }
     }
 }
 
@@ -56,3 +75,14 @@ struct BoardFooterView: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+#if DEBUG
+#Preview("Cam row · live / still / offline") {
+    VStack(spacing: 0) {
+        CamRowView(cameraName: "New Smyrna Beach", mode: .live) {}
+        CamRowView(cameraName: "New Smyrna Beach", mode: .still) {}
+        CamRowView(cameraName: "Ormond-By-The-Sea", mode: .offline) {}
+    }
+    .padding(.horizontal, 18)
+}
+#endif

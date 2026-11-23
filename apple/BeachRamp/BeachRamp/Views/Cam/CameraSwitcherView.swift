@@ -4,7 +4,8 @@ import BeachStatus
 /// The inline camera switcher: one chip per roster cam, active chip filled
 /// with the accent. Lives above the board's inline cam on iPad; the
 /// fullscreen cam has its own scrim-styled chips. Renders nothing until the
-/// roster has a second camera to offer.
+/// roster has a second camera to offer. A cam with only its still fallback
+/// stays selectable and wears a photo glyph; one with nothing is disabled.
 struct CameraSwitcherView: View {
     @Bindable var viewModel: BeachViewModel
     @Environment(\.ground) private var ground
@@ -16,13 +17,17 @@ struct CameraSwitcherView: View {
                 HStack(spacing: 8) {
                     ForEach(viewModel.cameras) { camera in
                         let isActive = camera.id == viewModel.selectedCamera?.id
-                        let unresolved = camera.url == nil
+                        let mode = CamMode.of(camera)
+                        let unresolved = mode == .offline
                         Button {
                             viewModel.selectCamera(camera.id)
                         } label: {
                             HStack(spacing: 5) {
                                 if unresolved {
                                     Image(systemName: "video.slash")
+                                        .font(.system(size: 10, weight: .bold))
+                                } else if mode == .still {
+                                    Image(systemName: "photo")
                                         .font(.system(size: 10, weight: .bold))
                                 }
                                 Text(camera.name.uppercased())
@@ -53,3 +58,10 @@ struct CameraSwitcherView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Switcher · NSB on its still") {
+    CameraSwitcherView(viewModel: .preview(camMode: .still))
+        .padding()
+}
+#endif

@@ -21,14 +21,15 @@ public enum CamStill {
     public enum Frame {
         /// A lit picture, cropped to the panorama band.
         case lit(CGImage)
-        /// A black frame: the county's camera is dead (Ormond-By-The-Sea on
-        /// 2026-11-23) or the beach is dark. Show the plain dark field.
+        /// A dead feed: the county's encoder is sending a flat near-black
+        /// field (Ormond-By-The-Sea on 2026-11-23). Show the plain dark field.
+        /// A night frame is *not* this — see `isDeadFeed`.
         case dark
     }
 
     /// Crop the panorama band out of a letterboxed thumbnail and read it lit
-    /// or black with the same rule the live players use (`CamPicture`).
-    /// Returns nil when the data isn't a decodable image.
+    /// or dead (`isDeadFeed`). Returns nil when the data isn't a decodable
+    /// image.
     public static func band(from data: Data) -> Frame? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
@@ -45,12 +46,31 @@ public enum CamStill {
         let rect = CGRect(x: 0, y: (height - bandHeight) / 2,
                           width: width, height: bandHeight)
         guard let band = image.cropping(to: rect) else { return nil }
-        return isBlack(band) ? .dark : .lit(band)
+        return isDeadFeed(band) ? .dark : .lit(band)
     }
 
-    /// Downsample to a small grayscale grid and apply `CamPicture.isBlack`.
-    static func isBlack(_ image: CGImage) -> Bool {
-        let cols = 64, rows = 16
+    /// Luma a pixel must reach to count as something lit. The dead
+    /// Ormond-By-The-Sea frame peaks at 22 (2026-11-23); a lit day frame runs
+    /// 130–190.
+    static let litLuma: UInt8 = 64
+    /// Lit pixels needed before the frame counts as showing anything.
+    static let litPixels = 24
+
+    /// True only for a dead feed: no spot in the frame is lit at all.
+    ///
+    /// Deliberately not `CamPicture.isBlack` (97% of samples black), which is
+    /// right for the live players' "switch away from a black feed" watch but
+    /// wrong here. A night still is mostly black too, yet it is worth showing:
+    /// condo and pier lights, a bright moon on the water (Don, 2026-11-23).
+    /// A live encoder also burns in the AccuWeather badge, which is bright at
+    /// any hour. So: render at native size, no downsampling (that would
+    /// average a few-pixel light into the dark), and call it dead only when
+    /// fewer than `litPixels` reach `litLuma`.
+    static func isDeadFeed(_ image: CGImage) -> Bool {
+        // Cap the work for oversized frames; the thumbnail band is 1280×270.
+        let scale = min(1, 1280 / Double(image.width))
+        let cols = max(1, Int(Double(image.width) * scale))
+        let rows = max(1, Int(Double(image.height) * scale))
         var pixels = [UInt8](repeating: 0, count: cols * rows)
         let drawn: Bool = pixels.withUnsafeMutableBytes { buffer in
             guard let context = CGContext(
@@ -59,12 +79,17 @@ public enum CamStill {
                 space: CGColorSpaceCreateDeviceGray(),
                 bitmapInfo: CGImageAlphaInfo.none.rawValue
             ) else { return false }
-            context.interpolationQuality = .low
+            context.interpolationQuality = .high
             context.draw(image, in: CGRect(x: 0, y: 0, width: cols, height: rows))
             return true
         }
         guard drawn else { return false }
-        return CamPicture.isBlack(luma: pixels, videoRange: false)
+        var lit = 0
+        for y in pixels where y >= litLuma {
+            lit += 1
+            if lit >= litPixels { return false }
+        }
+        return true
     }
 
     /// The URL with a minute-granular cache-buster. The thumbnail is served
@@ -122,6 +147,16 @@ public final class CamStillLoader {
 
     public func stop() { show(nil) }
 
+    #if DEBUG
+    /// Previews: show a frame without fetching anything.
+    public func preview(_ url: URL?, image: CGImage?, dark: Bool = false) {
+        task?.cancel()
+        self.url = url
+        self.image = image
+        isDark = dark
+    }
+    #endif
+
     private func fetch(_ url: URL) async {
         var request = URLRequest(url: CamStill.freshURL(url))
         request.cachePolicy = .reloadIgnoringLocalCacheData
@@ -138,5 +173,45 @@ public final class CamStillLoader {
             image = nil
             isDark = true
         }
+    }
+}
+
+#if DEBUG
+extension CamStill {
+    /// A 1280×270 sky/water/sand gradient standing in for a still in previews.
+    public static let previewBand: CGImage = {
+        let width = 1280, height = 270
+        let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        let colors = [CGColor(red: 0.62, green: 0.74, blue: 0.86, alpha: 1),   // sky
+                      CGColor(red: 0.42, green: 0.56, blue: 0.66, alpha: 1),   // water
+                      CGColor(red: 0.80, green: 0.74, blue: 0.62, alpha: 1)]   // sand
+        let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                  colors: colors as CFArray, locations: [0, 0.45, 1])!
+        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: CGFloat(height)),
+                                   end: .zero, options: [])
+        return context.makeImage()!
+    }()
+}
+#endif
+
+/// What a cam surface is showing, for the LIVE / STILL indicator every
+/// platform carries next to the picture.
+public enum CamMode: Equatable, Sendable {
+    /// The relay is streaming: real video.
+    case live
+    /// No live video; the still fallback stands in.
+    case still
+    /// Neither: no stream and no usable still (none offered, or a dead feed).
+    case offline
+
+    /// The mode for `camera`, given whether its latest still read as a dead
+    /// feed (`CamStillLoader.isDark`; pass false when it isn't known).
+    public static func of(_ camera: Camera?, stillDead: Bool = false) -> CamMode {
+        guard let camera else { return .offline }
+        if camera.hasLiveVideo { return .live }
+        if camera.stillImageURL != nil && !stillDead { return .still }
+        return .offline
     }
 }

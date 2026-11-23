@@ -11,7 +11,7 @@ import { sortRampsForCity } from '../order.js';
 import { curvePoints, renderTideChartSVG } from '../tide.js';
 import { easternMidnight } from '../format.js';
 import { events as solarEvents } from '../solar.js';
-import { mountCam, updateCamUrl, unmountCam, pickCamera } from '../cam.js';
+import { mountCam, setCamSource, unmountCam, pickCamera, camSource, camSelectable } from '../cam.js';
 import { loadCameras } from '../api.js';
 import { createAsk } from '../ask.js';
 
@@ -145,12 +145,13 @@ export function createBoardView(store) {
 
       <section class="cam" id="cam-section" hidden>
         <div class="section-head">
-          <span class="kicker" id="cam-kicker">Live cam</span>
+          <span class="kicker" id="cam-kicker"><span class="cam-mode cam-mode--connecting" id="cam-mode">Cam</span><span class="cam-kicker-sep"> · </span><span id="cam-name"></span></span>
           <span class="section-note">1280 × 270 · panoramic</span>
         </div>
         <div class="cam-tabs" id="cam-tabs" hidden></div>
         <div class="cam-frame">
           <video id="cam-video" muted playsinline autoplay></video>
+          <img class="cam-still" id="cam-still" alt="" hidden>
           <div class="cam-offline" id="cam-offline" hidden>
             <h3 id="cam-offline-title">Cam offline</h3>
             <p id="cam-offline-note">Reconnecting.</p>
@@ -644,16 +645,17 @@ export function createBoardView(store) {
       store.set({ selectedCameraId: camera.id });
       return;
     }
-    const url = camera?.stream_url || s.config?.video_stream_url;
+    const source = camSource(camera, s.config?.video_stream_url);
     const section = $('#cam-section');
     const scenario = new URLSearchParams(location.search).get('scenario');
-    if (!url && scenario !== 'camoff') {
+    if (!source.url && !source.stillUrl && scenario !== 'camoff') {
       section.setAttribute('hidden', '');
       return;
     }
     section.removeAttribute('hidden');
     const camName = camera?.name || titleCase(s.selectedCity);
-    $('#cam-kicker').textContent = `Live cam · ${camName}`;
+    $('#cam-name').textContent = camName;
+    $('#cam-still').alt = `Latest photo from the ${camName} cam`;
     $('#cam-offline-title').textContent = `${camName} cam offline`;
 
     updateCamTabs(s, camera);
@@ -661,17 +663,19 @@ export function createBoardView(store) {
     const elements = {
       frame: $('.cam-frame'),
       video: $('#cam-video'),
+      still: $('#cam-still'),
+      mode: $('#cam-mode'),
       offline: $('#cam-offline'),
       offlineNote: $('#cam-offline-note'),
     };
     if (!elements.video.dataset.bound) {
       elements.video.dataset.bound = '1';
-      mountCam(elements, url, {
+      mountCam(elements, source, {
         forceOffline: scenario === 'camoff',
         resolveUrl: camResolveUrl,
       });
-    } else {
-      updateCamUrl(url);
+    } else if (scenario !== 'camoff') {
+      setCamSource(source);
     }
   }
 
@@ -685,14 +689,14 @@ export function createBoardView(store) {
     }
     tabs.removeAttribute('hidden');
 
-    const print = cams.map((c) => c.id + ':' + (c.stream_url ? 1 : 0)).join('|')
+    const print = cams.map((c) => c.id + ':' + (camSelectable(c) ? 1 : 0)).join('|')
       + '@' + (activeCamera?.id || '');
     if (prints.camTabs === print) return;
     prints.camTabs = print;
 
     tabs.innerHTML = cams.map((c) => `
       <button class="cam-tab" data-cam="${escapeHTML(c.id)}"
-        aria-pressed="${c.id === activeCamera?.id}" ${c.stream_url ? '' : 'disabled'}>
+        aria-pressed="${c.id === activeCamera?.id}" ${camSelectable(c) ? '' : 'disabled'}>
         ${escapeHTML(c.name)}
       </button>
     `).join('');
@@ -702,7 +706,7 @@ export function createBoardView(store) {
   async function camResolveUrl() {
     const roster = await loadCameras();
     store.set({ cameras: roster });
-    return pickCamera(roster, store.state.selectedCameraId)?.stream_url || null;
+    return camSource(pickCamera(roster, store.state.selectedCameraId)).url;
   }
 
   return { mount, unmount };

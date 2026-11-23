@@ -14,7 +14,7 @@ import { statusPhrase, nextExtreme, tideIsRising, reopenEstimate } from '../verd
 import { sortRampsForCity } from '../order.js';
 import { curvePoints, renderTideChartSVG } from '../tide.js';
 import { loadIntervals, loadCameras } from '../api.js';
-import { mountCam, updateCamUrl, unmountCam, pickCamera } from '../cam.js';
+import { mountCam, setCamSource, unmountCam, pickCamera, camSource, camSelectable } from '../cam.js';
 
 const capFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -85,11 +85,12 @@ export function createDetailView(store) {
 
       <section class="cam" id="detail-cam" hidden>
         <div class="section-head">
-          <span class="kicker" id="detail-cam-kicker">Live cam</span>
+          <span class="kicker" id="detail-cam-kicker"><span class="cam-mode cam-mode--connecting" id="detail-cam-mode">Cam</span><span class="cam-kicker-sep"> · </span><span id="detail-cam-name"></span></span>
         </div>
         <div class="cam-tabs" id="detail-cam-tabs" hidden></div>
         <div class="cam-frame">
           <video id="detail-cam-video" muted playsinline autoplay></video>
+          <img class="cam-still" id="detail-cam-still" alt="" hidden>
           <div class="cam-offline" id="detail-cam-offline" hidden>
             <h3 id="detail-cam-offline-title">Cam offline</h3>
             <p id="detail-cam-offline-note">Reconnecting.</p>
@@ -337,15 +338,16 @@ export function createDetailView(store) {
       store.set({ selectedCameraId: camera.id });
       return;
     }
-    const url = camera?.stream_url || s.config?.video_stream_url;
+    const source = camSource(camera, s.config?.video_stream_url);
     const section = $('#detail-cam');
-    if (!url) {
+    if (!source.url && !source.stillUrl) {
       section.setAttribute('hidden', '');
       return;
     }
     section.removeAttribute('hidden');
     const camName = camera?.name || titleCase(currentRamp()?.city || store.state.selectedCity);
-    $('#detail-cam-kicker').textContent = `Live cam · ${camName}`;
+    $('#detail-cam-name').textContent = camName;
+    $('#detail-cam-still').alt = `Latest photo from the ${camName} cam`;
     $('#detail-cam-offline-title').textContent = `${camName} cam offline`;
 
     updateCamTabs(s, camera);
@@ -356,11 +358,13 @@ export function createDetailView(store) {
       mountCam({
         frame: root.querySelector('#detail-cam .cam-frame'),
         video,
+        still: $('#detail-cam-still'),
+        mode: $('#detail-cam-mode'),
         offline: $('#detail-cam-offline'),
         offlineNote: $('#detail-cam-offline-note'),
-      }, url, { resolveUrl: camResolveUrl });
+      }, source, { resolveUrl: camResolveUrl });
     } else {
-      updateCamUrl(url);
+      setCamSource(source);
     }
   }
 
@@ -375,7 +379,7 @@ export function createDetailView(store) {
     tabs.removeAttribute('hidden');
     tabs.innerHTML = cams.map((c) => `
       <button class="cam-tab" data-cam="${escapeHTML(c.id)}"
-        aria-pressed="${c.id === activeCamera?.id}" ${c.stream_url ? '' : 'disabled'}>
+        aria-pressed="${c.id === activeCamera?.id}" ${camSelectable(c) ? '' : 'disabled'}>
         ${escapeHTML(c.name)}
       </button>
     `).join('');
@@ -385,7 +389,7 @@ export function createDetailView(store) {
   async function camResolveUrl() {
     const roster = await loadCameras();
     store.set({ cameras: roster });
-    return pickCamera(roster, store.state.selectedCameraId)?.stream_url || null;
+    return camSource(pickCamera(roster, store.state.selectedCameraId)).url;
   }
 
   return { mount, unmount };

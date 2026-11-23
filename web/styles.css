@@ -710,6 +710,51 @@ html[data-ground='night'] .cam-tab[aria-pressed='true'] {
   display: block;
 }
 
+/* The still fallback (YouTube's live thumbnail, cropped by the frame's
+   aspect like the video): stacked over the empty player, under the offline
+   panel. Fades in on first show; refreshes swap a preloaded frame. */
+.cam-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.cam-still.is-shown {
+  opacity: 1;
+}
+
+/* Mode badge in the cam kicker: LIVE (dot, accent), STILL / OFFLINE / CAM
+   (muted ink). Inherits the kicker's type. */
+.cam-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cam-mode--live::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-closed);
+  animation: cam-live-pulse 2s ease-in-out infinite;
+}
+.cam-mode--still,
+.cam-mode--offline,
+.cam-mode--connecting {
+  color: var(--ink2);
+}
+@keyframes cam-live-pulse {
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cam-mode--live::before { animation: none; }
+  .cam-still { transition: none; }
+}
+
 .cam-offline {
   position: absolute;
   inset: 0;
