@@ -3,6 +3,7 @@
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
 ## 2026-11-25
+- 2026-11-25 (later): Watchdog email configured (Gmail app password in `~/.cam-restreamer.env`); `make watchdog-test-email` delivered to the inbox.
 - 2026-11-25: Cams on stills from 11/24 18:01 until 07:50. Don: "did we get bot blocked again?" No: YouTube rotated its player JS (`b485e332`) and yt-dlp 2026.10.26's n-challenge solver crashed on it, so every cam got "No video formats found". `brew upgrade yt-dlp` to 2026.11.23 fixed it; the upgrade removed the PO-token plugin (as the runbook warns), which Don reinstalled. Runbook section added (4286fd6). Don then asked for outages to be caught without him: built `scripts/cam-watchdog.sh` (75dc673), launchd `com.donwb.cam-watchdog` every 10 min. Layer 1 reinstalls the missing plugin and upgrades yt-dlp on the resolve-failure signature; layer 2 runs a headless `claude -p` (dontAsk allowlist, $3, once per incident); layer 3 emails, which is unconfigured until Don adds a Gmail app password. Installed and verified on the Studio (stubbed outage scenarios, a real headless Claude run from launchd). The ATC status Stop hook now skips `CAM_WATCHDOG` runs because it was replacing the emailed report.
 
 ## 2026-11-23
