@@ -2,6 +2,9 @@
 
 Append-only, newest first. Schema 2 (2026-09-26): history lives here; `PORTFOLIO-STATUS.md` keeps only the current state.
 
+## 2026-11-25
+- 2026-11-25: Cams on stills from 11/24 18:01 until 07:50. Don: "did we get bot blocked again?" No: YouTube rotated its player JS (`b485e332`) and yt-dlp 2026.10.26's n-challenge solver crashed on it, so every cam got "No video formats found". `brew upgrade yt-dlp` to 2026.11.23 fixed it; the upgrade removed the PO-token plugin (as the runbook warns), which Don reinstalled. Runbook section added (4286fd6). Don then asked for outages to be caught without him: built `scripts/cam-watchdog.sh` (75dc673), launchd `com.donwb.cam-watchdog` every 10 min. Layer 1 reinstalls the missing plugin and upgrades yt-dlp on the resolve-failure signature; layer 2 runs a headless `claude -p` (dontAsk allowlist, $3, once per incident); layer 3 emails, which is unconfigured until Don adds a Gmail app password. Installed and verified on the Studio (stubbed outage scenarios, a real headless Claude run from launchd). The ATC status Stop hook now skips `CAM_WATCHDOG` runs because it was replacing the emailed report.
+
 ## 2026-11-23
 - 2026-11-23 (late): tvOS 1.4.1 (50) uploaded to TestFlight (Xcode 27.1) with the "Watching live/stills" strip label and colored mode word.
 - 2026-11-23 (evening): Ponce Inlet and Ormond Beach kept 403ing on the new IP. Cause: IPv6. yt-dlp resolves over IPv4, but its downloader ffmpeg connected over the Studio's global IPv6 address, so requests didn't match the IP the stream URL is locked to. Don turned IPv6 off on the Studio's Wi-Fi; four cams were streaming within two minutes. The restreamer now backs off a stream that dies within 3 minutes (Ormond-by-the-Sea's frozen county feed had been re-resolving every ~90 s). The tvOS strip label now reads "Watching live/stills" with the mode word colored. Ask removed from the web board.

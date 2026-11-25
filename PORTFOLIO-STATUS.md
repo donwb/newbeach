@@ -4,8 +4,8 @@ app: Volusia Beach Info
 repo: /Users/donwb/dev/newbeach
 one_liner: Real-time Volusia County beach access ramp status, tides, weather, and live beach cams across web, Apple platforms, and TRMNL e-ink displays.
 lifecycle: live+iterating
-last_verified: 2026-11-23
-summary: All platforms live on 1.4 (iOS 46, tvOS 47); iOS + tvOS 1.4.1 (49) on TestFlight with cam stills and a LIVE/STILL indicator (web live with both); four of five cams live again since 2026-11-23 (new Wire3 IP + IPv6 off on the Studio)
+last_verified: 2026-11-25
+summary: All platforms live on 1.4 (iOS 46, tvOS 47); iOS + tvOS 1.4.1 (49) on TestFlight with cam stills and a LIVE/STILL indicator (web live with both); four of five cams live; cam watchdog (scripted self-heal, headless Claude escalation, email alerts) running on the Studio since 2026-11-25
 versions:
   ios: 1.4 (46) live since 2026-11-17 (Xcode 27.1, iPhone Duo-ready, tag flight/build-46)
   ipados: 1.4 (46) live since 2026-11-17
@@ -29,6 +29,7 @@ dispatches:
 2. **1.4 is live (approved by 2026-11-17).** Ask passed review locked behind its key, so no review-only `CHAT_API_KEY` was needed. Next release: nothing queued; What's New history is in `docs/APP-STORE-LISTING.md` (§1.4).
 3. **Watch the first real county flip reach the Home Screen.** Widget push verified on device 10/1 via the admin trigger (4 sent, 0 failed); the live trace is `ramp status changed` → `widget push` in `doctl apps logs`. Then the day-to-day question: does Siri stay a coin flip while the widget mic and in-app mic hold up?
 4. **Check the cam stills builds on TestFlight (iOS 1.4.1 (49), tvOS 1.4.1 (50)).** iOS: the LIVE/STILL badge on the landscape cam, the iPad cam and the iPhone cam row, and still-only cams selectable in the switcher. tvOS: the one-line strip with "Watching live" (sand) or "Watching stills" (white). After 11pm (restreamer quiet hours) every cam goes to stills; confirm night stills show the lights instead of reading dead. Ship as 1.4.1 when happy.
+4b. **Turn on watchdog email and watch its first real incident.** `scripts/cam-watchdog.sh` (launchd, every 10 min) is installed and acting, but alerts only reach its log until `ALERT_EMAIL_TO`, `SMTP_USER`, `SMTP_PASS` (Gmail app password) are in `~/.cam-restreamer.env`; then `make watchdog-test-email`. When it next fires, check that the email reads well and that the headless Claude report (if it escalated) made sense. Runbook: `docs/CAM-RELAY.md` → Watchdog.
 4a. **Watch the cams on the new IP.** Wire3 rotated it to 38.59.35.233 on 2026-11-23 and IPv6 is off on the Studio's Wi-Fi (the cause of the segment 403s; runbook in `docs/CAM-RELAY.md`). If 403s return, check IPv6 first (a macOS update can turn it back on).
 5. **tvOS gallery reshot 2026-11-12 (done).** The surf line now fits and `04-ask.png` is new; the reshoot also caught the ledger truncation above. Previously: **tvOS gallery truncation (open since the 9/16 submission).** In the lead Apple TV shot `design/app-store-screenshots/appletv/01-board.png`, the surf headline is cut off right above "Every ramp open". f95b1c7 (9/26) removed that clause from the server's surf line, so the next reshoot (`apple/scripts/screenshots.sh tv`, which now also captures `04-ask.png`) should come out clean. Reshoot before the 1.4 tvOS submission. Authority: `docs/APP-STORE-LISTING.md`.
 6. **Physical Siri-remote pass on the Apple TV.** Simulator XCUIRemote tests cover navigation, but a pass with the real remote is still wanted — the Ask surface's text field and dictation hint in particular.
