@@ -159,7 +159,21 @@ Providers"`: `none` means the plugin is gone. After every yt-dlp upgrade,
 reinstall it at the server's version (`curl -s http://127.0.0.1:4416/ping`
 reports it):
 `/opt/homebrew/opt/yt-dlp/libexec/bin/python -m pip install bgutil-ytdlp-pot-provider==<ver>`,
-then kickstart the restreamer. (Hit 2026-11-20.)
+then kickstart the restreamer. (Hit 2026-11-20 and again 2026-11-25.)
+
+**"No video formats found" on every cam, no 403s: yt-dlp is out of date, not
+bot-walled** (2026-11-24 18:01 → 11-25 07:50). YouTube rotated its player JS
+(`b485e332`) and yt-dlp 2026.10.26's n-challenge solver crashed on it — `yt-dlp -v`
+shows `WARNING: [youtube] [jsc] Error solving n challenge … a.addOnDisposeCallback
+is not a function` then `n challenge solving failed`, and without the solved
+challenge no formats come back. A bot wall looks different: segment 403s or "Sign
+in to confirm you're not a bot". Fix, in order:
+1. `brew upgrade yt-dlp` (2026.11.23 fixed this one; `curl -s
+   https://pypi.org/pypi/yt-dlp/json` shows the latest if brew lags).
+2. Reinstall the PO-token plugin (the paragraph above — the upgrade removes it) and
+   confirm `PO Token Providers: bgutil:http-…` plus `Retrieved a gvs PO Token` in `-v`.
+3. `launchctl kickstart -k gui/$(id -u)/com.donwb.cam-restreamer` — otherwise the
+   cams sit out the 30-min backoff — then `make restreamer-status` until 200s.
 
 **Segments 403 on every client even with a PO token** (2026-11-20; resolved
 2026-11-23 by a new home IP): yt-dlp resolves, the token is retrieved ("Retrieved a gvs PO
@@ -227,7 +241,8 @@ silently starves the prediction model.
   county's own public cameras at personal scale, but if the county or its camera
   vendor ever exposes a direct feed, point the restreamer at that instead.
 - **yt-dlp bit-rots.** When YouTube changes things, `brew upgrade yt-dlp` on the
-  Studio is the first fix to try; the second is testing other
+  Studio is the first fix to try (then reinstall the PO-token plugin — see "No
+  video formats found" above); the second is testing other
   `player_client` values (see the sustain-test method in the git history of this
   file's original session: download with `-o -` to a file and confirm it grows
   past ~60s).
