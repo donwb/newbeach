@@ -106,6 +106,54 @@ history (`?limit=N`). History rows are written only on actual flips, so the
 history table doubles as an uptime/flap log for exactly the kind of "is the
 restreamer flaky?" question that prompted all this.
 
+## Watchdog (self-heal + alerts)
+
+Health monitoring records outages and the clients cover them with stills, but
+until 2026-11-25 nothing *acted* on an outage — the 11/24 yt-dlp breakage sat
+dark for 14 hours until Don noticed. `scripts/cam-watchdog.sh` runs every 10
+minutes under launchd on the Studio (`com.donwb.cam-watchdog`, beside the
+restreamer) and handles outages in three layers:
+
+1. **Scripted fixes, no AI.** Every run: if the PO-token plugin is missing from
+   yt-dlp's venv (see below — every upgrade removes it), reinstall it at the
+   token server's version and restart the restreamer. On an outage whose logs
+   show yt-dlp failing to resolve ("No video formats found", n-challenge errors):
+   `brew upgrade yt-dlp`, reinstall the plugin, test-resolve one down cam, restart
+   the restreamer, re-probe after 2 min. At most once per 6h.
+2. **Headless Claude.** If the outage survives layer 1, or no scripted fix applies
+   (segment 403s, anything new), `claude -p` runs in the repo with the incident
+   facts and a log excerpt, reads this runbook, and may apply fixes only through an
+   explicit allowlist (`--permission-mode dontAsk` denies everything else — no repo
+   edits, no commits, no droplet). Once per incident, at most once per 6h, $3
+   budget, 15-min timeout. The run sets `CAM_WATCHDOG=1` so the repo's ATC status
+   Stop hook stands down; otherwise its prompt replaces the report being emailed.
+3. **Email.** Every action and outcome goes to `ALERT_EMAIL_TO`: scripted fix
+   applied, Claude's report (subject reflects the watchdog's own re-probe, not
+   Claude's claim), cooldown-suppressed outages, and the recovery. Plain SMTP via
+   curl; credentials in `~/.cam-restreamer.env`:
+
+   ```
+   ALERT_EMAIL_TO=you@example.com
+   SMTP_USER=sender@gmail.com
+   SMTP_PASS=<Gmail app password — myaccount.google.com/apppasswords>
+   # SMTP_URL=smtps://smtp.gmail.com:465   (default)
+   ```
+
+   Unconfigured, alerts go to the log only.
+
+**What counts as an outage:** a majority of the roster not serving HLS from the
+relay (`DOWN_MIN` in the env file overrides), on two consecutive runs. One dead
+cam is routine — Ormond-by-the-Sea has been dead upstream for weeks — and gets no
+email. Quiet hours (the restreamer's `QUIET_HOURS`) are skipped. The restreamer job
+not running at all is restarted and reported immediately.
+
+**Operating it:** `make deploy-watchdog` (copies to `~/bin`, installs the plist,
+loads it — the repo copy alone changes nothing, as with the restreamer),
+`make watchdog-status` (cams, plugin, email config, incident state, log tail,
+drift check), `make watchdog-test-email`. Log `~/Library/Logs/cam-watchdog.log`;
+state files in `~/.cam-watchdog/` (delete `claude_at`/`fix_at` to reset a
+cooldown). To pause it: `launchctl bootout gui/$(id -u)/com.donwb.cam-watchdog`.
+
 ## Runbook
 
 **A camera is black — where do I look?**
@@ -174,6 +222,8 @@ in to confirm you're not a bot". Fix, in order:
    confirm `PO Token Providers: bgutil:http-…` plus `Retrieved a gvs PO Token` in `-v`.
 3. `launchctl kickstart -k gui/$(id -u)/com.donwb.cam-restreamer` — otherwise the
    cams sit out the 30-min backoff — then `make restreamer-status` until 200s.
+
+The watchdog (above) now runs these three steps on its own when it sees this signature.
 
 **Segments 403 on every client even with a PO token** (2026-11-20; resolved
 2026-11-23 by a new home IP): yt-dlp resolves, the token is retrieved ("Retrieved a gvs PO

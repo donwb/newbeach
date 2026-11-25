@@ -513,6 +513,13 @@ Full architecture + runbook: `docs/CAM-RELAY.md`. Summary:
 - **Quiet hours (2026-11-23):** the restreamer pulls no video 11pm–6am local
   (`QUIET_HOURS` in `~/.cam-restreamer.env`, default `23-6`, empty = 24h). Every cam
   reads offline overnight and clients show the `still_url` still. That's by design, not an outage.
+- **Watchdog (2026-11-25):** `scripts/cam-watchdog.sh` (launchd `com.donwb.cam-watchdog`,
+  every 10 min, `make deploy-watchdog` / `watchdog-status`) acts on outages instead of
+  waiting for Don to notice the stills: scripted fixes first (PO-token plugin reinstall,
+  `brew upgrade yt-dlp` on the resolve-failure signature), then a headless `claude -p`
+  escalation with a `dontAsk` allowlist, then email. The headless run sets `CAM_WATCHDOG=1`
+  and `.claude/hooks/status-guard.sh` skips on it — keep that, or the status prompt
+  replaces the emailed report. Details in `docs/CAM-RELAY.md` → Watchdog.
 - **Retired:** `scripts/update-stream-url.sh` (the URL-push cron). Remove its crontab entry wherever the restreamer gets installed.
 
 ## Tidbyt (Retired)

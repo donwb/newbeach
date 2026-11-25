@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd job for the beach-cam watchdog (scripts/cam-watchdog.sh): every 10
+  minutes, checks the relay for dark cams and runs the scripted fix / headless
+  Claude escalation / email alert. Lives beside com.donwb.cam-restreamer on the
+  Mac Studio. Install with `make deploy-watchdog` (copies the script to ~/bin
+  and this file to ~/Library/LaunchAgents, then loads it).
+
+  launchd never starts a second copy while one is still running, so a long
+  Claude escalation simply makes the next ticks skip.
+
+  Log: ~/Library/Logs/cam-watchdog.log. State: ~/.cam-watchdog/.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.donwb.cam-watchdog</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/donwb/bin/cam-watchdog.sh</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>600</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/donwb/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/cam-watchdog.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/cam-watchdog.launchd.log</string>
+</dict>
+</plist>

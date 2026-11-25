@@ -3,7 +3,12 @@
     "allow": [
       "Bash(make flight)",
       "Bash(make flight *)",
-      "Bash(make flight-*)"
+      "Bash(make flight-*)",
+      "Bash(brew upgrade yt-dlp)",
+      "Bash(/opt/homebrew/opt/yt-dlp/libexec/bin/python -m pip install bgutil-ytdlp-pot-provider==*)",
+      "Bash(launchctl kickstart -k gui/*/com.donwb.cam-restreamer)",
+      "Bash(make restreamer-status)",
+      "Bash(make watchdog-status)"
     ]
   },
   "hooks": {

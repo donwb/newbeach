@@ -9,9 +9,14 @@ RESTREAMER_SRC   := scripts/cam-restreamer.sh
 RESTREAMER_DEST  := $(HOME)/bin/cam-restreamer.sh
 RESTREAMER_ENV   := $(HOME)/.cam-restreamer.env
 RESTREAMER_LOG   := /tmp/cam-restreamer.launchd.log
+WATCHDOG_LABEL   := com.donwb.cam-watchdog
+WATCHDOG_SRC     := scripts/cam-watchdog.sh
+WATCHDOG_DEST    := $(HOME)/bin/cam-watchdog.sh
+WATCHDOG_PLIST   := $(HOME)/Library/LaunchAgents/$(WATCHDOG_LABEL).plist
 
 .PHONY: help flight flight-check screenshots \
-        deploy-restreamer restreamer-status restreamer-diff
+        deploy-restreamer restreamer-status restreamer-diff \
+        deploy-watchdog watchdog-status watchdog-test-email
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -83,3 +88,28 @@ restreamer-diff:  ## Show how the deployed script differs from the repo copy
 		diff -u $(RESTREAMER_DEST) $(RESTREAMER_SRC) | tail -n +3 | sed 's/^/  /'; \
 		echo "  Run 'make deploy-restreamer' to sync."; \
 	fi
+
+# The watchdog (scripts/cam-watchdog.sh) checks the relay every 10 min and runs
+# the scripted fix / headless-Claude escalation / email alert. Same copy-to-~/bin
+# rule as the restreamer: the repo file alone changes nothing.
+
+deploy-watchdog:  ## Copy cam-watchdog.sh to ~/bin, install + (re)load its launchd job (Mac Studio only)
+	@launchctl print gui/$$(id -u)/$(RESTREAMER_LABEL) >/dev/null 2>&1 || { \
+		echo "✗ $(RESTREAMER_LABEL) is not loaded — this isn't the restreamer host."; exit 1; }
+	@mkdir -p $(HOME)/bin $(HOME)/Library/LaunchAgents
+	@cp $(WATCHDOG_SRC) $(WATCHDOG_DEST) && chmod +x $(WATCHDOG_DEST)
+	@cp scripts/$(WATCHDOG_LABEL).plist $(WATCHDOG_PLIST)
+	@launchctl bootout gui/$$(id -u)/$(WATCHDOG_LABEL) 2>/dev/null || true
+	@launchctl bootstrap gui/$$(id -u) $(WATCHDOG_PLIST)
+	@echo "✓ deployed $(WATCHDOG_SRC) → $(WATCHDOG_DEST); $(WATCHDOG_LABEL) loaded (every 10 min)"
+	@$(WATCHDOG_DEST) --status
+
+watchdog-status:  ## Show the watchdog's view: cams, plugin, email config, incident state, recent log
+	@$(WATCHDOG_DEST) --status
+	@echo "  --- last 15 lines of ~/Library/Logs/cam-watchdog.log ---"
+	@tail -15 $(HOME)/Library/Logs/cam-watchdog.log 2>/dev/null | cut -c1-200 | sed 's/^/  /' || echo "  (no log yet)"
+	@diff -q $(WATCHDOG_DEST) $(WATCHDOG_SRC) >/dev/null 2>&1 || \
+		echo "  ✗ deployed watchdog differs from the repo — run 'make deploy-watchdog'"
+
+watchdog-test-email:  ## Send a test alert email with the configured SMTP settings
+	@$(WATCHDOG_DEST) --test-email

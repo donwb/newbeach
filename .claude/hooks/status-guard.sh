@@ -3,6 +3,9 @@
 # PORTFOLIO-STATUS.md was last committed, on a later day than its last_verified, ask the
 # agent to update it or say why nothing status-relevant changed. Never blocks twice.
 input=$(cat)
+# The cam watchdog's unattended escalation (scripts/cam-watchdog.sh) emails Claude's final
+# message verbatim; a status prompt here would replace the incident report.
+[ -n "${CAM_WATCHDOG:-}" ] && exit 0
 printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0
 sid=$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 marker="${TMPDIR:-/tmp}/atc-status-guard-${sid:-nosession}"
